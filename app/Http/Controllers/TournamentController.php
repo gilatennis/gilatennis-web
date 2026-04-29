@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Tournament;
+use Inertia\Inertia;
+
+class TournamentController extends Controller
+{
+    public function show(Tournament $tournament)
+    {
+        $tournament->load(['prizes', 'scheduleDays.items', 'rules']);
+
+        $registrationCount = $tournament->registrations()
+            ->where('payment_status', 'paid')
+            ->count();
+
+        return Inertia::render('Tournaments/Show', [
+            'tournament' => $tournament,
+            'registrationCount' => $registrationCount,
+        ]);
+    }
+}
