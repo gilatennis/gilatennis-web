@@ -1,9 +1,6 @@
 <?php
 
 use App\Models\Tournament;
-use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-
-uses(LazilyRefreshDatabase::class);
 
 describe('Tournament Model', function () {
     it('can be created via factory', function () {

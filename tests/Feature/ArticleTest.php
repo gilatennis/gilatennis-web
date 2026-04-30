@@ -1,9 +1,6 @@
 <?php
 
 use App\Models\Article;
-use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-
-uses(LazilyRefreshDatabase::class);
 
 describe('Article Model', function () {
     it('can be created via factory', function () {

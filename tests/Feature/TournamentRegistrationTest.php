@@ -5,9 +5,6 @@ use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
 use App\Services\DuitkuService;
-use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-
-uses(LazilyRefreshDatabase::class);
 
 describe('Tournament Detail Page', function () {
     it('loads', function () {

@@ -3,9 +3,6 @@
 use App\Models\Article;
 use App\Models\Court;
 use App\Models\Tournament;
-use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-
-uses(LazilyRefreshDatabase::class);
 
 it('returns tournaments matching search query', function () {
     Tournament::factory()->create([

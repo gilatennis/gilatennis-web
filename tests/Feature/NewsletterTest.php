@@ -1,9 +1,6 @@
 <?php
 
 use App\Models\NewsletterSubscriber;
-use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-
-uses(LazilyRefreshDatabase::class);
 
 describe('Newsletter Subscription', function () {
     it('subscribes a new email address', function () {

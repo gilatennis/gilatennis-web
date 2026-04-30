@@ -1,9 +1,6 @@
 <?php
 
 use App\Models\NewsletterSubscriber;
-use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-
-uses(LazilyRefreshDatabase::class);
 
 describe('NewsletterSubscriber Model', function () {
     it('can be created via factory', function () {
