@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
     import { Search, User, ShoppingBag, Menu, X, Heart, Sun, Moon } from 'lucide-svelte/icons';
+    import { themeState } from '@/lib/theme.svelte';
 
     const categories = ["Rackets", "Strings", "Shoes", "Apparel", "Bags", "Balls"];
 
@@ -20,7 +21,7 @@
 
     let searchOpen = $state(false);
     let mobileOpen = $state(false);
-    let dark = $state(false);
+    const { resolvedAppearance, updateAppearance } = themeState();
 </script>
 
 <header class="sticky top-0 z-40 border-b border-black/10 dark:border-white/10 bg-white/85 dark:bg-neutral-950/85 backdrop-blur-md">
@@ -77,10 +78,10 @@
                 <Search size={19} />
             </button>
             <button
-                onclick={() => dark = !dark}
+                onclick={() => updateAppearance(resolvedAppearance() === 'dark' ? 'light' : 'dark')}
                 class="h-10 w-10 grid place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5"
                 aria-label="Toggle dark mode">
-                {#if dark}
+                {#if resolvedAppearance() === 'dark'}
                     <Sun size={19} />
                 {:else}
                     <Moon size={19} />
