@@ -17,9 +17,14 @@
             imageLabel?: string;
             playerCount?: number;
             maxPlayers?: number;
-            entryFee?: number;
+            fee?: number;
             tagline?: string;
             spotsAvailable?: number;
+            format?: string;
+            ballType?: string;
+            level?: string;
+            perks?: string[];
+            registrationCloses?: string;
         };
     } = $props();
 
@@ -28,23 +33,17 @@
             ? tournament.maxPlayers - tournament.playerCount
             : null
     ));
-
-    const perks = [
-        'USTA-sanctioned, official ranking points',
-        'Pro stringing on-site (24h turnaround)',
-        'Lunch + Gila merch in player gift bag',
-    ];
 </script>
 
-<div class="bg-foreground text-background sticky top-[140px]">
+<div class="bg-foreground text-background sticky top-35">
     <ImagePlaceholder
         label={tournament.imageLabel ?? `${tournament.surface.toLowerCase()} court · ${tournament.city}`}
         aspect="16/9"
         tone="dark"
-        className="w-full"
+        class="w-full"
     >
         <div class="absolute top-4 left-4 px-2.5 py-1 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-1.5">
-            <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Registration open
+            <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span> Registration open
         </div>
     </ImagePlaceholder>
 
@@ -59,18 +58,20 @@
         <div class="mt-6 grid grid-cols-3 gap-4 text-sm">
             <div>
                 <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Surface</div>
-                <div class="mt-1 font-display font-bold text-base">{tournament.surface}</div>
+                <div class="mt-1 font-display font-bold text-base">{tournament.surfaceLabel || tournament.surface}</div>
             </div>
-            {#if tournament.surfaceLabel}
+            {#if tournament.level}
                 <div>
-                    <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Skill</div>
-                    <div class="mt-1 font-display font-bold text-base">{tournament.surfaceLabel}</div>
+                    <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Level</div>
+                    <div class="mt-1 font-display font-bold text-base">{tournament.level}</div>
                 </div>
             {/if}
-            <div>
-                <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Format</div>
-                <div class="mt-1 font-display font-bold text-base">Single Elim</div>
-            </div>
+            {#if tournament.format}
+                <div>
+                    <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Format</div>
+                    <div class="mt-1 font-display font-bold text-base">{tournament.format}</div>
+                </div>
+            {/if}
             {#if tournament.maxPlayers}
                 <div>
                     <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Draw Size</div>
@@ -83,28 +84,51 @@
                     <div class="mt-1 font-display font-bold text-base">{spotsLeft}</div>
                 </div>
             {/if}
-            {#if tournament.entryFee !== undefined}
+            {#if tournament.fee !== undefined}
                 <div>
                     <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Entry Fee</div>
-                    <div class="mt-1 font-display font-bold text-base">${tournament.entryFee}</div>
+                    <div class="mt-1 font-display font-bold text-base">Rp {(tournament.fee / 1000).toFixed(0)}k</div>
                 </div>
             {/if}
         </div>
 
-        <ul class="mt-6 space-y-2 text-sm opacity-80">
-            {#each perks as perk}
-                <li class="flex items-start gap-2">
-                    <span class="mt-1.5 h-1 w-3 bg-coral shrink-0" />
-                    {perk}
-                </li>
-            {/each}
-        </ul>
+        {#if tournament.ballType || tournament.registrationCloses}
+            <ul class="mt-6 space-y-2 text-sm opacity-80">
+                {#if tournament.ballType}
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1.5 h-1 w-3 bg-coral shrink-0"></span>
+                        <div>
+                            <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Ball Type</div>
+                            <div class="font-display font-bold text-base">{tournament.ballType}</div>
+                        </div>
+                    </li>
+                {/if}
+                {#if tournament.registrationCloses}
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1.5 h-1 w-3 bg-coral shrink-0"></span>
+                        <div>
+                            <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Registration Closes</div>
+                            <div class="font-display font-bold text-base">{tournament.registrationCloses}</div>
+                        </div>
+                    </li>
+                {/if}
+            </ul>
+        {:else if tournament.perks?.length}
+            <ul class="mt-6 space-y-2 text-sm opacity-80">
+                {#each tournament.perks as perk}
+                    <li class="flex items-start gap-2">
+                        <span class="mt-1.5 h-1 w-3 bg-coral shrink-0"></span>
+                        {perk}
+                    </li>
+                {/each}
+            </ul>
+        {/if}
 
         <Link
             href={`/tournaments/${tournament.slug}/register`}
             class="mt-8 w-full h-14 bg-coral text-white font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:bg-background hover:text-foreground transition-colors"
         >
-            Register now <ArrowRight size={18} />
+            Register now <ArrowRight size={18}></ArrowRight>
         </Link>
         <button class="mt-2 w-full h-10 text-xs uppercase tracking-[0.2em] opacity-60 hover:opacity-100 transition-opacity">
             Share with my doubles partner

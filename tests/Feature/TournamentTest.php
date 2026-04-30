@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Tournament;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 
-uses(RefreshDatabase::class);
+uses(LazilyRefreshDatabase::class);
 
 describe('Tournament Model', function () {
     it('can be created via factory', function () {
@@ -16,17 +16,17 @@ describe('Tournament Model', function () {
             'name' => 'Test Open',
             'city' => 'San Jose, CA',
             'surface' => 'hard',
-            'fee_cents' => 4500,
+            'fee' => 4500,
         ]);
 
         expect($t->name)->toBe('Test Open');
         expect($t->city)->toBe('San Jose, CA');
-        expect($t->fee_cents)->toBe(4500);
+        expect($t->fee)->toBe(4500.0);
     });
 
-    it('fee accessor converts cents to dollars', function () {
-        $t = Tournament::factory()->create(['fee_cents' => 4500]);
-        expect($t->fee)->toBe(45.0);
+    it('fee is stored and retrieved as a float', function () {
+        $t = Tournament::factory()->create(['fee' => 600000]);
+        expect($t->fee)->toBe(600000.0);
     });
 
     it('spots_available returns max of zero or spots_left', function () {

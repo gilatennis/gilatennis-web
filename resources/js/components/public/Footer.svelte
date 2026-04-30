@@ -5,7 +5,7 @@
         { h: 'Shop', links: ['Rackets', 'Strings', 'Shoes', 'Apparel', 'Bags', 'Balls', 'Sale'] },
         { h: 'Read', links: ['Gear Reviews', 'Tennis Tips', 'Strategy', 'Pro Watch', "Buyer's Guides"] },
         { h: 'Play', links: ['Tournaments', 'Find a Coach', 'Stringing Service', 'Demo Program'] },
-        { h: 'Company', links: ['About Gila', 'Careers', 'Press', 'Contact', 'Help Center'] },
+        { h: 'Company', links: ['About Gilatennis', 'Careers', 'Press', 'Contact', 'Help Center'] },
     ];
 
     const social = ['IG', 'X', 'YT', 'TT'];

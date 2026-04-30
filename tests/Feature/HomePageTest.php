@@ -3,9 +3,9 @@
 use App\Models\Article;
 use App\Models\Court;
 use App\Models\Tournament;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 
-uses(RefreshDatabase::class);
+uses(LazilyRefreshDatabase::class);
 
 describe('HomePage', function () {
     it('loads successfully', function () {

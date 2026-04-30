@@ -117,16 +117,16 @@ class TournamentRegistrationController extends Controller
 
     private function calculateAmount(TournamentRegistrationRequest $request, Tournament $tournament): int
     {
-        $baseCents = $tournament->fee_cents; // e.g. 5000 (IDR)
+        $base = (int) $tournament->fee;
 
-        // Doubles add-on
+        // Doubles add-on: IDR 25,000
         if (in_array($request->event_type, ['doubles', 'both'])) {
-            $baseCents += 2500;
+            $base += 25000;
         }
 
-        // Processing fee: 500 IDR
-        $baseCents += 500;
+        // Processing fee: IDR 5,000
+        $base += 5000;
 
-        return $baseCents;
+        return $base;
     }
 }

@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Court;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 
-uses(RefreshDatabase::class);
+uses(LazilyRefreshDatabase::class);
 
 describe('Court Model', function () {
     it('can be created via factory', function () {

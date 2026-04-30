@@ -30,9 +30,20 @@ class Tournament extends Model
         return 'tournaments';
     }
 
+    protected $guarded = [];
+
+    protected $appends = [
+        'spots_available',
+        'max_players',
+        'player_count',
+        'surface_label',
+        'is_sold_out',
+    ];
+
     protected $casts = [
         'is_featured' => 'boolean',
-        'fee_cents' => 'integer',
+        'fee' => 'float',
+        'perks' => 'array',
         'utr_min' => 'decimal:1',
         'utr_max' => 'decimal:1',
     ];
@@ -72,11 +83,6 @@ class Tournament extends Model
         return $query->where('status', 'open');
     }
 
-    public function getFeeAttribute(): float
-    {
-        return $this->fee_cents / 100;
-    }
-
     public function getSpotsAvailableAttribute(): int
     {
         return max(0, $this->spots_left);
@@ -105,10 +111,5 @@ class Tournament extends Model
     public function getPlayerCountAttribute(): int
     {
         return max(0, $this->draw_size - $this->spots_left);
-    }
-
-    public function getEntryFeeAttribute(): float
-    {
-        return $this->fee;
     }
 }

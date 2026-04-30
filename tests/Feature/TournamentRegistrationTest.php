@@ -5,9 +5,9 @@ use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
 use App\Services\DuitkuService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 
-uses(RefreshDatabase::class);
+uses(LazilyRefreshDatabase::class);
 
 describe('Tournament Detail Page', function () {
     it('loads', function () {
@@ -46,7 +46,7 @@ describe('Registration Form', function () {
     });
 
     it('creates guest user', function () {
-        $t = Tournament::factory()->create(['fee_cents' => 5000, 'status' => 'open', 'spots_left' => 10]);
+        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open', 'spots_left' => 10]);
 
         $this->swap(DuitkuService::class, new class extends DuitkuService
         {
@@ -83,7 +83,7 @@ describe('Registration Form', function () {
     });
 
     it('reuses existing guest user', function () {
-        $t = Tournament::factory()->create(['fee_cents' => 5000, 'status' => 'open', 'spots_left' => 10]);
+        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open', 'spots_left' => 10]);
         User::factory()->create(['email' => 'jane@example.com', 'is_guest' => true]);
 
         $this->swap(DuitkuService::class, new class extends DuitkuService
@@ -118,7 +118,7 @@ describe('Registration Form', function () {
     });
 
     it('creates registration with processing status', function () {
-        $t = Tournament::factory()->create(['fee_cents' => 5000, 'status' => 'open', 'spots_left' => 10]);
+        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open', 'spots_left' => 10]);
 
         $this->swap(DuitkuService::class, new class extends DuitkuService
         {
@@ -155,7 +155,7 @@ describe('Registration Form', function () {
     });
 
     it('redirects existing paid registration to success', function () {
-        $t = Tournament::factory()->create(['fee_cents' => 5000, 'status' => 'open', 'spots_left' => 10]);
+        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open', 'spots_left' => 10]);
         $user = User::factory()->create();
         $existing = TournamentRegistration::factory()->forTournament($t)->forUser($user)->create([
             'email' => $user->email,
@@ -194,7 +194,7 @@ describe('Registration Form', function () {
 
 describe('Registration Validation', function () {
     it('rejects empty fields', function () {
-        $t = Tournament::factory()->create(['fee_cents' => 5000, 'status' => 'open', 'spots_left' => 10]);
+        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open', 'spots_left' => 10]);
 
         $this->postJson(route('tournaments.register.store', $t->slug), [])
             ->assertStatus(422)
@@ -202,7 +202,7 @@ describe('Registration Validation', function () {
     });
 
     it('rejects invalid email', function () {
-        $t = Tournament::factory()->create(['fee_cents' => 5000, 'status' => 'open', 'spots_left' => 10]);
+        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open', 'spots_left' => 10]);
 
         $this->postJson(route('tournaments.register.store', $t->slug), [
             'name' => 'Jane Smith',
@@ -218,7 +218,7 @@ describe('Registration Validation', function () {
     });
 
     it('rejects out-of-range rating', function () {
-        $t = Tournament::factory()->create(['fee_cents' => 5000, 'status' => 'open', 'spots_left' => 10]);
+        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open', 'spots_left' => 10]);
 
         $this->postJson(route('tournaments.register.store', $t->slug), [
             'name' => 'Jane Smith',

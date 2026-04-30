@@ -1,6 +1,5 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
-    import { Form } from '@inertiajs/svelte';
     import PublicLayout from '@/components/public/PublicLayout.svelte';
     import HeroSection from '@/components/public/HeroSection.svelte';
     import TrustBar from '@/components/public/TrustBar.svelte';
@@ -27,9 +26,14 @@
             imageLabel?: string;
             playerCount?: number;
             maxPlayers?: number;
-            entryFee?: number;
+            fee?: number;
             tagline?: string;
             spotsAvailable?: number;
+            format?: string;
+            ballType?: string;
+            level?: string;
+            perks?: string[];
+            registrationCloses?: string;
         }>;
         articles?: Array<{
             slug: string;

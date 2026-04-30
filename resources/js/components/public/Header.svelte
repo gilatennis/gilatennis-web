@@ -25,6 +25,7 @@
 
 <header class="sticky top-0 z-40 border-b border-black/10 dark:border-white/10 bg-white/85 dark:bg-neutral-950/85 backdrop-blur-md">
     <!-- Top utility strip -->
+    {/*
     <div class="border-b border-black/5 dark:border-white/5 text-[11px] tracking-[0.2em] uppercase">
         <div class="max-w-[1400px] mx-auto px-6 py-2 flex items-center justify-between text-neutral-600 dark:text-neutral-400">
             <div class="hidden md:flex items-center gap-5">
@@ -44,6 +45,7 @@
             </div>
         </div>
     </div>
+    */''}
 
     <!-- Main bar -->
     <div class="max-w-[1400px] mx-auto px-6 h-[72px] flex items-center gap-8">
