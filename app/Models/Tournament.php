@@ -44,6 +44,7 @@ class Tournament extends Model
         'is_featured' => 'boolean',
         'fee' => 'float',
         'perks' => 'array',
+        'event_types' => 'array',
         'utr_min' => 'decimal:1',
         'utr_max' => 'decimal:1',
     ];

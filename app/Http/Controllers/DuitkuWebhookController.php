@@ -12,9 +12,20 @@ class DuitkuWebhookController extends Controller
     public function handle(Request $request)
     {
         $request->validate([
+            'merchantCode' => ['required', 'string'],
+            'amount' => ['required'],
             'merchantOrderId' => ['required', 'string'],
             'resultCode' => ['required', 'string'],
+            'signature' => ['required', 'string'],
         ]);
+
+        $calcSignature = md5(
+            $request->merchantCode.$request->amount.$request->merchantOrderId.config('services.duitku.api_key')
+        );
+
+        if ($request->signature !== $calcSignature) {
+            return response()->json(['status' => 'invalid signature'], 403);
+        }
 
         $registration = TournamentRegistration::where('confirmation_code', $request->merchantOrderId)->first();
 

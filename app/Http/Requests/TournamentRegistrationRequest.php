@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class TournamentRegistrationRequest extends FormRequest
 {
@@ -18,9 +19,9 @@ class TournamentRegistrationRequest extends FormRequest
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'date_of_birth' => ['required', 'date', 'before:today'],
-            'rating_type' => ['required', 'in:UTR,ITN,USTA'],
-            'rating_value' => ['required', 'numeric', 'min:1', 'max:16.5'],
-            'event_type' => ['required', 'in:singles,doubles,both'],
+            'rating_type' => ['nullable', 'in:UTR,ITN,USTA'],
+            'rating_value' => ['nullable', 'numeric', 'min:1', 'max:16.5'],
+            'event_type' => ['required', Rule::in($this->route('tournament')?->event_types ?? ['singles', 'doubles', 'both'])],
             'find_partner' => ['boolean'],
             'partner_name' => ['nullable', 'string'],
             'partner_email' => ['nullable', 'email'],

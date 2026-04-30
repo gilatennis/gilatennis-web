@@ -17,16 +17,18 @@ class DuitkuService
 
     public function createInvoice(TournamentRegistration $registration): DuitkuInvoiceResponse
     {
-        $timestamp = (int) (microtime(true) * 1000);
-        $signature = hash('sha256', $this->merchantCode.$timestamp.$this->apiKey);
+        $merchantOrderId = $registration->confirmation_code;
+        $paymentAmount = $registration->amount_cents;
+        $signature = md5($this->merchantCode.$merchantOrderId.$paymentAmount.$this->apiKey);
 
         $nameParts = explode(' ', $registration->name, 2);
         $firstName = $nameParts[0];
         $lastName = $nameParts[1] ?? '';
 
         $payload = [
-            'paymentAmount' => $registration->amount_cents,
-            'merchantOrderId' => $registration->confirmation_code,
+            'merchantCode' => $this->merchantCode,
+            'paymentAmount' => $paymentAmount,
+            'merchantOrderId' => $merchantOrderId,
             'productDetails' => "Tournament Registration: {$registration->tournament->name}",
             'additionalParam' => '',
             'merchantUserInfo' => '',
@@ -35,7 +37,7 @@ class DuitkuService
             'itemDetails' => [
                 [
                     'name' => $registration->tournament->name.' - '.ucfirst($registration->event_type),
-                    'price' => $registration->amount_cents,
+                    'price' => $paymentAmount,
                     'quantity' => 1,
                 ],
             ],
@@ -66,14 +68,12 @@ class DuitkuService
             'callbackUrl' => route('webhooks.duitku'),
             'returnUrl' => route('payments.duitku.return'),
             'expiryPeriod' => 60,
+            'signature' => $signature,
         ];
 
         $response = $this->http()->withHeaders([
             'Content-Type' => 'application/json',
-            'x-duitku-merchantcode' => $this->merchantCode,
-            'x-duitku-signature' => $signature,
-            'x-duitku-timestamp' => (string) $timestamp,
-        ])->post($this->apiUrl.'/api/merchant/createInvoice', $payload);
+        ])->post($this->apiUrl.'/webapi/api/merchant/v2/inquiry', $payload);
 
         $data = $response->json();
 
@@ -84,11 +84,6 @@ class DuitkuService
             statusCode: $data['statusCode'] ?? '',
             statusMessage: $data['statusMessage'] ?? '',
         );
-    }
-
-    public function getSignature(string $timestamp): string
-    {
-        return hash('sha256', $this->merchantCode.$timestamp.$this->apiKey);
     }
 
     private function http(): PendingRequest

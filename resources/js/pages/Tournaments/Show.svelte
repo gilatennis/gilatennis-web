@@ -139,7 +139,7 @@
                                     Entry fee
                                 </div>
                                 <div class="font-display font-black text-2xl">
-                                    ${(tournament?.fee_cents ?? 0) / 100}
+                                    ${tournament?.fee ?? 0}
                                 </div>
                             </div>
                         </div>
@@ -214,12 +214,12 @@
                 {#if tournament?.schedule_days?.length}
                     {#each tournament.schedule_days as day}
                         <div>
-                            <div class="font-display font-bold text-sm">{day.label}</div>
+                            <div class="font-display font-bold text-sm">{day.day_label}</div>
                             <ul class="mt-1.5 space-y-1">
                                 {#each day.items ?? [] as item}
                                     <li class="flex items-start gap-2 text-sm opacity-70">
                                         <span class="mt-2 h-1 w-3 bg-coral shrink-0"></span>
-                                        <span class="font-mono text-xs tracking-[0.08em]">{item.description}</span>
+                                        <span class="font-mono text-xs tracking-[0.08em]">{item.label}</span>
                                     </li>
                                 {/each}
                             </ul>
@@ -237,7 +237,7 @@
                         {#each tournament.rules as rule}
                             <li class="flex items-start gap-2 text-sm">
                                 <span class="mt-2 h-1 w-3 bg-coral shrink-0"></span>
-                                <span class="opacity-75 leading-relaxed">{rule.description}</span>
+                                <span class="opacity-75 leading-relaxed">{rule.body}</span>
                             </li>
                         {/each}
                     </ul>
@@ -307,7 +307,7 @@
     <div class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white dark:bg-neutral-950 border-t border-black/10 dark:border-white/10 p-4 flex items-center gap-4">
         <div class="flex-1 min-w-0">
             <div class="font-display font-bold text-sm truncate">{tournament?.name ?? ''}</div>
-            <div class="text-xs text-neutral-500">${(tournament?.fee_cents ?? 0) / 100} entry</div>
+            <div class="text-xs text-neutral-500">${tournament?.fee ?? 0} entry</div>
         </div>
         {#if registrationOpen}
             <Link

@@ -31,7 +31,7 @@ return [
     'duitku' => [
         'merchant_code' => env('DUITKU_MERCHANT_CODE'),
         'api_key' => env('DUITKU_API_KEY'),
-        'api_url' => env('DUITKU_API_URL', 'https://api-sandbox.duitku.com'),
+        'api_url' => env('DUITKU_API_URL', 'https://sandbox.duitku.com'),
     ],
 
     'slack' => [

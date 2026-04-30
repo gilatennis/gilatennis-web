@@ -43,6 +43,7 @@ class TournamentFactory extends Factory
             'format' => 'Single Elimination, best-of-3',
             'ball_type' => 'Penn Championship',
             'registration_closes' => fn ($attrs) => fake()->dateTimeBetween('now', '+3 months'),
+            'event_types' => ['singles', 'doubles', 'both'],
             'perks' => null,
             'is_featured' => false,
             'status' => 'open',

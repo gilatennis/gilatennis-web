@@ -195,7 +195,7 @@ describe('Registration Validation', function () {
 
         $this->postJson(route('tournaments.register.store', $t->slug), [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'email', 'phone', 'date_of_birth', 'rating_value', 'event_type', 'tshirt_size', 'waiver_accepted']);
+            ->assertJsonValidationErrors(['name', 'email', 'phone', 'date_of_birth', 'event_type', 'tshirt_size', 'waiver_accepted']);
     });
 
     it('rejects invalid email', function () {
@@ -232,6 +232,10 @@ describe('Registration Validation', function () {
 });
 
 describe('Duitku Webhook', function () {
+    beforeEach(function () {
+        config(['services.duitku.api_key' => 'testapikey']);
+    });
+
     it('marks payment as paid on resultCode 00', function () {
         $t = Tournament::factory()->create(['spots_left' => 10]);
         $reg = TournamentRegistration::factory()->forTournament($t)->create([
@@ -241,9 +245,12 @@ describe('Duitku Webhook', function () {
         ]);
 
         $this->post(route('webhooks.duitku'), [
+            'merchantCode' => 'TESTMERCHANT',
+            'amount' => '5000',
             'merchantOrderId' => 'GO-2026-TEST',
             'resultCode' => '00',
             'reference' => 'DK-PAID-REF',
+            'signature' => md5('TESTMERCHANT'.'5000'.'GO-2026-TEST'.'testapikey'),
         ])->assertOk();
 
         $reg->refresh();
@@ -256,11 +263,15 @@ describe('Duitku Webhook', function () {
         $reg = TournamentRegistration::factory()->forTournament($t)->create([
             'confirmation_code' => 'GO-2026-TEST2',
             'payment_status' => 'processing',
+            'amount_cents' => 5000,
         ]);
 
         $this->post(route('webhooks.duitku'), [
+            'merchantCode' => 'TESTMERCHANT',
+            'amount' => '5000',
             'merchantOrderId' => 'GO-2026-TEST2',
             'resultCode' => '01',
+            'signature' => md5('TESTMERCHANT'.'5000'.'GO-2026-TEST2'.'testapikey'),
         ])->assertOk();
 
         $reg->refresh();
@@ -272,11 +283,15 @@ describe('Duitku Webhook', function () {
         $reg = TournamentRegistration::factory()->forTournament($t)->create([
             'confirmation_code' => 'GO-2026-TEST3',
             'payment_status' => 'processing',
+            'amount_cents' => 5000,
         ]);
 
         $this->post(route('webhooks.duitku'), [
+            'merchantCode' => 'TESTMERCHANT',
+            'amount' => '5000',
             'merchantOrderId' => 'GO-2026-TEST3',
             'resultCode' => '00',
+            'signature' => md5('TESTMERCHANT'.'5000'.'GO-2026-TEST3'.'testapikey'),
         ])->assertOk();
 
         $t->refresh();

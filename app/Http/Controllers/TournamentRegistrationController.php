@@ -54,7 +54,7 @@ class TournamentRegistrationController extends Controller
         }
 
         // 3. Calculate amount
-        $amountCents = $this->calculateAmount($request, $tournament);
+        $amountCents = $this->calculateAmount($tournament);
 
         // 4. Create registration
         $registration = TournamentRegistration::create([
@@ -115,18 +115,8 @@ class TournamentRegistrationController extends Controller
         ]);
     }
 
-    private function calculateAmount(TournamentRegistrationRequest $request, Tournament $tournament): int
+    private function calculateAmount(Tournament $tournament): int
     {
-        $base = (int) $tournament->fee;
-
-        // Doubles add-on: IDR 25,000
-        if (in_array($request->event_type, ['doubles', 'both'])) {
-            $base += 25000;
-        }
-
-        // Processing fee: IDR 5,000
-        $base += 5000;
-
-        return $base;
+        return (int) $tournament->fee;
     }
 }
