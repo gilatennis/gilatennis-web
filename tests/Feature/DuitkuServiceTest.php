@@ -5,12 +5,12 @@ use App\Services\DuitkuService;
 use Illuminate\Support\Facades\Http;
 
 describe('DuitkuService', function () {
-    it('posts to the correct endpoint with MD5 signature in body', function () {
+    it('creates invoice with header-based authentication', function () {
         Http::fake([
-            'sandbox.duitku.com/*' => Http::response([
+            'api-sandbox.duitku.com/*' => Http::response([
                 'merchantCode' => 'TESTMERCHANT',
                 'reference' => 'DK-TESTREF123',
-                'paymentUrl' => 'https://sandbox.duitku.com/pay/DEMO123',
+                'paymentUrl' => 'https://api-sandbox.duitku.com/pay/DEMO123',
                 'statusCode' => '00',
                 'statusMessage' => 'Invoice created',
             ], 200),
@@ -24,23 +24,26 @@ describe('DuitkuService', function () {
         $service = new DuitkuService(
             merchantCode: 'TESTMERCHANT',
             apiKey: 'testapikey',
-            apiUrl: 'https://sandbox.duitku.com',
+            apiUrl: 'https://api-sandbox.duitku.com',
         );
 
         $result = $service->createInvoice($registration);
 
         Http::assertSent(function ($request) {
             $body = $request->data();
-            $expectedSignature = md5('TESTMERCHANT'.'ORDER-001'.'50000'.'testapikey');
+            $timestamp = $request->header('x-duitku-timestamp')[0];
+            $expectedSignature = hash('sha256', 'TESTMERCHANT'.$timestamp.'testapikey');
 
-            return str_contains($request->url(), 'sandbox.duitku.com/webapi/api/merchant/v2/inquiry')
-                && $body['merchantCode'] === 'TESTMERCHANT'
-                && $body['signature'] === $expectedSignature
-                && ! isset($body['timestamp'])
-                && ! $request->hasHeader('x-duitku-merchantcode');
+            return str_contains($request->url(), 'api-sandbox.duitku.com/api/merchant/createInvoice')
+                && $request->hasHeader('x-duitku-signature')
+                && $request->hasHeader('x-duitku-timestamp')
+                && $request->hasHeader('x-duitku-merchantcode')
+                && $request->header('x-duitku-signature')[0] === $expectedSignature
+                && ! isset($body['merchantCode'])
+                && ! isset($body['signature']);
         });
 
         expect($result->statusCode)->toBe('00');
-        expect($result->paymentUrl)->toBe('https://sandbox.duitku.com/pay/DEMO123');
+        expect($result->paymentUrl)->toBe('https://api-sandbox.duitku.com/pay/DEMO123');
     });
 });

@@ -7,6 +7,7 @@ use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
 use App\Services\DuitkuService;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class TournamentRegistrationController extends Controller
@@ -34,7 +35,7 @@ class TournamentRegistrationController extends Controller
             [
                 'name' => $request->name,
                 'is_guest' => true,
-                'password' => bcrypt('guest-'.$request->email),
+                'password' => bcrypt('guest-' . $request->email),
             ],
         );
 
@@ -79,6 +80,8 @@ class TournamentRegistrationController extends Controller
         ]);
 
         // 5. Create Duitku invoice
+        $registration->setRelation('tournament', $tournament);
+
         try {
             $invoice = $this->duitku->createInvoice($registration);
 
@@ -90,10 +93,12 @@ class TournamentRegistrationController extends Controller
 
             return Inertia::location($invoice->paymentUrl);
         } catch (\Throwable $e) {
-            $registration->markAsFailed();
+            Log::error('duitku->createInvoice', ['error' => $e]);
 
-            return redirect()->back()
-                ->with('error', 'Payment service unavailable. Please try again.');
+            $registration->markAsFailed();
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'Payment service unavailable. Please try again.']);
+
+            return redirect()->back();
         }
     }
 

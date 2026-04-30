@@ -7,6 +7,7 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TournamentController;
 use App\Http\Controllers\TournamentRegistrationController;
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -24,6 +25,7 @@ Route::prefix('tournaments')->group(function () {
         ->name('tournaments.register');
 
     Route::post('{tournament:slug}/register', [TournamentRegistrationController::class, 'store'])
+        ->middleware(HandlePrecognitiveRequests::class)
         ->name('tournaments.register.store');
 });
 

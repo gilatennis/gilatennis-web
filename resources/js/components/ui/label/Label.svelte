@@ -3,9 +3,9 @@
     import type { HTMLLabelAttributes } from 'svelte/elements';
     import { cn } from '@/lib/utils';
 
-    type Props = HTMLLabelAttributes & { children?: Snippet };
+    type Props = HTMLLabelAttributes & { children?: Snippet; required?: boolean };
 
-    let { class: className = '', children, ...rest }: Props = $props();
+    let { class: className = '', children, required = false, ...rest }: Props = $props();
 </script>
 
 <label
@@ -16,4 +16,5 @@
     {...rest}
 >
     {@render children?.()}
+    {#if required}<span class="text-coral ml-0.5">*</span>{/if}
 </label>

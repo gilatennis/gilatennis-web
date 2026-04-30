@@ -19,14 +19,15 @@ class DuitkuService
     {
         $merchantOrderId = $registration->confirmation_code;
         $paymentAmount = $registration->amount_cents;
-        $signature = md5($this->merchantCode.$merchantOrderId.$paymentAmount.$this->apiKey);
+
+        $timestamp = (string) (int) (microtime(true) * 1000);
+        $signature = hash('sha256', $this->merchantCode.$timestamp.$this->apiKey);
 
         $nameParts = explode(' ', $registration->name, 2);
         $firstName = $nameParts[0];
         $lastName = $nameParts[1] ?? '';
 
         $payload = [
-            'merchantCode' => $this->merchantCode,
             'paymentAmount' => $paymentAmount,
             'merchantOrderId' => $merchantOrderId,
             'productDetails' => "Tournament Registration: {$registration->tournament->name}",
@@ -68,20 +69,40 @@ class DuitkuService
             'callbackUrl' => route('webhooks.duitku'),
             'returnUrl' => route('payments.duitku.return'),
             'expiryPeriod' => 60,
-            'signature' => $signature,
+            'paymentMethod' => '',
         ];
 
         $response = $this->http()->withHeaders([
             'Content-Type' => 'application/json',
-        ])->post($this->apiUrl.'/webapi/api/merchant/v2/inquiry', $payload);
+            'Accept' => 'application/json',
+            'x-duitku-signature' => $signature,
+            'x-duitku-timestamp' => $timestamp,
+            'x-duitku-merchantcode' => $this->merchantCode,
+        ])->post($this->apiUrl.'/api/merchant/createInvoice', $payload);
+
+        $response->throw();
 
         $data = $response->json();
+
+        $statusCode = $data['statusCode'] ?? '';
+        $paymentUrl = $data['paymentUrl'] ?? '';
+
+        if ($statusCode !== '00' || empty($paymentUrl)) {
+            \Log::error('Duitku invoice creation failed', [
+                'http_status' => $response->status(),
+                'response' => $data,
+            ]);
+
+            throw new \RuntimeException(
+                'Duitku invoice creation failed: '.($data['statusMessage'] ?? "status={$statusCode}, no paymentUrl")
+            );
+        }
 
         return new DuitkuInvoiceResponse(
             merchantCode: $data['merchantCode'] ?? '',
             reference: $data['reference'] ?? '',
-            paymentUrl: $data['paymentUrl'] ?? '',
-            statusCode: $data['statusCode'] ?? '',
+            paymentUrl: $paymentUrl,
+            statusCode: $statusCode,
             statusMessage: $data['statusMessage'] ?? '',
         );
     }

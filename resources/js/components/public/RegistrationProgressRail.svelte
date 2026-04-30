@@ -24,6 +24,7 @@
         {@const active = i === step}
 
         <button
+            type="button"
             disabled={i > step}
             onclick={() => handleStepClick(i)}
             class="flex flex-col items-center gap-2 {i > step ? 'opacity-50 cursor-default' : 'cursor-pointer'}"
