@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\TournamentRegistrationRequest;
+use App\Models\Division;
+use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
+use App\Models\TournamentRegistrationPlayer;
 use App\Models\User;
 use App\Services\DuitkuService;
 use Illuminate\Support\Facades\Log;
@@ -18,34 +21,44 @@ class TournamentRegistrationController extends Controller
 
     public function create(Tournament $tournament)
     {
-        abort_if($tournament->spots_left <= 0, 403, 'Tournament is sold out.');
+        $tournament->load('divisions');
+
+        $hasOpenDivisions = $tournament->divisions->contains(fn (Division $d) => $d->spots_left > 0);
+
+        abort_if(! $hasOpenDivisions, 403, 'Tournament is sold out.');
 
         return Inertia::render('Tournaments/Register', [
             'tournament' => $tournament,
+            'divisions' => $tournament->divisions,
         ]);
     }
 
     public function store(TournamentRegistrationRequest $request, Tournament $tournament)
     {
-        abort_if($tournament->spots_left <= 0, 403, 'Tournament is sold out.');
+        $division = $tournament->divisions()->where('id', $request->division_id)->firstOrFail();
 
-        // 1. Find or create guest user
+        abort_if($division->spots_left <= 0, 403, 'Division is sold out.');
+
+        // 1. Find or create guest user from first player
+        $players = $request->players;
+        $firstPlayer = $players[0];
+
         $user = User::firstOrCreate(
-            ['email' => $request->email],
+            ['email' => $firstPlayer['email']],
             [
-                'name' => $request->name,
+                'name' => $firstPlayer['name'],
                 'is_guest' => true,
-                'password' => bcrypt('guest-' . $request->email),
+                'password' => bcrypt('guest-'.$firstPlayer['email']),
             ],
         );
 
-        // Upgrade existing guest or set is_guest for existing registered users
         if ($user->wasRecentlyCreated === false) {
             $user->update(['is_guest' => true]);
         }
 
         // 2. Check for existing paid registration (prevent duplicates)
         $existing = TournamentRegistration::where('tournament_id', $tournament->id)
+            ->where('division_id', $division->id)
             ->where('user_id', $user->id)
             ->where('payment_status', 'paid')
             ->first();
@@ -54,33 +67,54 @@ class TournamentRegistrationController extends Controller
             return redirect()->route('tournaments.register.success', $existing->confirmation_code);
         }
 
-        // 3. Calculate amount
-        $amountCents = $this->calculateAmount($tournament);
+        // 3. Create team for team divisions
+        $team = null;
+        if ($division->participation_category === 'team') {
+            $team = Team::create(['name' => $request->team_name]);
+        }
 
-        // 4. Create registration
+        // 4. Calculate amount from division fee
+        $amountCents = (int) ($division->fee * 100);
+
+        // 5. Create registration
         $registration = TournamentRegistration::create([
             'tournament_id' => $tournament->id,
             'user_id' => $user->id,
+            'division_id' => $division->id,
+            'team_id' => $team?->id,
             'confirmation_code' => TournamentRegistration::generateConfirmationCode(),
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'date_of_birth' => $request->date_of_birth,
-            'rating_type' => $request->rating_type,
-            'rating_value' => $request->rating_value,
-            'event_type' => $request->event_type,
-            'find_partner' => $request->boolean('find_partner'),
-            'partner_name' => $request->partner_name,
-            'partner_email' => $request->partner_email,
-            'tshirt_size' => $request->tshirt_size,
+            'tshirt_size' => $request->tshirt_size ?? 'M',
             'dietary' => $request->dietary,
             'amount_cents' => $amountCents,
             'currency' => 'IDR',
             'payment_status' => 'pending',
         ]);
 
-        // 5. Create Duitku invoice
-        $registration->setRelation('tournament', $tournament);
+        // 6. Create player records
+        foreach ($players as $index => $player) {
+            TournamentRegistrationPlayer::create([
+                'tournament_registration_id' => $registration->id,
+                'tournament_id' => $tournament->id,
+                'team_id' => $team?->id,
+                'name' => $player['name'],
+                'email' => $player['email'],
+                'phone' => $player['phone'],
+                'date_of_birth' => $player['date_of_birth'],
+                'rating_type' => $player['rating_type'] ?? null,
+                'rating_value' => $player['rating_value'] ?? null,
+                'tshirt_size' => $player['tshirt_size'] ?? 'M',
+                'dietary' => $player['dietary'] ?? null,
+                'sort_order' => $index,
+            ]);
+        }
+
+        // 7. Create Duitku invoice
+        $registration->load('tournament');
+        $registration->setRelation('division', $division);
 
         try {
             $invoice = $this->duitku->createInvoice($registration);
@@ -109,19 +143,19 @@ class TournamentRegistrationController extends Controller
         }
 
         return Inertia::render('Tournaments/RegistrationSuccess', [
-            'registration' => $registration->load('tournament'),
+            'registration' => $registration->load(['tournament', 'division', 'players']),
         ]);
     }
 
     public function failed(TournamentRegistration $registration)
     {
         return Inertia::render('Tournaments/RegistrationFailed', [
-            'registration' => $registration->load('tournament'),
+            'registration' => $registration->load(['tournament', 'division', 'players']),
         ]);
     }
 
-    private function calculateAmount(Tournament $tournament): int
+    private function calculateAmount(Division $division): int
     {
-        return (int) $tournament->fee;
+        return (int) ($division->fee * 100);
     }
 }

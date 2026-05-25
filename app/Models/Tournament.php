@@ -44,9 +44,6 @@ class Tournament extends Model
         'is_featured' => 'boolean',
         'fee' => 'float',
         'perks' => 'array',
-        'event_types' => 'array',
-        'utr_min' => 'decimal:1',
-        'utr_max' => 'decimal:1',
     ];
 
     public function prizes(): HasMany
@@ -67,6 +64,16 @@ class Tournament extends Model
     public function registrations(): HasMany
     {
         return $this->hasMany(TournamentRegistration::class);
+    }
+
+    public function divisions(): HasMany
+    {
+        return $this->hasMany(Division::class)->orderBy('sort_order');
+    }
+
+    public function registrationPlayers(): HasMany
+    {
+        return $this->hasMany(TournamentRegistrationPlayer::class);
     }
 
     public function scopeFeatured($query)

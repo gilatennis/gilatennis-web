@@ -45,7 +45,7 @@
     const chips = $derived([
         tournament?.surface ? tournament.surface.charAt(0).toUpperCase() + tournament.surface.slice(1) : 'Hard',
         'USTA-Sanctioned',
-        'Singles + Doubles',
+        (tournament?.divisions ?? []).map((d: any) => d.name).join(' + ') || 'Singles + Doubles',
     ]);
 
     const isSoldOut = $derived((tournament?.spots_left ?? 0) === 0);
@@ -61,6 +61,10 @@
 
     const drawSize = $derived(tournament?.draw_size ?? 0);
     const playerCount = $derived(Math.max(0, drawSize - (tournament?.spots_left ?? 0)));
+
+    const totalSpots = $derived((tournament?.divisions ?? []).reduce((sum: number, d: any) => sum + (d.draw_size ?? 0), 0));
+    const totalSpotsLeft = $derived((tournament?.divisions ?? []).reduce((sum: number, d: any) => sum + (d.spots_left ?? 0), 0));
+    const totalPaid = $derived((tournament?.divisions ?? []).reduce((sum: number, d: any) => sum + ((d.draw_size ?? 0) - (d.spots_left ?? 0)), 0));
 </script>
 
 <div>
@@ -153,18 +157,18 @@
                                 </div>
                             </div>
                             <div>
-                                <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Draw Size</div>
-                                <div class="mt-1 font-display font-bold text-base">{drawSize} players</div>
+                                <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Total Spots</div>
+                                <div class="mt-1 font-display font-bold text-base">{totalSpots} entries</div>
                             </div>
                             <div>
-                                <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">UTR Range</div>
+                                <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Rating</div>
                                 <div class="mt-1 font-display font-bold text-base">
-                                    {tournament?.utr_min ?? '—'} – {tournament?.utr_max ?? '—'}
+                                    {(tournament?.divisions ?? []).filter((d: any) => d.rating_type).map((d: any) => `${d.rating_type} ${d.rating_min}–${d.rating_max}`).join(' · ') || '—'}
                                 </div>
                             </div>
                             <div>
                                 <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Format</div>
-                                <div class="mt-1 font-display font-bold text-base">Single Elim · B3</div>
+                                <div class="mt-1 font-display font-bold text-base">{tournament?.format ?? 'Round Robin'}</div>
                             </div>
                             <div>
                                 <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Ball</div>
@@ -175,7 +179,7 @@
                             <div>
                                 <div class="text-[10px] uppercase tracking-[0.18em] opacity-50">Spots Left</div>
                                 <div class="mt-1 font-display font-bold text-base">
-                                    {isSoldOut ? 'Sold out' : (tournament?.spots_left ?? 0)}
+                                    {isSoldOut ? 'Sold out' : totalSpotsLeft}
                                 </div>
                             </div>
                         </div>
@@ -280,6 +284,43 @@
                 </div>
             </div>
         </div>
+
+        <!-- Divisions -->
+        {#if (tournament?.divisions ?? []).length > 0}
+            <div class="mt-8">
+                <div class="text-[11px] font-bold uppercase tracking-[0.25em] text-coral mb-6">Divisions</div>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {#each tournament.divisions as div}
+                        {@const soldOut = (div.spots_left ?? 0) <= 0}
+                        <div class="border border-black/10 dark:border-white/10 p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="font-display font-bold text-base">{div.name}</span>
+                                    <span class="text-[10px] uppercase tracking-[0.15em] text-neutral-400">{div.participation_category}</span>
+                                </div>
+                                <div class="text-xs text-neutral-500 space-y-1">
+                                    <div>Fee: ${div.fee}</div>
+                                    <div>Spots: {div.spots_left}/{div.draw_size}</div>
+                                    {#if div.rating_type}
+                                        <div>{div.rating_type} {div.rating_min}–{div.rating_max}</div>
+                                    {/if}
+                                    {#if div.participation_category === 'team' && div.min_team_size && div.max_team_size}
+                                        <div>{div.min_team_size}–{div.max_team_size} players per team</div>
+                                    {/if}
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                {#if soldOut}
+                                    <span class="text-xs font-bold text-coral uppercase tracking-[0.15em]">Sold out</span>
+                                {:else}
+                                    <span class="text-xs font-bold text-neutral-500 uppercase tracking-[0.15em]">{div.spots_left} spots left</span>
+                                {/if}
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        {/if}
 
         <!-- FAQ Collapsible -->
         <div class="mt-8">

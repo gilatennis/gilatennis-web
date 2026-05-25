@@ -27,7 +27,7 @@ class DuitkuWebhookController extends Controller
             return response()->json(['status' => 'invalid signature'], 403);
         }
 
-        $registration = TournamentRegistration::with('tournament')->where('confirmation_code', $request->merchantOrderId)->first();
+        $registration = TournamentRegistration::with('division')->where('confirmation_code', $request->merchantOrderId)->first();
 
         if (! $registration) {
             return response()->json(['status' => 'registration not found'], 404);
@@ -40,7 +40,7 @@ class DuitkuWebhookController extends Controller
 
         if ($request->resultCode === '00') {
             $registration->markAsPaid($request->reference ?? '');
-            $registration->tournament->decrement('spots_left');
+            $registration->division?->decrement('spots_left');
             PaymentCompleted::dispatch($registration);
         } else {
             $registration->markAsFailed();

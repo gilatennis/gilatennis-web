@@ -6,10 +6,9 @@
         email,
         phone,
         dateOfBirth,
-        eventType,
-        partnerName,
-        partnerEmail,
-        partnerDateOfBirth,
+        selectedDivision,
+        computedPlayers = [] as any[],
+        teamName = '',
         total,
         formatIDR,
         waiverAccepted = $bindable(false),
@@ -22,10 +21,9 @@
         email: string;
         phone: string;
         dateOfBirth: string;
-        eventType: string;
-        partnerName: string;
-        partnerEmail: string;
-        partnerDateOfBirth: string;
+        selectedDivision: any;
+        computedPlayers?: any[];
+        teamName?: string;
         total: number;
         formatIDR: (amount: number) => string;
         waiverAccepted?: boolean;
@@ -34,6 +32,9 @@
         errors?: Record<string, string>;
         onEdit: (step: number) => void;
     } = $props();
+
+    const divisionName = $derived(selectedDivision?.name ?? '—');
+    const isTeam = $derived(selectedDivision?.participation_category === 'team');
 </script>
 
 <div>
@@ -45,7 +46,7 @@
             ['Email', email, 0],
             ['Phone', phone, 0],
             ['Date of birth', dateOfBirth, 0],
-            ['Event', eventType ? eventType.charAt(0).toUpperCase() + eventType.slice(1) : '—', 1],
+            ['Division', divisionName, 1],
         ] as [label, value, step]}
             <div class="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0 text-sm">
                 <span class="text-neutral-500 uppercase tracking-[0.15em] text-[10px]">{label}</span>
@@ -58,23 +59,43 @@
                 </div>
             </div>
         {/each}
+
+        {#if isTeam && teamName}
+            <div class="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0 text-sm">
+                <span class="text-neutral-500 uppercase tracking-[0.15em] text-[10px]">Team name</span>
+                <div class="flex items-center gap-2">
+                    <span class="font-medium">{teamName}</span>
+                    <button type="button" onclick={() => onEdit(1)}
+                        class="text-[10px] uppercase tracking-[0.15em] text-coral hover:underline">
+                        Edit
+                    </button>
+                </div>
+            </div>
+        {/if}
     </div>
 
-    {#if eventType === 'doubles' || eventType === 'both'}
+    {#if computedPlayers.length > 0}
         <div class="border border-black/10 dark:border-white/10 mb-6">
-            {#each [
-                ['Partner name', partnerName],
-                ['Partner email', partnerEmail],
-                ['Partner date of birth', partnerDateOfBirth],
-            ] as [label, value]}
-                <div class="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0 text-sm">
-                    <span class="text-neutral-500 uppercase tracking-[0.15em] text-[10px]">{label}</span>
-                    <div class="flex items-center gap-2">
-                        <span class="font-medium">{value || '—'}</span>
+            <div class="px-4 py-3 border-b border-black/5 dark:border-white/5 text-[10px] uppercase tracking-[0.15em] text-neutral-500 font-bold">
+                {isTeam ? 'Team roster' : selectedDivision?.participation_category === 'doubles' ? 'Players' : 'Player'}
+            </div>
+            {#each computedPlayers as player, i}
+                <div class="px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium text-sm">
+                            {isTeam ? `Player ${i + 1}` : i === 0 ? 'You' : 'Partner'}
+                            {i === 0 && isTeam ? ' (Captain)' : ''}
+                        </span>
                         <button type="button" onclick={() => onEdit(1)}
                             class="text-[10px] uppercase tracking-[0.15em] text-coral hover:underline">
                             Edit
                         </button>
+                    </div>
+                    <div class="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-neutral-500">
+                        <span>{player.name || '—'}</span>
+                        <span>{player.email || '—'}</span>
+                        <span>{player.phone || '—'}</span>
+                        <span>{player.date_of_birth || '—'}</span>
                     </div>
                 </div>
             {/each}

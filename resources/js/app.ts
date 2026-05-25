@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/svelte';
+import AdminLayout from '@/layouts/AdminLayout.svelte';
 import AppLayout from '@/layouts/AppLayout.svelte';
 import AuthLayout from '@/layouts/AuthLayout.svelte';
 import SettingsLayout from '@/layouts/settings/Layout.svelte';
@@ -17,8 +18,8 @@ createInertiaApp({
                 return AuthLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
-            case name.startsWith('admin/'):
-                return AppLayout;
+            case name.toLowerCase().startsWith('admin/'):
+                return AdminLayout;
             default:
                 return null;
         }

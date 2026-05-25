@@ -1,0 +1,66 @@
+<script lang="ts">
+    import { Link } from '@inertiajs/svelte';
+    import LayoutGrid from 'lucide-svelte/icons/layout-grid';
+    import AppLogo from '@/components/AppLogo.svelte';
+    import NavUser from '@/components/NavUser.svelte';
+    import {
+        Sidebar,
+        SidebarContent,
+        SidebarFooter,
+        SidebarHeader,
+        SidebarMenu,
+        SidebarMenuButton,
+        SidebarMenuItem,
+    } from '@/components/ui/sidebar';
+    import { currentUrlState } from '@/lib/currentUrl.svelte';
+    import { toUrl } from '@/lib/utils';
+
+    const url = currentUrlState();
+</script>
+
+<Sidebar collapsible="icon" variant="inset">
+    <SidebarHeader>
+        <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton size="lg" asChild>
+                    {#snippet children(props)}
+                        <Link
+                            {...props}
+                            href="/admin/dashboard"
+                            class={props.class}
+                        >
+                            <AppLogo />
+                        </Link>
+                    {/snippet}
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
+    </SidebarHeader>
+
+    <SidebarContent>
+        <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton
+                    asChild
+                    isActive={url.isCurrentUrl('/admin/dashboard', url.currentUrl)}
+                    tooltip="Dashboard"
+                >
+                    {#snippet children(props)}
+                        <Link
+                            {...props}
+                            href="/admin/dashboard"
+                            class={props.class}
+                        >
+                            <LayoutGrid class="size-4 shrink-0" />
+                            <span>Dashboard</span>
+                        </Link>
+                    {/snippet}
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+        </SidebarMenu>
+    </SidebarContent>
+
+    <SidebarFooter>
+        <NavUser />
+    </SidebarFooter>
+</Sidebar>

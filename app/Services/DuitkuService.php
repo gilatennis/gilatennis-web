@@ -37,7 +37,7 @@ class DuitkuService
             'phoneNumber' => $registration->phone,
             'itemDetails' => [
                 [
-                    'name' => $registration->tournament->name.' - '.ucfirst($registration->event_type),
+                    'name' => $registration->tournament->name.' - '.($registration->relationLoaded('division') ? $registration->division->name : 'Registration'),
                     'price' => $paymentAmount,
                     'quantity' => 1,
                 ],

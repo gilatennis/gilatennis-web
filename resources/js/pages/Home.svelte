@@ -57,7 +57,7 @@
             reviewCount?: number;
             type?: string;
             duration?: string;
-            amenities?: string[];
+            amenities?: { name: string }[];
             excerpt?: string;
         }>;
         stats?: { articleCount: number; tournamentCount: number; memberCount: number };

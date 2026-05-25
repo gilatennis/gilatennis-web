@@ -7,57 +7,108 @@
     import RegistrationProgressRail from '@/components/public/RegistrationProgressRail.svelte';
     import { Button } from '@/components/ui/button';
     import Step1PlayerInfo from './registration/Step1PlayerInfo.svelte';
-    import Step2EventSelection from './registration/Step2EventSelection.svelte';
+    import Step2DivisionSelection from './registration/Step2DivisionSelection.svelte';
     import Step3ReviewAndPay from './registration/Step3ReviewAndPay.svelte';
 
     let {
         tournament,
+        divisions,
     }: {
         tournament: any;
+        divisions: any[];
     } = $props();
+
+    const openDivisions = $derived(divisions.filter((d: any) => (d.spots_left ?? 0) > 0));
 
     const steps = ['01 Player', '02 Event', '03 Review'];
     let currentStep = $state(0);
 
-    const total = $derived(tournament.fee);
-    const deadline = $derived(tournament.registration_closes
-        ? new Date(tournament.registration_closes).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-        : null);
     const formatIDR = (amount: number) =>
         new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
 
-    // Step 1 fields
+    // Step 1 fields (registrant = player[0])
     let name = $state('');
     let email = $state('');
     let phone = $state('');
     let dateOfBirth = $state('');
-    let ratingType = $state<'UTR' | 'ITN' | 'USTA'>('UTR');
-    let ratingValue = $state('');
 
     // Step 2 fields
-    const eventTypes = tournament.event_types ?? ['singles', 'doubles', 'both'];
-    let eventType = $state<string>(eventTypes[0]);
-    let partnerName = $state('');
-    let partnerEmail = $state('');
-    let partnerPhone = $state('');
-    let partnerDateOfBirth = $state('');
+    let selectedDivisionId = $state<number | null>(null);
+    let teamName = $state('');
+    let additionalPlayers = $state<string[]>([]);
 
     // Step 3 fields
     let waiverAccepted = $state(false);
     let emailOptIn = $state(true);
 
+    const selectedDivision = $derived(
+        divisions.find((d: any) => d.id === selectedDivisionId) ?? null,
+    );
+
+    const isTeamDivision = $derived(selectedDivision?.participation_category === 'team');
+    const total = $derived(selectedDivision?.fee ?? 0);
+    const minTeamSize = $derived(selectedDivision?.min_team_size ?? 0);
+    const maxTeamSize = $derived(selectedDivision?.max_team_size ?? 0);
+
+    // Computed full players array from form state
+    const computedPlayers = $derived(() => {
+        if (!selectedDivision) return [];
+
+        const base: any[] = [{
+            name, email, phone, date_of_birth: dateOfBirth,
+        }];
+
+        if (isTeamDivision) {
+            for (let i = 0; i < additionalPlayers.length; i++) {
+                const idx = i;
+                base.push({
+                    name: '',
+                    email: '',
+                    phone: '',
+                    date_of_birth: '',
+                    rating_type: '',
+                    rating_value: '',
+                });
+            }
+        } else if (selectedDivision.participation_category === 'doubles') {
+            base.push({
+                name: '',
+                email: '',
+                phone: '',
+                date_of_birth: '',
+                rating_type: '',
+                rating_value: '',
+            });
+        }
+
+        return base;
+    });
+
     const stepFields: Record<number, string[]> = {
         0: ['name', 'email', 'phone', 'date_of_birth'],
-        1: ['event_type', 'partner_name', 'partner_email', 'partner_date_of_birth'],
+        1: ['division_id'],
+        2: [],
     };
 
     function navigateToErrorStep(errs: Record<string, string>) {
         const fields = Object.keys(errs);
-        if (fields.some(f => ['name', 'email', 'phone', 'date_of_birth', 'rating_type', 'rating_value'].includes(f))) {
+        if (fields.some(f => ['name', 'email', 'phone', 'date_of_birth'].includes(f))) {
             currentStep = 0;
-        } else if (fields.some(f => ['event_type', 'partner_name', 'partner_email', 'partner_date_of_birth'].includes(f))) {
+        } else if (fields.some(f => ['division_id', 'players', 'team_name'].includes(f))) {
             currentStep = 1;
         }
+    }
+
+    function addPlayerRow() {
+        const current = isTeamDivision ? additionalPlayers.length + 1 : selectedDivision?.participation_category === 'doubles' ? 2 : 1;
+        const max = isTeamDivision ? maxTeamSize : selectedDivision?.participation_category === 'doubles' ? 2 : 1;
+        if (current < max) {
+            additionalPlayers = [...additionalPlayers, ''];
+        }
+    }
+
+    function removePlayerRow(index: number) {
+        additionalPlayers = additionalPlayers.filter((_, i) => i !== index);
     }
 </script>
 
@@ -101,16 +152,14 @@
                         {tournament?.venue ?? ''}{tournament?.city ? ` · ${tournament.city}` : ''}
                     </div>
 
-                    {#if tournament?.player_count != null && tournament?.max_players != null}
+                    {#if selectedDivision}
                         <div class="flex justify-between text-sm border-t border-black/10 dark:border-white/10 pt-4 mb-2">
-                            <span class="opacity-50">Spots filled</span>
-                            <span class="font-mono">{tournament.player_count}/{tournament.max_players}</span>
+                            <span class="opacity-50">Division</span>
+                            <span class="font-mono">{selectedDivision.name}</span>
                         </div>
-                    {/if}
-                    {#if deadline}
-                        <div class="flex justify-between text-sm mb-4">
-                            <span class="opacity-50">Registration closes</span>
-                            <span class="font-mono">{deadline}</span>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="opacity-50">Spots left</span>
+                            <span class="font-mono">{selectedDivision.spots_left}/{selectedDivision.draw_size}</span>
                         </div>
                     {/if}
 
@@ -136,13 +185,26 @@
                         <Step1PlayerInfo bind:name bind:email bind:phone bind:dateOfBirth {errors} />
                     </div>
                     <div class={currentStep !== 1 ? 'hidden' : ''}>
-                        <Step2EventSelection {eventTypes} bind:eventType bind:partnerName
-                            bind:partnerEmail bind:partnerPhone bind:partnerDateOfBirth {errors} />
+                        <Step2DivisionSelection
+                            {divisions} {openDivisions}
+                            bind:selectedDivisionId
+                            bind:teamName
+                            bind:additionalPlayers
+                            {computedPlayers}
+                            {isTeamDivision}
+                            {minTeamSize}
+                            {maxTeamSize}
+                            onAddPlayer={addPlayerRow}
+                            onRemovePlayer={removePlayerRow}
+                            {errors}
+                        />
                     </div>
                     <div class={currentStep !== 2 ? 'hidden' : ''}>
                         <Step3ReviewAndPay
                             {name} {email} {phone} {dateOfBirth}
-                            {eventType} {partnerName} {partnerEmail} {partnerDateOfBirth}
+                            {selectedDivision}
+                            {computedPlayers}
+                            {teamName}
                             {total} {formatIDR}
                             bind:waiverAccepted bind:emailOptIn
                             {processing} {errors}
@@ -171,11 +233,17 @@
                     {/if}
 
                     <!-- Hidden fields always in DOM -->
+                    <input type="hidden" name="division_id" value={selectedDivisionId ?? ''} />
                     <input type="hidden" name="tshirt_size" value="M" />
                     <input type="hidden" name="dietary" value="" />
-                    <input type="hidden" name="rating_type" value={ratingType} />
-                    <input type="hidden" name="rating_value" value={ratingValue} />
-                    <input type="hidden" name="find_partner" value="0" />
+                    {#each computedPlayers as player, i}
+                        <input type="hidden" name="players[{i}][name]" value={player.name} />
+                        <input type="hidden" name="players[{i}][email]" value={player.email} />
+                        <input type="hidden" name="players[{i}][phone]" value={player.phone} />
+                        <input type="hidden" name="players[{i}][date_of_birth]" value={player.date_of_birth} />
+                        <input type="hidden" name="players[{i}][rating_type]" value={player.rating_type} />
+                        <input type="hidden" name="players[{i}][rating_value]" value={player.rating_value} />
+                    {/each}
                 {/snippet}
             </Form>
         </div>

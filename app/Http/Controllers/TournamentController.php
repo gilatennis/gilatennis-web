@@ -9,7 +9,7 @@ class TournamentController extends Controller
 {
     public function show(Tournament $tournament)
     {
-        $tournament->load(['prizes', 'scheduleDays.items', 'rules']);
+        $tournament->load(['prizes', 'scheduleDays.items', 'rules', 'divisions']);
 
         $registrationCount = $tournament->registrations()
             ->where('payment_status', 'paid')

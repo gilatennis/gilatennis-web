@@ -18,7 +18,7 @@
             reviewCount?: number;
             type?: string;
             duration?: string;
-            amenities?: string[];
+            amenities?: { name: string }[];
             excerpt?: string;
         };
     } = $props();
@@ -84,7 +84,7 @@
             <div class="mt-4 flex flex-wrap gap-1.5">
                 {#each court.amenities as amenity}
                     <Badge variant="outline" class="text-[10px] border-coral/40 text-coral font-bold uppercase tracking-[0.15em]">
-                        {amenity}
+                        {amenity.name}
                     </Badge>
                 {/each}
             </div>

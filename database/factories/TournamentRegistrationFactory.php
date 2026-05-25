@@ -18,8 +18,6 @@ class TournamentRegistrationFactory extends Factory
     public function definition(): array
     {
         $feeCents = fake()->randomElement([35000, 45000, 55000, 65000]);
-        $eventType = fake()->randomElement(['singles', 'doubles', 'both']);
-        $ratingType = fake()->randomElement(['UTR', 'ITN', 'USTA']);
 
         return [
             'tournament_id' => Tournament::factory(),
@@ -29,12 +27,6 @@ class TournamentRegistrationFactory extends Factory
             'email' => fake()->safeEmail(),
             'phone' => fake()->phoneNumber(),
             'date_of_birth' => fake()->dateTimeBetween('-50 years', '-12 years')->format('Y-m-d'),
-            'rating_type' => $ratingType,
-            'rating_value' => fake()->randomFloat(1, 1, 15),
-            'event_type' => $eventType,
-            'find_partner' => $eventType !== 'singles' ? fake()->boolean() : false,
-            'partner_name' => fake()->optional()->name(),
-            'partner_email' => fake()->optional()->safeEmail(),
             'tshirt_size' => fake()->randomElement(['XS', 'S', 'M', 'L', 'XL', 'XXL']),
             'dietary' => fake()->optional()->sentence(),
             'payment_status' => 'pending',

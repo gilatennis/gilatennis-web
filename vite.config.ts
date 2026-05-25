@@ -14,6 +14,12 @@ export default defineConfig(({ mode }) => {
             laravel({
                 input: ['resources/css/app.css', 'resources/js/app.ts'],
                 refresh: true,
+                transformOnServe: (code, url) => {
+                    // url == server.origin. see below
+                    return code
+                        .replaceAll('http://localhost:5173', url)
+                        .replaceAll('http://[::1]:5173', url);
+                }
             }),
             inertia(),
             tailwindcss(),
@@ -27,7 +33,7 @@ export default defineConfig(({ mode }) => {
             port: 5173,
             origin: `https://${tunnelHost}`,
             cors: {
-                origin: [env.APP_URL, `https://${tunnelHost}`].filter(Boolean),
+                origin: [env.APP_URL, `https://${tunnelHost}`],
             },
             hmr: {
                 host: tunnelHost,
