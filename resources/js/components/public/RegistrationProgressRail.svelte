@@ -9,7 +9,7 @@
         onStepClick?: (s: number) => void;
     } = $props();
 
-    const steps = ['Player', 'Event', 'Review'];
+    const steps = ['Event', 'Player', 'Review'];
 
     function handleStepClick(i: number) {
         if (i < step && onStepClick) {

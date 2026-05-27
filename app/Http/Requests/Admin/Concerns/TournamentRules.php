@@ -11,6 +11,7 @@ trait TournamentRules
             'tagline' => ['nullable', 'string', 'max:500'],
             'dates' => ['required', 'string', 'max:255'],
             'start' => ['required', 'string', 'max:255'],
+            'end' => ['nullable', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
             'venue' => ['nullable', 'string', 'max:255'],
             'surface' => ['required', 'in:hard,clay,grass,indoor_hard'],

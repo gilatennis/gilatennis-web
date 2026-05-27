@@ -238,7 +238,7 @@ describe('Registration Validation', function () {
 
         $this->postJson(route('tournaments.register.store', $t->slug), [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['division_id', 'name', 'email', 'phone', 'date_of_birth', 'waiver_accepted', 'players']);
+            ->assertJsonValidationErrors(['division_id', 'name', 'email', 'phone', 'waiver_accepted', 'players']);
     });
 
     it('rejects invalid email', function () {

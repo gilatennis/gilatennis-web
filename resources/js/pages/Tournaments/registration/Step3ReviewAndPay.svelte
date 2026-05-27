@@ -5,7 +5,6 @@
         name,
         email,
         phone,
-        dateOfBirth,
         selectedDivision,
         computedPlayers = [] as any[],
         teamName = '',
@@ -20,7 +19,6 @@
         name: string;
         email: string;
         phone: string;
-        dateOfBirth: string;
         selectedDivision: any;
         computedPlayers?: any[];
         teamName?: string;
@@ -41,13 +39,12 @@
     <h2 class="font-display font-black text-2xl mb-6">Review &amp; pay</h2>
 
     <div class="border border-black/10 dark:border-white/10 mb-6">
-        {#each [
-            ['Full name', name, 0],
-            ['Email', email, 0],
-            ['Phone', phone, 0],
-            ['Date of birth', dateOfBirth, 0],
-            ['Division', divisionName, 1],
-        ] as [label, value, step]}
+            {#each [
+                ['Full name', name, 1],
+                ['Email', email, 1],
+                ['Phone', phone, 1],
+                ['Division', divisionName, 0],
+            ] as [label, value, step]}
             <div class="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0 text-sm">
                 <span class="text-neutral-500 uppercase tracking-[0.15em] text-[10px]">{label}</span>
                 <div class="flex items-center gap-2">
@@ -65,7 +62,7 @@
                 <span class="text-neutral-500 uppercase tracking-[0.15em] text-[10px]">Team name</span>
                 <div class="flex items-center gap-2">
                     <span class="font-medium">{teamName}</span>
-                    <button type="button" onclick={() => onEdit(1)}
+                    <button type="button" onclick={() => onEdit(0)}
                         class="text-[10px] uppercase tracking-[0.15em] text-coral hover:underline">
                         Edit
                     </button>
@@ -95,7 +92,6 @@
                         <span>{player.name || '—'}</span>
                         <span>{player.email || '—'}</span>
                         <span>{player.phone || '—'}</span>
-                        <span>{player.date_of_birth || '—'}</span>
                     </div>
                 </div>
             {/each}
@@ -131,7 +127,7 @@
     <button type="submit" disabled={processing}
         class="w-full h-14 font-display font-bold text-sm uppercase tracking-[0.18em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] {waiverAccepted ? 'bg-coral text-white hover:opacity-90' : 'bg-black/10 dark:bg-white/10 text-neutral-400 cursor-not-allowed'}">
         <CreditCard size={18} />
-        {processing ? 'Processing...' : `Proceed to Payment · ${formatIDR(total)}`}
+        {processing ? 'Processing...' : `Proceed to Payment`}
     </button>
 
     <div class="mt-4 flex flex-wrap items-center justify-center gap-4 text-[10px] uppercase tracking-[0.2em] text-neutral-400">

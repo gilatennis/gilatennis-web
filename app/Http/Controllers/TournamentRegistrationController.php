@@ -23,7 +23,7 @@ class TournamentRegistrationController extends Controller
     {
         $tournament->load('divisions');
 
-        $hasOpenDivisions = $tournament->divisions->contains(fn (Division $d) => $d->spots_left > 0);
+        $hasOpenDivisions = $tournament->divisions->contains(fn (Division $d) => $d->spots_available > 0);
 
         abort_if(! $hasOpenDivisions, 403, 'Tournament is sold out.');
 
@@ -37,7 +37,7 @@ class TournamentRegistrationController extends Controller
     {
         $division = $tournament->divisions()->where('id', $request->division_id)->firstOrFail();
 
-        abort_if($division->spots_left <= 0, 403, 'Division is sold out.');
+        abort_if($division->spots_available <= 0, 403, 'Division is sold out.');
 
         // 1. Find or create guest user from first player
         $players = $request->players;
@@ -86,7 +86,7 @@ class TournamentRegistrationController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
-            'date_of_birth' => $request->date_of_birth,
+            'date_of_birth' => $request->date_of_birth ?? '2000-01-01',
             'tshirt_size' => $request->tshirt_size ?? 'M',
             'dietary' => $request->dietary,
             'amount_cents' => $amountCents,
@@ -103,7 +103,7 @@ class TournamentRegistrationController extends Controller
                 'name' => $player['name'],
                 'email' => $player['email'],
                 'phone' => $player['phone'],
-                'date_of_birth' => $player['date_of_birth'],
+                'date_of_birth' => $player['date_of_birth'] ?? '2000-01-01',
                 'rating_type' => $player['rating_type'] ?? null,
                 'rating_value' => $player['rating_value'] ?? null,
                 'tshirt_size' => $player['tshirt_size'] ?? 'M',
@@ -143,7 +143,7 @@ class TournamentRegistrationController extends Controller
         }
 
         return Inertia::render('Tournaments/RegistrationSuccess', [
-            'registration' => $registration->load(['tournament', 'division', 'players']),
+            'registration' => $registration->load(['tournament', 'division', 'players', 'team']),
         ]);
     }
 

@@ -26,6 +26,7 @@
         tagline: tournament?.tagline ?? '',
         dates: tournament?.dates ?? '',
         start: tournament?.start ?? '',
+        end: tournament?.end ?? '',
         city: tournament?.city ?? '',
         venue: tournament?.venue ?? '',
         surface: tournament?.surface ?? 'hard',
@@ -306,6 +307,13 @@
                                     {/if}
                                 </div>
                                 <div>
+                                    <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Ends</Label>
+                                    <Input type="date" bind:value={form.end} class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors" />
+                                    {#if form.errors.end}
+                                        <p class="text-red-600 text-[11px] mt-1">{form.errors.end}</p>
+                                    {/if}
+                                </div>
+                                <div>
                                     <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Registration Closes</Label>
                                     <Input type="datetime-local" bind:value={form.registration_closes} class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors" />
                                     {#if form.errors.registration_closes}
@@ -430,7 +438,7 @@
                             <span class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold">{form.divisions.length}</span>
                         {/if}
                     </button>
-                    <button type="button" onclick={() => { editingDivision = { id: null, name: '', participation_category: 'singles', draw_size: '', spots_left: '', fee: '', gender: '', rating_type: '', rating_min: '', rating_max: '', min_age: '', max_age: '', min_team_size: '', max_team_size: '', prizes: [] }; editingDivisionIndex = -1; }} class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
+                    <button type="button" onclick={() => { editingDivision = { id: null, name: '', participation_category: 'singles', draw_size: '', spots_available: '', fee: '', gender: '', rating_type: '', rating_min: '', rating_max: '', min_age: '', max_age: '', min_team_size: '', max_team_size: '', prizes: [] }; editingDivisionIndex = -1; }} class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
                         <Plus class="size-3" /> Add Division
                     </button>
                 </div>

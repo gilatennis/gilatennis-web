@@ -6,13 +6,11 @@
         name = $bindable(''),
         email = $bindable(''),
         phone = $bindable(''),
-        dateOfBirth = $bindable(''),
         errors = {} as Record<string, string>,
     }: {
         name?: string;
         email?: string;
         phone?: string;
-        dateOfBirth?: string;
         errors?: Record<string, string>;
     } = $props();
 </script>
@@ -46,21 +44,10 @@
         <Label for="phone" required class="text-[11px] uppercase tracking-[0.2em] font-bold mb-2 block">
             Phone
         </Label>
-        <Input id="phone" name="phone" type="tel" placeholder="+1 (555) 000-0000" bind:value={phone}
+        <Input id="phone" name="phone" type="tel" placeholder="08123123123" bind:value={phone}
             class={errors.phone ? 'border-coral ring-2 ring-coral/30' : ''} />
         {#if errors.phone}
             <p class="mt-1 text-xs text-coral font-medium">{errors.phone}</p>
-        {/if}
-    </div>
-
-    <div>
-        <Label for="dob" required class="text-[11px] uppercase tracking-[0.2em] font-bold mb-2 block">
-            Date of birth
-        </Label>
-        <Input id="dob" name="date_of_birth" type="date" bind:value={dateOfBirth}
-            class={errors.date_of_birth ? 'border-coral ring-2 ring-coral/30' : ''} />
-        {#if errors.date_of_birth}
-            <p class="mt-1 text-xs text-coral font-medium">{errors.date_of_birth}</p>
         {/if}
     </div>
 </div>

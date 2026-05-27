@@ -48,7 +48,7 @@
         (tournament?.divisions ?? []).map((d: any) => d.name).join(' + ') || 'Singles + Doubles',
     ]);
 
-    const isSoldOut = $derived((tournament?.spots_left ?? 0) === 0);
+    const isSoldOut = $derived((tournament?.spots_available ?? 0) === 0);
     const registrationOpen = $derived(tournament?.status === 'open' && !isSoldOut);
 
     // Format registration closes date
@@ -60,11 +60,11 @@
     });
 
     const drawSize = $derived(tournament?.draw_size ?? 0);
-    const playerCount = $derived(Math.max(0, drawSize - (tournament?.spots_left ?? 0)));
+    const playerCount = $derived(Math.max(0, drawSize - (tournament?.spots_available ?? 0)));
 
     const totalSpots = $derived((tournament?.divisions ?? []).reduce((sum: number, d: any) => sum + (d.draw_size ?? 0), 0));
-    const totalSpotsLeft = $derived((tournament?.divisions ?? []).reduce((sum: number, d: any) => sum + (d.spots_left ?? 0), 0));
-    const totalPaid = $derived((tournament?.divisions ?? []).reduce((sum: number, d: any) => sum + ((d.draw_size ?? 0) - (d.spots_left ?? 0)), 0));
+    const totalSpotsLeft = $derived((tournament?.divisions ?? []).reduce((sum: number, d: any) => sum + (d.spots_available ?? 0), 0));
+    const totalPaid = $derived((tournament?.divisions ?? []).reduce((sum: number, d: any) => sum + ((d.draw_size ?? 0) - (d.spots_available ?? 0)), 0));
 </script>
 
 <div>
@@ -88,7 +88,7 @@
             <span class="text-neutral-500">Closes {closesLabel()}</span>
             <span class="text-neutral-500">·</span>
             <span class={isSoldOut ? 'text-neutral-400 line-through' : 'font-bold text-neutral-800 dark:text-neutral-200'}>
-                {isSoldOut ? 'Sold out' : `${tournament?.spots_left ?? 0} spots left`}
+                {isSoldOut ? 'Sold out' : `${tournament?.spots_available ?? 0} spots left`}
             </span>
         </div>
     </div>
@@ -291,7 +291,7 @@
                 <div class="text-[11px] font-bold uppercase tracking-[0.25em] text-coral mb-6">Divisions</div>
                 <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {#each tournament.divisions as div}
-                        {@const soldOut = (div.spots_left ?? 0) <= 0}
+                        {@const soldOut = (div.spots_available ?? 0) <= 0}
                         <div class="border border-black/10 dark:border-white/10 p-5 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center gap-2 mb-2">
@@ -300,7 +300,7 @@
                                 </div>
                                 <div class="text-xs text-neutral-500 space-y-1">
                                     <div>Fee: ${div.fee}</div>
-                                    <div>Spots: {div.spots_left}/{div.draw_size}</div>
+                                    <div>Spots: {div.spots_available}/{div.draw_size}</div>
                                     {#if div.rating_type}
                                         <div>{div.rating_type} {div.rating_min}–{div.rating_max}</div>
                                     {/if}
@@ -313,7 +313,7 @@
                                 {#if soldOut}
                                     <span class="text-xs font-bold text-coral uppercase tracking-[0.15em]">Sold out</span>
                                 {:else}
-                                    <span class="text-xs font-bold text-neutral-500 uppercase tracking-[0.15em]">{div.spots_left} spots left</span>
+                                    <span class="text-xs font-bold text-neutral-500 uppercase tracking-[0.15em]">{div.spots_available} spots left</span>
                                 {/if}
                             </div>
                         </div>

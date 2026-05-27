@@ -18,7 +18,7 @@ class DuitkuService
     public function createInvoice(TournamentRegistration $registration): DuitkuInvoiceResponse
     {
         $merchantOrderId = $registration->confirmation_code;
-        $paymentAmount = $registration->amount_cents;
+        $paymentAmount = (int) ($registration->amount_cents / 100);
 
         $timestamp = (string) (int) (microtime(true) * 1000);
         $signature = hash('sha256', $this->merchantCode.$timestamp.$this->apiKey);

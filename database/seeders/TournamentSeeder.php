@@ -15,6 +15,7 @@ class TournamentSeeder extends Seeder
             'tagline' => 'Untuk yang gila-gila aja',
             'dates' => 'June 27-28, 2026',
             'start' => '2026-06-27',
+            'end' => '2026-06-28',
             'city' => 'Bekasi',
             'venue' => 'Crown Racquet Club Bekasi, Summarecon Crown Gading, Jl. Bulevar Timur, Setia Asih Kec. Tarumajaya, Kab. Bekasi',
             'surface' => 'hard',

@@ -29,6 +29,7 @@ class TournamentFactory extends Factory
             'tagline' => fake()->optional()->sentence(),
             'dates' => fn () => fake()->dateTimeBetween('+2 weeks', '+3 months')->format('M j').' - '.fake()->dateTimeBetween('+3 weeks', '+3 months')->format('M j, Y'),
             'start' => '2026-06-27',
+            'end' => '2026-06-28',
             'city' => fake()->city(),
             'venue' => fake()->optional()->company(),
             'surface' => fake()->randomElement($surfaces),

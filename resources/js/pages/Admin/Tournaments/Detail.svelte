@@ -190,6 +190,14 @@
                                 <div class="text-[13px] text-neutral-800">{tournament.dates || '—'}</div>
                             </div>
                             <div>
+                                <div class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-0.5">Starts</div>
+                                <div class="text-[13px] text-neutral-800">{tournament.start || '—'}</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-0.5">Ends</div>
+                                <div class="text-[13px] text-neutral-800">{tournament.end || '—'}</div>
+                            </div>
+                            <div>
                                 <div class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-0.5">City</div>
                                 <div class="text-[13px] text-neutral-800">{tournament.city || '—'}</div>
                             </div>

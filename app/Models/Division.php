@@ -49,11 +49,6 @@ class Division extends Model
         return max(0, $this->draw_size - $this->paid_registrations_count);
     }
 
-    public function getSpotsLeftAttribute(): int
-    {
-        return $this->spots_available;
-    }
-
     public function getIsSoldOutAttribute(): bool
     {
         return $this->spots_available <= 0;

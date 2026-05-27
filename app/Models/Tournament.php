@@ -123,11 +123,6 @@ class Tournament extends Model
         return $this->registrations()->where('payment_status', 'paid')->count();
     }
 
-    public function getSpotsLeftAttribute(): int
-    {
-        return $this->spots_available;
-    }
-
     public function getSurfaceLabelAttribute(): string
     {
         return match ($this->surface) {

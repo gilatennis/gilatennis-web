@@ -29,7 +29,7 @@
         division: {
             id: number; name: string; slug: string;
             participation_category: string; category_label: string;
-            draw_size: number; spots_left: number; fee: number;
+            draw_size: number; spots_available: number; fee: number;
             gender: string | null; gender_label: string | null;
             rating_type: string | null; rating_min: number | null; rating_max: number | null;
             min_age: number | null; max_age: number | null;
