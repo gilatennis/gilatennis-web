@@ -5,10 +5,6 @@ export function useSearch(
     let search = $state(getInitialValue());
     let timeout: ReturnType<typeof setTimeout>;
 
-    $effect(() => {
-        search = getInitialValue();
-    });
-
     function doSearch(value: string) {
         search = value;
         clearTimeout(timeout);

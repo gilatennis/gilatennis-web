@@ -10,6 +10,7 @@
     import type { Registration } from '@/types';
     import Pagination from '@/components/admin/Pagination.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
+    import { ChevronLeft } from 'lucide-svelte';
 
     interface Prize {
         id: number;
@@ -41,9 +42,16 @@
         filters: { status?: string; search?: string };
     } = $props();
 
+
     let tab = $state('registrants');
     let statusFilter = $state(filters.status ?? '');
     let selectedReg = $state<Registration | null>(null);
+    let regSlideOverOpen = $state(false);
+
+    const searchHandler = useSearch(
+        () => filters.search ?? '',
+        () => applyFilters(),
+    );
 
     $effect(() => {
         statusFilter = filters.status ?? '';
@@ -54,24 +62,19 @@
             data: {
                 tab,
                 status: statusFilter || undefined,
-                search: search || undefined,
+                search: searchHandler.search || undefined,
             },
             preserveState: true,
             replace: true,
         });
     }
 
-    const { search, doSearch, clearSearch } = useSearch(
-        () => filters.search ?? '',
-        () => applyFilters(),
-    );
-
     function changePage(page: number) {
         router.visit(window.location.pathname, {
             data: {
                 tab,
                 status: statusFilter || undefined,
-                search: search || undefined,
+                search: searchHandler.search || undefined,
                 page,
             },
             preserveState: true,
@@ -88,7 +91,8 @@
     }
 
     function handleStatusOverride(regId: number, newStatus: string) {
-        router.reload({ preserveState: true, preserveScroll: true });
+        // router.reload({ preserveState: true, preserveScroll: true });
+        router.reload();
     }
 
     const catCls: Record<string, string> = {
@@ -194,9 +198,9 @@
 
                 <div class="relative ml-auto max-w-[240px] w-full">
                     <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
-                    <input type="text" value={search} oninput={(e: Event) => doSearch((e.target as HTMLInputElement).value)} placeholder="Name, email, or code..." class="w-full h-8 pl-9 pr-8 border border-black/12 bg-white text-[12px] placeholder:text-neutral-400 outline-none focus:border-black/30 transition-colors" />
-                    {#if search}
-                        <button type="button" onclick={clearSearch} class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"><X class="size-3" /></button>
+                    <input type="text" value={searchHandler.search} oninput={(e: Event) => searchHandler.doSearch((e.target as HTMLInputElement).value)} placeholder="Name, email, or code..." class="w-full h-8 pl-9 pr-8 border border-black/12 bg-white text-[12px] placeholder:text-neutral-400 outline-none focus:border-black/30 transition-colors" />
+                    {#if searchHandler.search}
+                        <button type="button" onclick={searchHandler.clearSearch} class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"><X class="size-3" /></button>
                     {/if}
                 </div>
             </div>
@@ -209,7 +213,10 @@
                 <RegistrantsTable
                     registrations={registrations.data}
                     showDivisionColumn={false}
-                    onRowClick={(reg: Registration) => (selectedReg = reg)}
+                    onRowClick={(reg: Registration) => {
+                        regSlideOverOpen = true;
+                        selectedReg = reg;
+                    }}
                 />
 
                 <Pagination
@@ -276,8 +283,11 @@
 </div>
 
 <RegistrationSlideOver
-    open={!!selectedReg}
-    onClose={() => (selectedReg = null)}
+    open={regSlideOverOpen}
+    onClose={() => {
+        regSlideOverOpen = false;
+        selectedReg = null;
+    }}
     registration={selectedReg}
     paymentUrl={`/admin/tournaments/${tournament.id}/registrations/${selectedReg?.id}/payment`}
     onStatusOverride={handleStatusOverride}

@@ -9,10 +9,12 @@
     let {
         side = 'right',
         class: className = '',
+        onClose,
         children,
     }: {
         side?: 'right' | 'left' | 'top' | 'bottom';
         class?: string;
+        onClose?: () => void;
         children?: Snippet;
     } = $props();
 
@@ -32,7 +34,11 @@
         bottom: 'h-auto',
     };
 
-    const close = () => setOpen(false);
+    const close = () => {
+        console.log("closing");
+        onClose?.();
+        setOpen(false);
+    }
 
     const panelTransition = () => {
         const axis =
@@ -58,7 +64,7 @@
         ></button>
         <div
             class={cn(
-                'fixed relative flex flex-col gap-4 overflow-y-auto border-none bg-background p-6 shadow-lg',
+                'fixed flex flex-col gap-4 overflow-y-auto border-none bg-background p-6 shadow-lg',
                 sideClasses[side] ?? sideClasses.right,
                 sizeClasses[side] ?? sizeClasses.right,
                 className,

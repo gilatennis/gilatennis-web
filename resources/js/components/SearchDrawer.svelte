@@ -1,11 +1,11 @@
 <script lang="ts">
     import { page, router } from '@inertiajs/svelte';
-    import X from 'lucide-svelte/icons/x';
-    import Trophy from 'lucide-svelte/icons/trophy';
+    import ChevronRight from 'lucide-svelte/icons/chevron-right';
     import FileText from 'lucide-svelte/icons/file-text';
     import MapPin from 'lucide-svelte/icons/map-pin';
-    import ChevronRight from 'lucide-svelte/icons/chevron-right';
     import Search from 'lucide-svelte/icons/search';
+    import Trophy from 'lucide-svelte/icons/trophy';
+    import X from 'lucide-svelte/icons/x';
     import { Button } from '@/components/ui/button';
 
     interface SearchResult {
@@ -44,6 +44,7 @@
         if (query.length < 2) {
             results = {};
             allResults = [];
+
             return;
         }
 
@@ -127,6 +128,7 @@
     $effect(() => {
         if (open) {
             document.addEventListener('keydown', handleKeydown);
+
             return () => document.removeEventListener('keydown', handleKeydown);
         }
     });
