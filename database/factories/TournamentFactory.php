@@ -16,9 +16,6 @@ class TournamentFactory extends Factory
     public function definition(): array
     {
         $surfaces = ['hard', 'clay', 'grass', 'indoor_hard'];
-        $surface = fake()->randomElement($surfaces);
-        $fees = [35000, 45000, 55000, 65000, 75000, 95000];
-        $drawSizes = [16, 24, 32, 48];
 
         return [
             'slug' => fn () => Str::slug(fake()->unique()->words(3, true)),
@@ -31,15 +28,12 @@ class TournamentFactory extends Factory
             ]).' '.fake()->year(),
             'tagline' => fake()->optional()->sentence(),
             'dates' => fn () => fake()->dateTimeBetween('+2 weeks', '+3 months')->format('M j').' - '.fake()->dateTimeBetween('+3 weeks', '+3 months')->format('M j, Y'),
-            'starts_label' => 'Sat 8:00 AM PT',
+            'start' => '2026-06-27',
             'city' => fake()->city(),
             'venue' => fake()->optional()->company(),
-            'surface' => $surface,
-            'draw_size' => fake()->randomElement($drawSizes),
-            'spots_left' => fn ($attrs) => min(fake()->numberBetween(0, $attrs['draw_size'] ?? 24), $attrs['draw_size'] ?? 24),
-            'fee' => fake()->randomElement($fees),
-            'format' => 'Single Elimination, best-of-3',
+            'surface' => fake()->randomElement($surfaces),
             'ball_type' => 'Penn Championship',
+            'venue_type' => 'indoor',
             'registration_closes' => fn ($attrs) => fake()->dateTimeBetween('now', '+3 months'),
             'perks' => null,
             'is_featured' => false,

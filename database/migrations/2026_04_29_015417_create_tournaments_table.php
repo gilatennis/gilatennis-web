@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('tagline')->nullable();
             $table->string('dates');
-            $table->string('starts_label');
+            $table->string('start');
             $table->string('city');
             $table->string('venue')->nullable();
             $table->enum('surface', ['hard', 'clay', 'grass', 'indoor_hard']);

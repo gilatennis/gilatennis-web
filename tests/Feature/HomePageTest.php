@@ -2,6 +2,7 @@
 
 use App\Models\Article;
 use App\Models\Court;
+use App\Models\Division;
 use App\Models\Tournament;
 
 describe('HomePage', function () {
@@ -15,7 +16,8 @@ describe('HomePage', function () {
     });
 
     it('passes featuredTournaments to view', function () {
-        Tournament::factory()->create(['is_featured' => true, 'status' => 'open', 'spots_left' => 10]);
+        $t = Tournament::factory()->create(['is_featured' => true, 'status' => 'open']);
+        Division::factory()->forTournament($t)->singles()->create(['draw_size' => 32, 'fee' => 45000]);
 
         $response = $this->get('/');
         $response->assertInertia(
@@ -60,8 +62,9 @@ describe('HomePage', function () {
     });
 
     it('only shows open tournaments', function () {
-        Tournament::factory()->create(['name' => 'Open Tournament', 'status' => 'open', 'spots_left' => 10, 'is_featured' => true]);
-        Tournament::factory()->create(['name' => 'Closed Tournament', 'status' => 'closed', 'spots_left' => 10, 'is_featured' => true]);
+        $t = Tournament::factory()->create(['name' => 'Open Tournament', 'status' => 'open', 'is_featured' => true]);
+        Division::factory()->forTournament($t)->singles()->create(['draw_size' => 32, 'fee' => 45000]);
+        Tournament::factory()->create(['name' => 'Closed Tournament', 'status' => 'closed', 'is_featured' => true]);
 
         $response = $this->get('/');
         $response->assertInertia(

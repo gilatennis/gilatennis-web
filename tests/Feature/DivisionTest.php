@@ -17,20 +17,26 @@ describe('Division Model', function () {
         expect($d->tournament->is($t))->toBeTrue();
     });
 
-    it('spots_available returns max of zero or spots_left', function () {
-        $d = Division::factory()->singles()->create(['spots_left' => 5]);
-        expect($d->spots_available)->toBe(5);
+    it('spots_available is computed from draw_size minus paid registrations', function () {
+        $d = Division::factory()->singles()->create(['draw_size' => 16, 'fee' => 35000]);
+        TournamentRegistration::factory()->create(['division_id' => $d->id, 'payment_status' => 'paid']);
+        TournamentRegistration::factory()->create(['division_id' => $d->id, 'payment_status' => 'paid']);
+        expect($d->fresh()->spots_available)->toBe(14);
 
-        $d2 = Division::factory()->singles()->create(['spots_left' => 0]);
-        expect($d2->spots_available)->toBe(0);
+        $d2 = Division::factory()->singles()->create(['draw_size' => 2, 'fee' => 35000]);
+        TournamentRegistration::factory()->create(['division_id' => $d2->id, 'payment_status' => 'paid']);
+        TournamentRegistration::factory()->create(['division_id' => $d2->id, 'payment_status' => 'paid']);
+        expect($d2->fresh()->spots_available)->toBe(0);
     });
 
-    it('is_sold_out true when spots left zero', function () {
-        $d = Division::factory()->singles()->create(['spots_left' => 0]);
-        expect($d->is_sold_out)->toBeTrue();
+    it('is_sold_out true when no spots available', function () {
+        $d = Division::factory()->singles()->create(['draw_size' => 1, 'fee' => 35000]);
+        TournamentRegistration::factory()->create(['division_id' => $d->id, 'payment_status' => 'paid']);
+        expect($d->fresh()->is_sold_out)->toBeTrue();
 
-        $d2 = Division::factory()->singles()->create(['spots_left' => 5]);
-        expect($d2->is_sold_out)->toBeFalse();
+        $d2 = Division::factory()->singles()->create(['draw_size' => 2, 'fee' => 35000]);
+        TournamentRegistration::factory()->create(['division_id' => $d2->id, 'payment_status' => 'paid']);
+        expect($d2->fresh()->is_sold_out)->toBeFalse();
     });
 
     it('category_label returns ucfirst', function () {
@@ -41,22 +47,27 @@ describe('Division Model', function () {
         expect($d2->category_label)->toBe('Doubles');
     });
 
-    it('open scope returns divisions with spots left and open tournament', function () {
+    it('open scope returns divisions with capacity and open tournament', function () {
         $t1 = Tournament::factory()->create(['status' => 'open']);
         $t2 = Tournament::factory()->create(['status' => 'closed']);
 
-        Division::factory()->forTournament($t1)->singles()->create(['spots_left' => 5]);
-        Division::factory()->forTournament($t1)->doubles()->create(['spots_left' => 0]);
-        Division::factory()->forTournament($t2)->singles()->create(['spots_left' => 5]);
+        $d1 = Division::factory()->forTournament($t1)->singles()->create(['draw_size' => 16, 'fee' => 35000]);
+        Division::factory()->forTournament($t1)->doubles()->create(['draw_size' => 2, 'fee' => 35000]);
+        TournamentRegistration::factory()->create(['division_id' => $d1->id, 'payment_status' => 'paid']);
+        TournamentRegistration::factory()->create(['division_id' => $d1->id, 'payment_status' => 'paid']);
+        Division::factory()->forTournament($t2)->singles()->create(['draw_size' => 32, 'fee' => 35000]);
 
-        expect(Division::open()->count())->toBe(1);
+        expect(Division::open()->count())->toBe(2);
     });
 
-    it('entry_count calculates from draw_size minus spots_left', function () {
-        $d = Division::factory()->singles()->create(['draw_size' => 32, 'spots_left' => 20]);
-        expect($d->entry_count)->toBe(12);
+    it('entry_count returns paid registration count', function () {
+        $d = Division::factory()->singles()->create(['draw_size' => 32, 'fee' => 35000]);
+        TournamentRegistration::factory()->create(['division_id' => $d->id, 'payment_status' => 'paid']);
+        TournamentRegistration::factory()->create(['division_id' => $d->id, 'payment_status' => 'paid']);
+        TournamentRegistration::factory()->create(['division_id' => $d->id, 'payment_status' => 'pending']);
+        expect($d->fresh()->entry_count)->toBe(2);
 
-        $d2 = Division::factory()->singles()->create(['draw_size' => 32, 'spots_left' => 32]);
+        $d2 = Division::factory()->singles()->create(['draw_size' => 32, 'fee' => 35000]);
         expect($d2->entry_count)->toBe(0);
     });
 

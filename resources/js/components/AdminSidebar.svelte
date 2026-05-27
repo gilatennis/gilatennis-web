@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
     import LayoutGrid from 'lucide-svelte/icons/layout-grid';
+    import Trophy from 'lucide-svelte/icons/trophy';
     import AppLogo from '@/components/AppLogo.svelte';
     import NavUser from '@/components/NavUser.svelte';
     import {
@@ -53,6 +54,24 @@
                         >
                             <LayoutGrid class="size-4 shrink-0" />
                             <span>Dashboard</span>
+                        </Link>
+                    {/snippet}
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton
+                    asChild
+                    isActive={url.currentUrl.includes('/admin/tournaments')}
+                    tooltip="Tournaments"
+                >
+                    {#snippet children(props)}
+                        <Link
+                            {...props}
+                            href="/admin/tournaments"
+                            class={props.class}
+                        >
+                            <Trophy class="size-4 shrink-0" />
+                            <span>Tournaments</span>
                         </Link>
                     {/snippet}
                 </SidebarMenuButton>

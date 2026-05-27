@@ -26,7 +26,7 @@ class SearchController extends Controller
             $results['tournaments'] = Tournament::search($query)
                 ->take(20)
                 ->get()
-                ->filter(fn ($t) => $t->status === 'open' && $t->spots_left > 0)
+                ->filter(fn ($t) => $t->status === 'open')
                 ->take(5)
                 ->values()
                 ->map(fn ($t) => [

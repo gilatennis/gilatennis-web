@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TournamentRule extends Model
 {
-    protected $fillable = ['body', 'sort_order'];
+    protected $fillable = ['tournament_id', 'body', 'sort_order'];
 
     protected $casts = [
         'sort_order' => 'integer',

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TournamentPrize extends Model
 {
-    protected $fillable = ['place', 'value', 'sort_order'];
+    protected $fillable = ['division_id', 'tournament_id', 'place', 'value', 'sort_order'];
 
     protected $casts = [
         'sort_order' => 'integer',
@@ -16,5 +16,10 @@ class TournamentPrize extends Model
     public function tournament(): BelongsTo
     {
         return $this->belongsTo(Tournament::class);
+    }
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(Division::class);
     }
 }

@@ -12,7 +12,7 @@ function makeTournamentWithDivisions(array $tournamentAttrs = [], array $divisio
     $t = Tournament::factory()->create(array_merge(['status' => 'open'], $tournamentAttrs));
 
     Division::factory()->forTournament($t)->singles()->create(array_merge([
-        'draw_size' => 32, 'spots_left' => 10, 'fee' => 50000, 'sort_order' => 0,
+        'draw_size' => 32, 'fee' => 50000, 'sort_order' => 0,
     ], $divisionAttrs));
 
     return $t;
@@ -21,14 +21,14 @@ function makeTournamentWithDivisions(array $tournamentAttrs = [], array $divisio
 function makeSinglesDivision(Tournament $t, array $attrs = []): Division
 {
     return Division::factory()->forTournament($t)->singles()->create(array_merge([
-        'draw_size' => 32, 'spots_left' => 10, 'fee' => 50000, 'sort_order' => 0,
+        'draw_size' => 32, 'fee' => 50000, 'sort_order' => 0,
     ], $attrs));
 }
 
 function makeTeamDivision(Tournament $t, array $attrs = []): Division
 {
     return Division::factory()->forTournament($t)->team()->create(array_merge([
-        'draw_size' => 8, 'spots_left' => 8, 'fee' => 120000, 'min_team_size' => 2, 'max_team_size' => 4, 'sort_order' => 1,
+        'draw_size' => 8, 'fee' => 120000, 'min_team_size' => 2, 'max_team_size' => 4, 'sort_order' => 1,
     ], $attrs));
 }
 
@@ -108,15 +108,19 @@ describe('Registration Form', function () {
     });
 
     it('blocked for sold out tournament', function () {
-        $t = makeTournamentWithDivisions(['status' => 'open'], ['spots_left' => 0]);
+        $t = makeTournamentWithDivisions(['status' => 'open'], ['draw_size' => 1]);
+        $div = $t->divisions->first();
+        TournamentRegistration::factory()->forTournament($t)->create([
+            'division_id' => $div->id, 'payment_status' => 'paid',
+        ]);
 
         $this->get(route('tournaments.register', $t->slug))
             ->assertStatus(403);
     });
 
     it('creates guest user', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
-        $div = makeSinglesDivision($t, ['spots_left' => 10, 'fee' => 5000]);
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
 
         fakeInvoiceService();
 
@@ -130,8 +134,8 @@ describe('Registration Form', function () {
     });
 
     it('reuses existing guest user', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
-        $div = makeSinglesDivision($t, ['spots_left' => 10, 'fee' => 5000]);
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
         User::factory()->create(['email' => 'jane@example.com', 'is_guest' => true]);
 
         fakeInvoiceService();
@@ -143,8 +147,8 @@ describe('Registration Form', function () {
     });
 
     it('creates registration with processing status', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
-        $div = makeSinglesDivision($t, ['spots_left' => 10, 'fee' => 5000]);
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
 
         fakeInvoiceService();
 
@@ -159,8 +163,8 @@ describe('Registration Form', function () {
     });
 
     it('redirects existing paid registration to success', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
-        $div = makeSinglesDivision($t, ['spots_left' => 10, 'fee' => 5000]);
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
         $user = User::factory()->create(['email' => 'jane@example.com']);
         $existing = TournamentRegistration::factory()->forTournament($t)->forUser($user)->create([
             'email' => $user->email,
@@ -177,7 +181,7 @@ describe('Registration Form', function () {
 
 describe('Registration - Team', function () {
     it('creates team registration with players', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
+        $t = Tournament::factory()->create(['status' => 'open']);
         $div = makeTeamDivision($t);
 
         fakeInvoiceService();
@@ -208,7 +212,7 @@ describe('Registration - Team', function () {
     });
 
     it('rejects team with too few players', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
+        $t = Tournament::factory()->create(['status' => 'open']);
         $div = makeTeamDivision($t, ['min_team_size' => 3]);
 
         $this->postJson(route('tournaments.register.store', $t->slug), [
@@ -229,8 +233,8 @@ describe('Registration - Team', function () {
 
 describe('Registration Validation', function () {
     it('rejects empty fields', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
-        $div = makeSinglesDivision($t, ['spots_left' => 10, 'fee' => 5000]);
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
 
         $this->postJson(route('tournaments.register.store', $t->slug), [])
             ->assertStatus(422)
@@ -238,16 +242,16 @@ describe('Registration Validation', function () {
     });
 
     it('rejects invalid email', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
-        $div = makeSinglesDivision($t, ['spots_left' => 10, 'fee' => 5000]);
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
 
         $this->postJson(route('tournaments.register.store', $t->slug), singlesFormData($div, ['email' => 'not-an-email']))
             ->assertStatus(422)->assertJsonValidationErrors(['email']);
     });
 
     it('rejects out-of-range rating', function () {
-        $t = Tournament::factory()->create(['fee' => 5000, 'status' => 'open']);
-        $div = makeSinglesDivision($t, ['spots_left' => 10, 'fee' => 5000]);
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
 
         $this->postJson(route('tournaments.register.store', $t->slug), singlesFormData($div, ['players' => [['rating_value' => '20']]]))
             ->assertStatus(422)->assertJsonValidationErrors(['players.0.rating_value']);
@@ -305,10 +309,10 @@ describe('Duitku Webhook', function () {
         expect($reg->payment_status)->toBe('failed');
     });
 
-    it('decrements division spots on successful payment', function () {
+    it('division spots_available reflects paid registrations', function () {
         $t = Tournament::factory()->create(['status' => 'open']);
         $div = Division::factory()->forTournament($t)->singles()->create([
-            'draw_size' => 32, 'spots_left' => 10, 'fee' => 50000,
+            'draw_size' => 32, 'fee' => 50000,
         ]);
         $reg = TournamentRegistration::factory()->forTournament($t)->create([
             'confirmation_code' => 'GO-2026-TEST3',
@@ -326,7 +330,7 @@ describe('Duitku Webhook', function () {
         ])->assertOk();
 
         $div->refresh();
-        expect($div->spots_left)->toBe(9);
+        expect($div->spots_available)->toBe(31);
     });
 });
 

@@ -9,14 +9,12 @@ it('returns tournaments matching search query', function () {
         'name' => 'Jakarta Open Championship',
         'city' => 'Jakarta',
         'status' => 'open',
-        'spots_left' => 10,
     ]);
 
     Tournament::factory()->create([
         'name' => 'Bali Tennis Classic',
         'city' => 'Bali',
         'status' => 'open',
-        'spots_left' => 5,
     ]);
 
     $response = $this->getJson('/search?q=Jakarta&type=tournaments');
@@ -70,7 +68,6 @@ it('filters results by type', function () {
         'name' => 'Test Tournament',
         'city' => 'Jakarta',
         'status' => 'open',
-        'spots_left' => 10,
     ]);
 
     Article::factory()->create([
@@ -127,14 +124,12 @@ it('excludes closed tournaments from results', function () {
         'name' => 'Open Tournament',
         'city' => 'Jakarta',
         'status' => 'open',
-        'spots_left' => 10,
     ]);
 
     Tournament::factory()->create([
         'name' => 'Closed Tournament',
         'city' => 'Jakarta',
         'status' => 'closed',
-        'spots_left' => 0,
     ]);
 
     $response = $this->getJson('/search?q=Tournament&type=tournaments');
@@ -149,7 +144,6 @@ it('returns json response for xhr requests', function () {
         'name' => 'Test Tournament',
         'city' => 'Jakarta',
         'status' => 'open',
-        'spots_left' => 10,
     ]);
 
     $response = $this->withHeaders([
@@ -165,7 +159,6 @@ it('searches all types when type parameter is all', function () {
         'name' => 'Search Test Tournament',
         'city' => 'Jakarta',
         'status' => 'open',
-        'spots_left' => 10,
     ]);
 
     Article::factory()->create([
@@ -194,7 +187,6 @@ it('returns empty results for non-matching query', function () {
         'name' => 'Jakarta Open',
         'city' => 'Jakarta',
         'status' => 'open',
-        'spots_left' => 10,
     ]);
 
     $response = $this->getJson('/search?q=NonExistentQuery&type=all');
@@ -215,7 +207,6 @@ it('limits results to 5 per type', function () {
         'name' => 'Test Tournament',
         'city' => 'Jakarta',
         'status' => 'open',
-        'spots_left' => 10,
     ]);
 
     $response = $this->getJson('/search?q=Test&type=tournaments');

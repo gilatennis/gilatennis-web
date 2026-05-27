@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TournamentScheduleDay extends Model
 {
-    protected $fillable = ['day_label', 'sort_order'];
+    protected $fillable = ['tournament_id', 'day_label', 'sort_order'];
 
     protected $casts = [
         'sort_order' => 'integer',

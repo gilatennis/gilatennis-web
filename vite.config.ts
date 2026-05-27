@@ -18,7 +18,8 @@ export default defineConfig(({ mode }) => {
                     // url == server.origin. see below
                     return code
                         .replaceAll('http://localhost:5173', url)
-                        .replaceAll('http://[::1]:5173', url);
+                        .replaceAll('http://[::1]:5173', url)
+                        .replaceAll('http://0.0.0.0:5173', url);
                 }
             }),
             inertia(),

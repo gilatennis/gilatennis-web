@@ -33,16 +33,17 @@ class Tournament extends Model
     protected $guarded = [];
 
     protected $appends = [
-        'spots_available',
         'max_players',
         'player_count',
+        'spots_available',
         'surface_label',
+        'status_label',
+        'venue_type_label',
         'is_sold_out',
     ];
 
     protected $casts = [
         'is_featured' => 'boolean',
-        'fee' => 'float',
         'perks' => 'array',
     ];
 
@@ -83,7 +84,8 @@ class Tournament extends Model
 
     public function scopeOpen($query)
     {
-        return $query->where('status', 'open')->where('spots_left', '>', 0);
+        return $query->where('status', 'open')
+            ->whereHas('divisions', fn ($q) => $q->hasAvailableSpots());
     }
 
     public function scopeUpcoming($query)
@@ -93,12 +95,37 @@ class Tournament extends Model
 
     public function getSpotsAvailableAttribute(): int
     {
-        return max(0, $this->spots_left);
+        if ($this->relationLoaded('divisions')) {
+            return max(0, $this->max_players - $this->player_count);
+        }
+
+        $draw = (int) $this->divisions()->sum('draw_size');
+
+        return max(0, $draw);
     }
 
     public function getIsSoldOutAttribute(): bool
     {
-        return $this->spots_left === 0;
+        if ($this->relationLoaded('divisions')) {
+            return $this->divisions->every(fn ($d) => $d->paid_registrations_count >= $d->draw_size);
+        }
+
+        return ! $this->divisions()->hasAvailableSpots()->exists();
+    }
+
+    public function getMaxPlayersAttribute(): int
+    {
+        return (int) $this->divisions()->sum('draw_size');
+    }
+
+    public function getPlayerCountAttribute(): int
+    {
+        return $this->registrations()->where('payment_status', 'paid')->count();
+    }
+
+    public function getSpotsLeftAttribute(): int
+    {
+        return $this->spots_available;
     }
 
     public function getSurfaceLabelAttribute(): string
@@ -111,13 +138,23 @@ class Tournament extends Model
         };
     }
 
-    public function getMaxPlayersAttribute(): int
+    public function getVenueTypeLabelAttribute(): ?string
     {
-        return (int) $this->draw_size;
+        return match ($this->venue_type) {
+            'indoor' => 'Indoor',
+            'outdoor' => 'Outdoor',
+            'both' => 'Indoor & Outdoor',
+            default => null,
+        };
     }
 
-    public function getPlayerCountAttribute(): int
+    public function getStatusLabelAttribute(): string
     {
-        return max(0, $this->draw_size - $this->spots_left);
+        return match ($this->status) {
+            'draft' => 'Draft',
+            'open' => 'Open',
+            'closed' => 'Closed',
+            'completed' => 'Completed',
+        };
     }
 }

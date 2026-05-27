@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\Division;
 use App\Models\Tournament;
+use App\Models\TournamentRegistration;
 
 describe('Tournament Model', function () {
     it('can be created via factory', function () {
@@ -13,33 +15,12 @@ describe('Tournament Model', function () {
             'name' => 'Test Open',
             'city' => 'San Jose, CA',
             'surface' => 'hard',
-            'fee' => 4500,
+            'ball_type' => 'Penn Championship',
         ]);
 
         expect($t->name)->toBe('Test Open');
         expect($t->city)->toBe('San Jose, CA');
-        expect($t->fee)->toBe(4500.0);
-    });
-
-    it('fee is stored and retrieved as a float', function () {
-        $t = Tournament::factory()->create(['fee' => 600000]);
-        expect($t->fee)->toBe(600000.0);
-    });
-
-    it('spots_available returns max of zero or spots_left', function () {
-        $t = Tournament::factory()->create(['spots_left' => 5]);
-        expect($t->spots_available)->toBe(5);
-
-        $t2 = Tournament::factory()->create(['spots_left' => 0]);
-        expect($t2->spots_available)->toBe(0);
-    });
-
-    it('is_sold_out is true when spots_left is zero', function () {
-        $t = Tournament::factory()->create(['spots_left' => 0]);
-        expect($t->is_sold_out)->toBeTrue();
-
-        $t2 = Tournament::factory()->create(['spots_left' => 5]);
-        expect($t2->is_sold_out)->toBeFalse();
+        expect($t->ball_type)->toBe('Penn Championship');
     });
 
     it('surface_label returns human-readable label', function () {
@@ -61,10 +42,16 @@ describe('Tournament Model', function () {
         expect(Tournament::featured()->count())->toBe(2);
     });
 
-    it('open scope returns open tournaments with spots left', function () {
-        Tournament::factory()->create(['status' => 'open', 'spots_left' => 5]);
-        Tournament::factory()->create(['status' => 'open', 'spots_left' => 0]);
-        Tournament::factory()->create(['status' => 'closed', 'spots_left' => 5]);
+    it('open scope returns open tournaments with available divisions', function () {
+        $t1 = Tournament::factory()->create(['status' => 'open']);
+        Division::factory()->forTournament($t1)->singles()->create(['draw_size' => 32, 'fee' => 50000]);
+
+        $t2 = Tournament::factory()->create(['status' => 'open']);
+        $div2 = Division::factory()->forTournament($t2)->singles()->create(['draw_size' => 2, 'fee' => 50000]);
+        TournamentRegistration::factory()->forTournament($t2)->create(['division_id' => $div2->id, 'payment_status' => 'paid']);
+        TournamentRegistration::factory()->forTournament($t2)->create(['division_id' => $div2->id, 'payment_status' => 'paid']);
+
+        Tournament::factory()->create(['status' => 'closed']);
 
         expect(Tournament::open()->count())->toBe(1);
     });
