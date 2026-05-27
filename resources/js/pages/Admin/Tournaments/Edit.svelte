@@ -18,9 +18,9 @@
 
     let { tournament }: { tournament: Record<string, any> | null } = $props();
 
-    const isCreate = !tournament;
+    const isCreate = $derived(!tournament);
 
-    const form = useForm({
+    const init = $derived({
         name: tournament?.name ?? '',
         slug: tournament?.slug ?? '',
         tagline: tournament?.tagline ?? '',
@@ -40,6 +40,9 @@
         rules: (tournament?.rules ?? []) as any[],
     });
 
+    // useForm captures initial values — state_referenced_locally is expected here.
+    const form = useForm(init);
+
     const statusLabels: Record<string, string> = { draft: 'Draft', open: 'Open', closed: 'Closed', completed: 'Completed' };
 
     const surfaceLabels: Record<string, string> = { hard: 'Hard', clay: 'Clay', grass: 'Grass', indoor_hard: 'Indoor' };
@@ -52,7 +55,8 @@
 
     const genderLabels: Record<string, string> = { '': 'Open', mens: 'Men', womens: 'Women', mixed: 'Mixed' };
 
-    let openSection = $state(isCreate ? 'details' : null);
+    let openSection = $state<string | null>(null);
+    $effect(() => { if (isCreate) openSection = 'details'; });
     let editingDivision = $state<any>(null);
     let editingDivisionIndex = $state<number>(-1);
     function getDivisionErrors(i: number): string[] {
