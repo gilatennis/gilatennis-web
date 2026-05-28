@@ -2,6 +2,7 @@
     import { Link, router } from '@inertiajs/svelte';
     import LogOut from 'lucide-svelte/icons/log-out';
     import Settings from 'lucide-svelte/icons/settings';
+    import Wrench from 'lucide-svelte/icons/wrench';
     import {
         DropdownMenuGroup,
         DropdownMenuItem,
@@ -11,6 +12,7 @@
     import UserInfo from '@/components/UserInfo.svelte';
     import { toUrl } from '@/lib/utils';
     import { logout } from '@/routes';
+    import { settings } from '@/routes/admin';
     import { edit } from '@/routes/profile';
     import type { User } from '@/types';
 
@@ -19,6 +21,8 @@
     }: {
         user: User;
     } = $props();
+
+    const settingsUrl = $derived(user.is_admin ? settings.url() : edit.url());
 
     function handleLogout(propsOnClick?: () => void) {
         return () => {
@@ -44,10 +48,25 @@
                 onclick={props.onClick}
             >
                 <Settings class="mr-2 h-4 w-4" />
-                Settings
+                Profile Settings
             </Link>
         {/snippet}
     </DropdownMenuItem>
+    {#if user.is_admin}
+        <DropdownMenuItem asChild>
+            {#snippet children(props)}
+                <Link
+                    class={props.class}
+                    href={toUrl(settings.url())}
+                    prefetch
+                    onclick={props.onClick}
+                >
+                    <Wrench class="mr-2 h-4 w-4" />
+                    System Settings
+                </Link>
+            {/snippet}
+        </DropdownMenuItem>
+    {/if}
 </DropdownMenuGroup>
 <DropdownMenuSeparator />
 <DropdownMenuItem asChild>

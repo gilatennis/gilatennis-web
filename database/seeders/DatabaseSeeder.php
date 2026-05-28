@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             TournamentSeeder::class,
             ArticleSeeder::class,
             CourtSeeder::class,
+            SettingsSeeder::class,
         ]);
 
         $user = User::factory()->create([

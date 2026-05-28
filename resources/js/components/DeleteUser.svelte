@@ -40,7 +40,8 @@
             </DialogTrigger>
             <DialogContent>
                 <Form
-                    {...ProfileController.destroy.form()}
+                    method="delete"
+                    action={ProfileController.destroy.url()}
                     class="space-y-6"
                     options={{ preserveScroll: true }}
                 >

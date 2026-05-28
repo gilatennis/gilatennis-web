@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DivisionController;
 use App\Http\Controllers\Admin\RegistrationController;
+use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\Admin\TournamentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -21,4 +22,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->name('tournaments.divisions.show');
 
     Route::resource('tournaments', TournamentController::class);
+
+    Route::get('settings', [SystemController::class, 'edit'])->name('settings');
+    Route::patch('settings', [SystemController::class, 'update'])->name('settings.update');
 });

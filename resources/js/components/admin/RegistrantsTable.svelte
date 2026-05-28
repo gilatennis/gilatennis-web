@@ -1,8 +1,7 @@
 <script lang="ts">
     import PaymentBadge from './PaymentBadge.svelte';
     import { Link } from '@inertiajs/svelte';
-    import type { Registration } from '@/types';
-    import { PaymentStatus } from '@/types';
+    import type { Registration, PaymentStatus } from '@/types';
 
     let {
         registrations,

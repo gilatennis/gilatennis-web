@@ -55,7 +55,8 @@
     />
 
     <Form
-        {...SecurityController.update.form()}
+        method="put"
+        action={SecurityController.update.url()}
         class="space-y-6"
         options={{ preserveScroll: true }}
         resetOnSuccess
@@ -134,7 +135,8 @@
                         </Button>
                     {:else}
                         <Form
-                            {...enable.form()}
+                            method="post"
+                            action={enable.url()}
                             onSuccess={() => (showSetupModal = true)}
                         >
                             {#snippet children({ processing })}
@@ -155,7 +157,7 @@
                 </p>
 
                 <div class="relative inline">
-                    <Form {...disable.form()}>
+                    <Form method="delete" action={disable.url()}>
                         {#snippet children({ processing })}
                             <Button
                                 variant="destructive"

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TournamentRegistrationRequest;
 use App\Models\Division;
+use App\Models\Settings;
 use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
@@ -30,6 +31,7 @@ class TournamentRegistrationController extends Controller
         return Inertia::render('Tournaments/Register', [
             'tournament' => $tournament,
             'divisions' => $tournament->divisions,
+            'wa_number' => Settings::getWaNumber(),
         ]);
     }
 

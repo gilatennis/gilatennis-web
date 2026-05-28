@@ -250,7 +250,8 @@
                 {/if}
             {:else}
                 <Form
-                    {...confirm.form()}
+                    method="post"
+                    action={confirm.url()}
                     resetOnError
                     onFinish={() => (code = '')}
                     onSuccess={() => (isOpen = false)}

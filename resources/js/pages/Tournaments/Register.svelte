@@ -1,11 +1,12 @@
 <script lang="ts">
-    import { Form, Link } from '@inertiajs/svelte';
+    import { Form, Link, page } from '@inertiajs/svelte';
     import { show as tournamentShow } from '@/routes/tournaments';
     import { store as tournamentStore } from '@/routes/tournaments/register';
     import { ArrowLeft, ArrowRight } from 'lucide-svelte/icons';
     import ImagePlaceholder from '@/components/public/ImagePlaceholder.svelte';
     import RegistrationProgressRail from '@/components/public/RegistrationProgressRail.svelte';
     import { Button } from '@/components/ui/button';
+    import WhatsAppHelpButton from '@/components/public/WhatsAppHelpButton.svelte';
     import Step1DivisionSelection from './registration/Step1DivisionSelection.svelte';
     import Step2PlayerInfo from './registration/Step2PlayerInfo.svelte';
     import Step3ReviewAndPay from './registration/Step3ReviewAndPay.svelte';
@@ -57,6 +58,8 @@
     let emailOptIn = $state(true);
 
     let clientErrors = $state<Record<string, string>>({});
+
+    const waNumber = $derived(page.props.wa_number as string | null);
 
     $effect(() => {
         [selectedDivisionId, teamName, name, email, phone];
@@ -359,3 +362,8 @@
         </div>
     </div>
 </div>
+
+<WhatsAppHelpButton
+    {waNumber}
+    tournamentName={tournament?.name ?? 'Tournament'}
+/>
