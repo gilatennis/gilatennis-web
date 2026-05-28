@@ -6,10 +6,10 @@
 </script>
 
 <section class="border-b border-border bg-card">
-    <div class="max-w-[1400px] mx-auto px-6 py-10">
+    <div class="max-w-350 mx-auto px-6 py-10">
         <div class="flex items-center gap-4 mb-6">
             <span class="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Authorized retailer for</span>
-            <div class="flex-1 h-px bg-border" />
+            <div class="flex-1 h-px bg-border"></div>
         </div>
     </div>
     <div class="overflow-hidden">

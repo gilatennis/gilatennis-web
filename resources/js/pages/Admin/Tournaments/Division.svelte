@@ -90,8 +90,10 @@
         });
     }
 
-    function handleStatusOverride(regId: number, newStatus: string) {
+    function handleStatusOverride(regId: number, newStatus: string | null) {
+        if (newStatus == null) return;
         // router.reload({ preserveState: true, preserveScroll: true });
+        // TODO:
         router.reload();
     }
 

@@ -66,7 +66,7 @@
             <div class="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Spots left</div>
             <div class="flex items-center gap-2">
                 <div class="flex-1 h-1.5 bg-foreground/10 overflow-hidden">
-                    <div class="h-full bg-coral" style="width: {fillPct}%" />
+                    <div class="h-full bg-coral" style="width: {fillPct}%"></div>
                 </div>
                 <span class="font-display font-bold text-sm tabular-nums">{spotsLeft}</span>
             </div>

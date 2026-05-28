@@ -34,7 +34,7 @@
             label={article.imageLabel ?? `article · ${article.slug}`}
             aspect="4/3"
             tone="dark"
-            className="w-full"
+            class="w-full"
         >
             <!-- Kicker badge -->
             <div class="absolute top-3 left-3 px-2 py-1 bg-white text-black text-[10px] font-bold uppercase tracking-[0.18em]">
@@ -43,7 +43,7 @@
 
             <!-- Product overlay for reviews -->
             {#if isReview && article.product}
-                <div class="absolute right-3 bottom-3 left-3 sm:left-auto sm:max-w-[200px] bg-white dark:bg-neutral-950 shadow-xl">
+                <div class="absolute right-3 bottom-3 left-3 sm:left-auto sm:max-w-50 bg-white dark:bg-neutral-950 shadow-xl">
                     <div class="px-3 py-2.5 flex items-center gap-3">
                         <div class="flex-1 min-w-0">
                             <div class="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Shop this</div>
@@ -80,7 +80,7 @@
                 <span>{article.author}</span>
             {/if}
             {#if article.author && article.readTime}
-                <span class="h-1 w-1 rounded-full bg-current opacity-40" />
+                <span class="h-1 w-1 rounded-full bg-current opacity-40"></span>
             {/if}
             {#if article.readTime}
                 <span class="flex items-center gap-1.5">

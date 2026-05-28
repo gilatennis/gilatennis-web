@@ -1,5 +1,4 @@
 <script lang="ts">
-    import type { Snippet } from 'svelte';
     import { cn } from '@/lib/utils';
 
     let {
@@ -37,5 +36,5 @@
             'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform',
             checked ? 'translate-x-4' : 'translate-x-0.5',
         )}
-    />
+    ></span>
 </button>

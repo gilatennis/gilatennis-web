@@ -29,7 +29,7 @@
                 label={product.imageLabel ?? `product · ${product.slug}`}
                 aspect="1/1"
                 tone="light"
-                className="w-full transition-transform duration-300 group-hover:scale-[1.02]"
+                class="w-full transition-transform duration-300 group-hover:scale-[1.02]"
             />
         </Link>
 

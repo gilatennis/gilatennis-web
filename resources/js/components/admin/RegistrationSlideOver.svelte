@@ -18,7 +18,7 @@
         open?: boolean;
         registration: Registration | null;
         paymentUrl: string;
-        onStatusOverride?: (regId: number, newStatus: string) => void;
+        onStatusOverride?: (regId: number, newStatus: string | null) => void;
         onClose?: () => void;
     } = $props();
 
@@ -64,7 +64,7 @@
         return `$${(cents / 100).toFixed(2)}`;
     }
 
-    function handleOverride(status: 'paid' | 'refunded') {
+    function handleOverride(status: 'paid' | 'refunded' | null) {
         if (!registration) return;
         pending = true;
         router.patch(paymentUrl, {

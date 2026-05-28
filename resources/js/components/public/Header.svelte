@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
     import { Search, User, ShoppingBag, Menu, X, Heart, Sun, Moon } from 'lucide-svelte/icons';
     import { themeState } from '@/lib/theme.svelte';
 
@@ -28,7 +27,7 @@
     <!-- Top utility strip -->
     {/*
     <div class="border-b border-black/5 dark:border-white/5 text-[11px] tracking-[0.2em] uppercase">
-        <div class="max-w-[1400px] mx-auto px-6 py-2 flex items-center justify-between text-neutral-600 dark:text-neutral-400">
+        <div class="max-w-350 mx-auto px-6 py-2 flex items-center justify-between text-neutral-600 dark:text-neutral-400">
             <div class="hidden md:flex items-center gap-5">
                 <span class="flex items-center gap-1.5">
                     <span class="relative inline-flex">
@@ -49,7 +48,7 @@
     */''}
 
     <!-- Main bar -->
-    <div class="max-w-[1400px] mx-auto px-6 h-[72px] flex items-center gap-8">
+    <div class="max-w-350 mx-auto px-6 h-18 flex items-center gap-8">
         <button onclick={() => mobileOpen = true} class="lg:hidden -ml-2 p-2">
             <Menu size={22} />
         </button>
@@ -64,7 +63,7 @@
                     {cat}
                 </a>
             {/each}
-            <span class="w-px h-4 bg-black/15 dark:bg-white/15" />
+            <span class="w-px h-4 bg-black/15 dark:bg-white/15"></span>
             {#each navLinks as link}
                 <a href={link.href} class="py-2 hover:text-coral">{link.label}</a>
             {/each}
@@ -103,11 +102,10 @@
     <!-- Search drawer -->
     {#if searchOpen}
         <div class="border-t border-black/10 dark:border-white/10 bg-white dark:bg-neutral-950">
-            <div class="max-w-[1400px] mx-auto px-6 py-5">
+            <div class="max-w-350 mx-auto px-6 py-5">
                 <div class="flex items-center gap-3 border-b-2 border-black dark:border-white pb-3">
                     <Search size={22} />
                     <input
-                        autofocus
                         placeholder="Search rackets, articles, tournaments…"
                         class="flex-1 bg-transparent outline-none text-lg font-display font-medium placeholder:text-neutral-400" />
                     <button onclick={() => searchOpen = false} class="text-xs uppercase tracking-[0.2em] text-neutral-500 hover:text-coral">Close</button>

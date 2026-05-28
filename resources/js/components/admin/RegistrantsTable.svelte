@@ -2,6 +2,7 @@
     import PaymentBadge from './PaymentBadge.svelte';
     import { Link } from '@inertiajs/svelte';
     import type { Registration } from '@/types';
+    import { PaymentStatus } from '@/types';
 
     let {
         registrations,
@@ -56,7 +57,6 @@
                 <Link
                     href={`/admin/tournaments/${reg.division.id}/divisions/${reg.division.id}`}
                     class="text-[12px] text-coral hover:underline truncate pr-2"
-                    onclick={(e: MouseEvent) => e.stopPropagation()}
                 >
                     {reg.division.name}
                 </Link>

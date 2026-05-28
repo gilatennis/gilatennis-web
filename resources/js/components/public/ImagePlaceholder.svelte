@@ -23,11 +23,11 @@
     const labelBg = $derived(isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.6)');
 
     const style = $derived(() => {
-        const s: Record<string, string> = {
-            background: `repeating-linear-gradient(135deg, ${bg} 0 14px, ${stripe} 14px 28px)`,
-        };
-        if (aspect) s.aspectRatio = aspect;
-        return s;
+        const parts: string[] = [
+            `background: repeating-linear-gradient(135deg, ${bg} 0 14px, ${stripe} 14px 28px)`,
+        ];
+        if (aspect) parts.push(`aspect-ratio: ${aspect}`);
+        return parts.join('; ');
     });
 </script>
 

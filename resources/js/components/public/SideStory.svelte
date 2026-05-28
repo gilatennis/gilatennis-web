@@ -23,7 +23,7 @@
         label={imageLabel}
         aspect="1/1"
         {tone}
-        className="w-28 shrink-0"
+        class="w-28 shrink-0"
     />
     <div class="flex-1 min-w-0">
         <Badge variant="coral" class="text-[10px]">{kicker}</Badge>

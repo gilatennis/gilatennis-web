@@ -48,7 +48,7 @@
                 <div
                     class="absolute inset-0 h-full bg-coral transition-all duration-300 ease-out"
                     style="width: {i < step ? '100%' : '0%'}; transform-origin: left;"
-                />
+                ></div>
             </div>
         {/if}
     {/each}
