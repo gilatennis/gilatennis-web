@@ -2,7 +2,7 @@ services:
   app:
     image: kevinjanada/gilatennis_web:latest
     ports:
-      - "3005:80"
+      - "3003:80"
       # - '443:443' # INFO: don't use 443, we use http -> https is handled by cloudflare tunnels
     environment:
       - SERVER_NAME=:80
