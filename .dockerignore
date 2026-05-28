@@ -1,0 +1,15 @@
+node_modules
+vendor
+.git
+storage/*
+!storage/framework/cache/.gitignore
+!storage/framework/sessions/.gitignore
+!storage/framework/testing/.gitignore
+!storage/framework/views/.gitignore
+!storage/logs/.gitignore
+.env*
+*.md
+tests/
+.github/
+docker-compose*.yml
+public/hot

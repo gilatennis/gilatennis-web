@@ -1,0 +1,48 @@
+services:
+  app:
+    image: kevinjanada/gilatennis-web:latest
+    ports:
+      - "3005:80"
+      # - '443:443' # INFO: don't use 443, we use http -> https is handled by cloudflare tunnels
+    environment:
+      - SERVER_NAME=:80
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_FORCE_HTTPS=true
+      - CADDY_GLOBAL_OPTIONS=auto_https off
+    env_file:
+      - .env.production
+    volumes:
+      - storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:80/ || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_DATABASE:-gilatennis}
+      MYSQL_USER: ${DB_USERNAME:-gilatennis}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  storage:
+  mysql_data:
