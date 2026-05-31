@@ -56,6 +56,25 @@
 
     const genderLabels: Record<string, string> = { '': 'Open', mens: 'Men', womens: 'Women', mixed: 'Mixed' };
 
+    const emptyDivision: Record<string, any> = {
+        id: null,
+        name: '',
+        participation_category: 'singles',
+        format: '',
+        draw_size: '',
+        spots_available: '',
+        fee: '',
+        gender: '',
+        rating_type: '',
+        rating_min: '',
+        rating_max: '',
+        min_age: '',
+        max_age: '',
+        min_team_size: '',
+        max_team_size: '',
+        prizes: []
+    };
+
     let openSection = $state<string | null>(null);
     $effect(() => { if (isCreate) openSection = 'details'; });
     let editingDivision = $state<any>(null);
@@ -438,7 +457,7 @@
                             <span class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold">{form.divisions.length}</span>
                         {/if}
                     </button>
-                    <button type="button" onclick={() => { editingDivision = { id: null, name: '', participation_category: 'singles', draw_size: '', spots_available: '', fee: '', gender: '', rating_type: '', rating_min: '', rating_max: '', min_age: '', max_age: '', min_team_size: '', max_team_size: '', prizes: [] }; editingDivisionIndex = -1; }} class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
+                    <button type="button" onclick={() => { editingDivision = emptyDivision; editingDivisionIndex = -1; }} class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
                         <Plus class="size-3" /> Add Division
                     </button>
                 </div>
