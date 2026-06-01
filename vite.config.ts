@@ -5,11 +5,12 @@ import tailwindcss from '@tailwindcss/vite';
 import laravel from 'laravel-vite-plugin';
 import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, process.cwd(), '');
     const tunnelHost = env.VITE_TUNNEL_HOST;
 
     return {
+        base: command === 'build' ? '/build/' : undefined,
         plugins: [
             laravel({
                 input: ['resources/css/app.css', 'resources/js/app.ts'],

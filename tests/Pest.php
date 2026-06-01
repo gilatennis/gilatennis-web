@@ -29,9 +29,12 @@ pest()->extend(TestCase::class)
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
+pest()->extend(TestCase::class)
+    ->use(LazilyRefreshDatabase::class)
+    ->in('Browser');
+
+pest()->browser()
+    ->timeout(15000);
 
 /*
 |--------------------------------------------------------------------------
@@ -48,3 +51,4 @@ function something()
 {
     // ..
 }
+
