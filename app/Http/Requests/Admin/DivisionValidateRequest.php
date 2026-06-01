@@ -28,6 +28,8 @@ class DivisionValidateRequest extends FormRequest
             'max_age' => ['nullable', 'integer', 'min:0'],
             'min_team_size' => ['nullable', 'integer', 'min:1'],
             'max_team_size' => ['nullable', 'integer', 'min:1'],
+            'min_female_players' => ['nullable', 'integer', 'min:0'],
+            'min_male_players' => ['nullable', 'integer', 'min:0'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'prizes' => ['nullable', 'array'],
             'prizes.*.place' => ['required', 'string', 'max:255'],

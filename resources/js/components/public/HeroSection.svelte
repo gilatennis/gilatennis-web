@@ -120,37 +120,37 @@
                                     {/if}
                                 </div>
                             </div>
-
-                            <!-- Featured gear card overlay -->
-                            <div class="absolute right-5 top-5 w-65 hidden md:block">
-                                <div class="bg-white dark:bg-neutral-950 shadow-2xl border-t-2 border-coral">
-                                    <div class="p-4">
-                                        <div class="text-[10px] font-bold uppercase tracking-[0.2em] mb-2 text-coral">Featured Gear</div>
-                                        <ImagePlaceholder label="racket" aspect="4/3" tone="light" class="mb-3 w-full" />
-                                        <div class="font-display font-bold text-[15px] leading-tight">Aero Pro X 100 · 305g</div>
-                                        <div class="mt-1 text-xs text-muted-foreground">Reviewed in this article</div>
-                                        <div class="mt-3 flex items-baseline justify-between">
-                                            <div>
-                                                <span class="font-display font-black text-xl">$249</span>
-                                                <span class="ml-2 text-xs line-through text-muted-foreground">$279</span>
-                                            </div>
-                                            <span class="flex items-center gap-0.5 text-coral">
-                                                {#each [1,2,3,4,5] as _}
-                                                    <Star size={11} fill="currentColor" />
-                                                {/each}
-                                            </span>
-                                        </div>
-                                        <Link
-                                            href="/gear/aero-pro-x-100"
-                                            class="mt-3 w-full h-10 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.18em] bg-black dark:bg-white text-white dark:text-black hover:bg-coral hover:text-white transition-colors"
-                                        >
-                                            Shop now <ArrowUpRight size={14} />
-                                        </Link>
-                                    </div>
-                                </div>
-                            </div>
                         </ImagePlaceholder>
                     </Link>
+
+                    <!-- Featured gear card overlay (outside Link to avoid nested <a>) -->
+                    <div class="absolute right-5 top-5 w-65 hidden md:block">
+                        <div class="bg-white dark:bg-neutral-950 shadow-2xl border-t-2 border-coral">
+                            <div class="p-4">
+                                <div class="text-[10px] font-bold uppercase tracking-[0.2em] mb-2 text-coral">Featured Gear</div>
+                                <ImagePlaceholder label="racket" aspect="4/3" tone="light" class="mb-3 w-full" />
+                                <div class="font-display font-bold text-[15px] leading-tight">Aero Pro X 100 · 305g</div>
+                                <div class="mt-1 text-xs text-muted-foreground">Reviewed in this article</div>
+                                <div class="mt-3 flex items-baseline justify-between">
+                                    <div>
+                                        <span class="font-display font-black text-xl">$249</span>
+                                        <span class="ml-2 text-xs line-through text-muted-foreground">$279</span>
+                                    </div>
+                                    <span class="flex items-center gap-0.5 text-coral">
+                                        {#each [1,2,3,4,5] as _}
+                                            <Star size={11} fill="currentColor" />
+                                        {/each}
+                                    </span>
+                                </div>
+                                <a
+                                    href="/gear/aero-pro-x-100"
+                                    class="mt-3 w-full h-10 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-[0.18em] bg-black dark:bg-white text-white dark:text-black hover:bg-coral hover:text-white transition-colors"
+                                >
+                                    Shop now <ArrowUpRight size={14} />
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </article>
 

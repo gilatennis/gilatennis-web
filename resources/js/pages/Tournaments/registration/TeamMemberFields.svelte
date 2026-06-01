@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
+    import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
     import { Users } from 'lucide-svelte/icons';
 
     let {
@@ -9,6 +10,8 @@
         participationCategory = '',
         maxTeamSize = 0,
         minTeamSize = 0,
+        minFemalePlayers = 0,
+        minMalePlayers = 0,
         errors = {} as Record<string, string>,
         onAddPlayer = () => {},
         onRemovePlayer = (index: number) => {},
@@ -18,6 +21,8 @@
         participationCategory?: string;
         maxTeamSize?: number;
         minTeamSize?: number;
+        minFemalePlayers?: number;
+        minMalePlayers?: number;
         errors?: Record<string, string>;
         onAddPlayer?: () => void;
         onRemovePlayer?: (index: number) => void;
@@ -25,6 +30,22 @@
 
     const isTeam = $derived(participationCategory === 'team');
     const members = $derived(computedPlayers.slice(memberStartIndex));
+
+    const femaleCount = $derived(computedPlayers.filter((p: any) => p.gender === 'female').length);
+    const maleCount = $derived(computedPlayers.filter((p: any) => p.gender === 'male').length);
+
+    const genderReqParts = $derived.by(() => {
+        const parts: string[] = [];
+        if (minFemalePlayers > 0) parts.push(`min ${minFemalePlayers} female`);
+        if (minMalePlayers > 0) parts.push(`min ${minMalePlayers} male`);
+        return parts;
+    });
+
+    const genderCompositionText = $derived.by(() => {
+        const counts = `${maleCount} male / ${femaleCount} female`;
+        const req = genderReqParts.length > 0 ? ' (need ' + genderReqParts.join(', ') + ')' : '';
+        return counts + req;
+    });
 </script>
 
 {#if isTeam}
@@ -38,6 +59,9 @@
                     {computedPlayers.length} / {maxTeamSize} players (min {minTeamSize})
                 </span>
             </div>
+            {#if genderReqParts.length > 0}
+                <p class="text-[10px] text-neutral-500 mb-2">{genderCompositionText}</p>
+            {/if}
 
             <div class="space-y-3">
                 {#each members as player, i}
@@ -84,7 +108,21 @@
                                     <p class="mt-1 text-xs text-coral font-medium">{errors[`players.${actualIndex}.phone`]}</p>
                                 {/if}
                             </div>
-                            <div></div>
+                            <div>
+                                <Label for={`player-${actualIndex}-gender`} class="text-[10px] uppercase tracking-[0.15em] mb-1 block">Gender</Label>
+                                <Select bind:value={player.gender}>
+                                    <SelectTrigger id={`player-${actualIndex}-gender`} class="w-full h-9 px-3 text-[13px] {errors[`players.${actualIndex}.gender`] ? 'border-coral ring-2 ring-coral/30' : ''}">
+                                        {player.gender ? (player.gender === 'male' ? 'Male' : 'Female') : 'Select gender'}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="male" label="Male" />
+                                        <SelectItem value="female" label="Female" />
+                                    </SelectContent>
+                                </Select>
+                                {#if errors[`players.${actualIndex}.gender`]}
+                                    <p class="mt-1 text-xs text-coral font-medium">{errors[`players.${actualIndex}.gender`]}</p>
+                                {/if}
+                            </div>
                         </div>
                     </div>
                 {/each}
@@ -128,6 +166,21 @@
                     class="text-sm {errors['players.1.phone'] ? 'border-coral ring-2 ring-coral/30' : ''}" />
                 {#if errors['players.1.phone']}
                     <p class="mt-1 text-xs text-coral font-medium">{errors['players.1.phone']}</p>
+                {/if}
+            </div>
+            <div>
+                <Label for="player-1-gender" class="text-[10px] uppercase tracking-[0.15em] mb-1 block">Gender</Label>
+                <Select name="players.1.gender">
+                    <SelectTrigger id="player-1-gender" class="w-full h-9 px-3 text-[13px] {errors['players.1.gender'] ? 'border-coral ring-2 ring-coral/30' : ''}">
+                        Select gender
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="male" label="Male" />
+                        <SelectItem value="female" label="Female" />
+                    </SelectContent>
+                </Select>
+                {#if errors['players.1.gender']}
+                    <p class="mt-1 text-xs text-coral font-medium">{errors['players.1.gender']}</p>
                 {/if}
             </div>
         </div>

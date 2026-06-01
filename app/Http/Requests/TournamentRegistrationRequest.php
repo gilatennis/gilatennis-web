@@ -34,6 +34,7 @@ class TournamentRegistrationRequest extends FormRequest
             'players.*.name' => ['required', 'string', 'max:255'],
             'players.*.email' => ['required', 'email', 'max:255'],
             'players.*.phone' => ['required', 'string', 'max:50'],
+            'players.*.gender' => ['required', 'in:male,female'],
             'players.*.date_of_birth' => ['nullable', 'date', 'before:today'],
             'players.*.rating_type' => ['nullable', 'in:UTR,ITN,USTA'],
             'players.*.rating_value' => ['nullable', 'numeric'],
@@ -73,6 +74,25 @@ class TournamentRegistrationRequest extends FormRequest
 
                 if ($max && $playerCount > $max) {
                     $validator->errors()->add('players', "Team allows at most {$max} players.");
+                }
+
+                if ($division->min_female_players || $division->min_male_players) {
+                    $femaleCount = collect($this->input('players', []))->where('gender', 'female')->count();
+                    $maleCount = collect($this->input('players', []))->where('gender', 'male')->count();
+
+                    if ($division->min_female_players && $femaleCount < $division->min_female_players) {
+                        $validator->errors()->add(
+                            'players',
+                            "Team requires at least {$division->min_female_players} female player(s).",
+                        );
+                    }
+
+                    if ($division->min_male_players && $maleCount < $division->min_male_players) {
+                        $validator->errors()->add(
+                            'players',
+                            "Team requires at least {$division->min_male_players} male player(s).",
+                        );
+                    }
                 }
             }
 

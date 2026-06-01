@@ -104,6 +104,7 @@ class TournamentRegistrationController extends Controller
                 'team_id' => $team?->id,
                 'name' => $player['name'],
                 'email' => $player['email'],
+                'gender' => $player['gender'] ?? null,
                 'phone' => $player['phone'],
                 'date_of_birth' => $player['date_of_birth'] ?? '2000-01-01',
                 'rating_type' => $player['rating_type'] ?? null,

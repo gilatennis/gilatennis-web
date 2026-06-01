@@ -16,12 +16,13 @@
         name: string;
         email: string;
         phone: string;
+        gender: string;
         rating_type: string;
         rating_value: string;
     }
 
     function emptyPlayer(): PlayerData {
-        return { name: '', email: '', phone: '', rating_type: '', rating_value: '' };
+        return { name: '', email: '', phone: '', gender: '', rating_type: '', rating_value: '' };
     }
 
     let {
@@ -32,7 +33,6 @@
         divisions: any[];
     } = $props();
 
-    const steps = ['01 Event', '02 Player', '03 Review'];
     let currentStep = $state(0);
 
     const formatIDR = (amount: number) =>
@@ -57,12 +57,31 @@
     let waiverAccepted = $state(false);
     let emailOptIn = $state(true);
 
+    let gender = $state('');
+
+    let lastDivisionId = $state<number | null>(null);
+
+    const defaultGender = $derived.by(() => {
+        if (!selectedDivision) return '';
+        const dg = selectedDivision.gender;
+        if (dg === 'mens') return 'male';
+        if (dg === 'womens') return 'female';
+        return '';
+    });
+
+    $effect(() => {
+        if (selectedDivisionId !== null && selectedDivisionId !== lastDivisionId) {
+            lastDivisionId = selectedDivisionId;
+            if (defaultGender) gender = defaultGender;
+        }
+    });
+
     let clientErrors = $state<Record<string, string>>({});
 
     const waNumber = $derived(page.props.wa_number as string | null);
 
     $effect(() => {
-        [selectedDivisionId, teamName, name, email, phone];
+        [selectedDivisionId, teamName, name, email, phone, gender];
         if (selectedDivisionId && clientErrors.division_id) {
             const { division_id, ...rest } = clientErrors;
             clientErrors = rest;
@@ -86,14 +105,19 @@
         if (phone && clientErrors.phone) {
             const { phone: p, ...rest } = clientErrors;
             clientErrors = rest;
+            return;
+        }
+        if (gender && clientErrors.gender) {
+            const { gender: g, ...rest } = clientErrors;
+            clientErrors = rest;
         }
     });
 
     $effect(() => {
-        [computedPlayers, isTeamDivision, minTeamSize];
+        teamSizeMet; teamCompositionMet;
         const hasPlayerFieldErrors = Object.keys(clientErrors).some(k => k.startsWith('players.'));
-        const hasTeamSizeError = isTeamDivision && computedPlayers.length >= minTeamSize && clientErrors.players;
-        if (hasPlayerFieldErrors || hasTeamSizeError) {
+        const shouldClearPlayers = clientErrors.players && teamSizeMet && teamCompositionMet;
+        if (hasPlayerFieldErrors || shouldClearPlayers) {
             clientErrors = Object.fromEntries(
                 Object.entries(clientErrors).filter(([k]) => !k.startsWith('players.') && k !== 'players')
             );
@@ -108,6 +132,19 @@
     const total = $derived(selectedDivision?.fee ?? 0);
     const minTeamSize = $derived(selectedDivision?.min_team_size ?? 0);
     const maxTeamSize = $derived(selectedDivision?.max_team_size ?? 0);
+    const minFemalePlayers = $derived(selectedDivision?.min_female_players ?? 0);
+    const minMalePlayers = $derived(selectedDivision?.min_male_players ?? 0);
+    const teamMaleCount = $derived(
+        (gender === 'male' ? 1 : 0) + additionalPlayers.filter(p => p.gender === 'male').length
+    );
+    const teamFemaleCount = $derived(
+        (gender === 'female' ? 1 : 0) + additionalPlayers.filter(p => p.gender === 'female').length
+    );
+    const teamSizeMet = $derived(!isTeamDivision || (1 + additionalPlayers.length) >= minTeamSize);
+    const teamCompositionMet = $derived(
+        (!minMalePlayers || teamMaleCount >= minMalePlayers) &&
+        (!minFemalePlayers || teamFemaleCount >= minFemalePlayers)
+    );
 
     $effect(() => {
         if (!isTeamDivision && (teamName !== '' || additionalPlayers.length > 0)) {
@@ -129,9 +166,22 @@
         if (!name.trim()) errs.name = 'Name is required.';
         if (!email.trim()) errs.email = 'Email is required.';
         if (!phone.trim()) errs.phone = 'Phone is required.';
+        if (!gender) errs.gender = 'Gender is required.';
 
-        if (isTeamDivision && computedPlayers.length < minTeamSize) {
-            errs.players = `Team requires at least ${minTeamSize} players.`;
+        const playerErrs: string[] = [];
+        if (isTeamDivision && !teamSizeMet) {
+            playerErrs.push(`Team requires at least ${minTeamSize} players.`);
+        }
+        if (isTeamDivision && !teamCompositionMet) {
+            if (minMalePlayers > 0 && teamMaleCount < minMalePlayers) {
+                playerErrs.push(`Need at least ${minMalePlayers} male player(s) (have ${teamMaleCount}).`);
+            }
+            if (minFemalePlayers > 0 && teamFemaleCount < minFemalePlayers) {
+                playerErrs.push(`Need at least ${minFemalePlayers} female player(s) (have ${teamFemaleCount}).`);
+            }
+        }
+        if (playerErrs.length > 0) {
+            errs.players = playerErrs.join(' ');
         }
 
         computedPlayers.forEach((player, i) => {
@@ -139,6 +189,7 @@
             if (!player.name.trim()) errs[`players.${i}.name`] = 'Name is required.';
             if (!player.email.trim()) errs[`players.${i}.email`] = 'Email is required.';
             if (!player.phone.trim()) errs[`players.${i}.phone`] = 'Phone is required.';
+            if (!player.gender) errs[`players.${i}.gender`] = 'Gender is required.';
         });
 
         clientErrors = errs;
@@ -165,8 +216,11 @@
             return;
         }
 
+        // Track player property mutations via derived values
+        teamMaleCount; teamFemaleCount;
+
         const base: any[] = [{
-            name, email, phone,
+            name, email, phone, gender,
         }];
 
         if (isTeamDivision) {
@@ -176,6 +230,7 @@
                 name: '',
                 email: '',
                 phone: '',
+                gender: defaultGender,
                 rating_type: '',
                 rating_value: '',
             });
@@ -188,7 +243,7 @@
         const fields = Object.keys(errs);
         if (fields.some(f => f === 'division_id' || f === 'team_name')) {
             currentStep = 0;
-        } else if (fields.some(f => f === 'name' || f === 'email' || f === 'phone' || f === 'players' || f.startsWith('players.'))) {
+        } else if (fields.some(f => f === 'name' || f === 'email' || f === 'phone' || f === 'gender' || f === 'players' || f.startsWith('players.'))) {
             currentStep = 1;
         }
     }
@@ -277,10 +332,17 @@
                     <RegistrationProgressRail step={currentStep} onStepClick={(i) => { clearErrors(); clientErrors = {}; currentStep = i; }} />
 
                     {#snippet errorBanner(exclude: string[], excludePrefixes?: string[])}
-                        {#if Object.keys(displayErrors).some(k => !exclude.includes(k) && (!excludePrefixes || !excludePrefixes.some(p => k.startsWith(p))))}
+                        {@const visibleErrors = Object.entries(displayErrors).filter(
+                            ([k]) => !exclude.includes(k) && (!excludePrefixes || !excludePrefixes.some(p => k.startsWith(p)))
+                        )}
+                        {#if visibleErrors.length > 0}
                             <div class="mb-6 p-4 border border-coral/30 bg-coral/5 text-sm">
                                 <p class="font-bold text-coral mb-1">Some fields need your attention.</p>
-                                <p class="text-coral/70">Please check the highlighted fields above.</p>
+                                <ul class="mt-2 list-disc list-inside text-coral/70 space-y-0.5">
+                                    {#each visibleErrors as [field, message]}
+                                        <li>{message}</li>
+                                    {/each}
+                                </ul>
                             </div>
                         {/if}
                     {/snippet}
@@ -288,7 +350,7 @@
                     {#if currentStep === 0}
                         {@render errorBanner(['division_id', 'team_name', 'players'])}
                     {:else if currentStep === 1}
-                        {@render errorBanner(['name', 'email', 'phone'], ['players.'])}
+                        {@render errorBanner(['name', 'email', 'phone', 'gender'], ['players.'])}
                     {:else}
                         {@render errorBanner(['waiver_accepted'])}
                     {/if}
@@ -299,11 +361,13 @@
                             bind:selectedDivisionId
                             bind:teamName
                             {isTeamDivision}
+                            {minFemalePlayers}
+                            {minMalePlayers}
                             errors={displayErrors}
                         />
                     </div>
                     <div class={currentStep === 1 ? '' : 'hidden'}>
-                        <Step2PlayerInfo bind:name bind:email bind:phone errors={displayErrors} />
+                        <Step2PlayerInfo bind:name bind:email bind:phone bind:gender errors={displayErrors} />
                         {#if selectedDivision && (isTeamDivision || selectedDivision.participation_category === 'doubles')}
                             <div class="mt-8">
                                 <TeamMemberFields
@@ -312,6 +376,8 @@
                                     participationCategory={selectedDivision.participation_category}
                                     maxTeamSize={maxTeamSize}
                                     minTeamSize={minTeamSize}
+                                    {minFemalePlayers}
+                                    {minMalePlayers}
                                     errors={displayErrors}
                                     onAddPlayer={addPlayerRow}
                                     onRemovePlayer={removePlayerRow}
@@ -321,7 +387,7 @@
                     </div>
                     <div class={currentStep === 2 ? '' : 'hidden'}>
                         <Step3ReviewAndPay
-                            {name} {email} {phone}
+                            {name} {email} {phone} {gender}
                             {selectedDivision}
                             {computedPlayers}
                             {teamName}
@@ -353,6 +419,7 @@
                     {#each computedPlayers as player, i}
                         <input type="hidden" name="players[{i}][name]" value={player.name} />
                         <input type="hidden" name="players[{i}][email]" value={player.email} />
+                        <input type="hidden" name="players[{i}][gender]" value={player.gender} />
                         <input type="hidden" name="players[{i}][phone]" value={player.phone} />
                         <input type="hidden" name="players[{i}][rating_type]" value={player.rating_type} />
                         <input type="hidden" name="players[{i}][rating_value]" value={player.rating_value} />

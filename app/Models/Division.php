@@ -16,7 +16,8 @@ class Division extends Model
         'tournament_id', 'name', 'slug',
         'participation_category', 'draw_size', 'fee', 'format',
         'gender', 'rating_type', 'rating_min', 'rating_max',
-        'min_age', 'max_age', 'min_team_size', 'max_team_size', 'sort_order',
+        'min_age', 'max_age', 'min_team_size', 'max_team_size',
+        'min_female_players', 'min_male_players', 'sort_order',
     ];
 
     protected $casts = [
@@ -25,6 +26,8 @@ class Division extends Model
         'rating_max' => 'decimal:1',
         'min_team_size' => 'integer',
         'max_team_size' => 'integer',
+        'min_female_players' => 'integer',
+        'min_male_players' => 'integer',
     ];
 
     protected $appends = ['spots_available', 'is_sold_out', 'category_label', 'gender_label'];

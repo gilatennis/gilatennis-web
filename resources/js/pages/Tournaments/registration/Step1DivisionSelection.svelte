@@ -7,14 +7,31 @@
         selectedDivisionId = $bindable(null),
         teamName = $bindable(''),
         isTeamDivision = false,
+        minFemalePlayers = 0,
+        minMalePlayers = 0,
         errors = {} as Record<string, string>,
     }: {
         divisions: any[];
         selectedDivisionId?: number | null;
         teamName?: string;
         isTeamDivision?: boolean;
+        minFemalePlayers?: number;
+        minMalePlayers?: number;
         errors?: Record<string, string>;
     } = $props();
+
+    const genderReqParts = $derived.by(() => {
+        const parts: string[] = [];
+        if (minFemalePlayers > 0) parts.push(`at least ${minFemalePlayers} female`);
+        if (minMalePlayers > 0) parts.push(`at least ${minMalePlayers} male`);
+        return parts;
+    });
+
+    const genderReqText = $derived(
+        genderReqParts.length > 0
+            ? 'Requires ' + genderReqParts.join(' and ') + ' player(s).'
+            : '',
+    );
 
     const formatIDR = (amount: number) =>
         new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
@@ -78,5 +95,10 @@
                 <p class="mt-1 text-xs text-coral font-medium">{errors.team_name}</p>
             {/if}
         </div>
+        {#if genderReqText}
+            <p class="text-[11px] text-neutral-500 leading-relaxed mt-2">
+                {genderReqText}
+            </p>
+        {/if}
     {/if}
 </div>

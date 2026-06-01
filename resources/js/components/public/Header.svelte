@@ -80,11 +80,8 @@
                 onclick={() => updateAppearance(resolvedAppearance() === 'dark' ? 'light' : 'dark')}
                 class="h-10 w-10 grid place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5"
                 aria-label="Toggle dark mode">
-                {#if resolvedAppearance() === 'dark'}
-                    <Sun size={19} />
-                {:else}
-                    <Moon size={19} />
-                {/if}
+                <Sun size={19} class="hidden dark:block" />
+                <Moon size={19} class="block dark:hidden" />
             </button>
             <button class="h-10 w-10 grid place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 hidden sm:grid">
                 <Heart size={19} />

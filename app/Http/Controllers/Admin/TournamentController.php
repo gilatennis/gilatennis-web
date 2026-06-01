@@ -155,6 +155,8 @@ class TournamentController extends Controller
                 'max_age' => $data['max_age'] ?? null,
                 'min_team_size' => $data['min_team_size'] ?? null,
                 'max_team_size' => $data['max_team_size'] ?? null,
+                'min_female_players' => $data['min_female_players'] ?? null,
+                'min_male_players' => $data['min_male_players'] ?? null,
                 'sort_order' => $data['sort_order'] ?? $index,
             ];
 
@@ -303,6 +305,8 @@ class TournamentController extends Controller
                     'max_age' => $d->max_age,
                     'min_team_size' => $d->min_team_size,
                     'max_team_size' => $d->max_team_size,
+                    'min_female_players' => $d->min_female_players,
+                    'min_male_players' => $d->min_male_players,
                     'sort_order' => $d->sort_order,
                     'registration_count' => $d->registrations()->count(),
                     'prizes' => $d->prizes->map(fn (TournamentPrize $p) => [

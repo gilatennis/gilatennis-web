@@ -66,6 +66,7 @@ function singlesFormData(Division $division, array $overrides = []): array
                 'name' => 'Jane Smith',
                 'email' => 'jane@example.com',
                 'phone' => '+1 555 000 0000',
+                'gender' => 'female',
                 'date_of_birth' => '1990-01-01',
                 'rating_type' => 'UTR',
                 'rating_value' => '5.0',
@@ -196,9 +197,9 @@ describe('Registration - Team', function () {
             'tshirt_size' => 'M',
             'waiver_accepted' => true,
             'players' => [
-                ['name' => 'John Captain', 'email' => 'john@test.com', 'phone' => '0812000000', 'date_of_birth' => '1990-01-01'],
-                ['name' => 'Mary Player', 'email' => 'mary@test.com', 'phone' => '0813000000', 'date_of_birth' => '1992-02-02'],
-                ['name' => 'Bob Player', 'email' => 'bob@test.com', 'phone' => '0814000000', 'date_of_birth' => '1988-03-03'],
+                ['name' => 'John Captain', 'email' => 'john@test.com', 'phone' => '0812000000', 'gender' => 'male', 'date_of_birth' => '1990-01-01'],
+                ['name' => 'Mary Player', 'email' => 'mary@test.com', 'phone' => '0813000000', 'gender' => 'female', 'date_of_birth' => '1992-02-02'],
+                ['name' => 'Bob Player', 'email' => 'bob@test.com', 'phone' => '0814000000', 'gender' => 'male', 'date_of_birth' => '1988-03-03'],
             ],
         ])->assertStatus(302);
 
@@ -224,8 +225,8 @@ describe('Registration - Team', function () {
             'team_name' => 'Solo Team',
             'waiver_accepted' => true,
             'players' => [
-                ['name' => 'John Captain', 'email' => 'john@test.com', 'phone' => '0812000000', 'date_of_birth' => '1990-01-01'],
-                ['name' => 'Mary Player', 'email' => 'mary@test.com', 'phone' => '0813000000', 'date_of_birth' => '1992-02-02'],
+                ['name' => 'John Captain', 'email' => 'john@test.com', 'phone' => '0812000000', 'gender' => 'male', 'date_of_birth' => '1990-01-01'],
+                ['name' => 'Mary Player', 'email' => 'mary@test.com', 'phone' => '0813000000', 'gender' => 'female', 'date_of_birth' => '1992-02-02'],
             ],
         ])->assertStatus(422)->assertJsonValidationErrors(['players']);
     });

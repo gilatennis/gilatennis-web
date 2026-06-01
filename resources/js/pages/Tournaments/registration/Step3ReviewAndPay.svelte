@@ -5,6 +5,7 @@
         name,
         email,
         phone,
+        gender,
         selectedDivision,
         computedPlayers = [] as any[],
         teamName = '',
@@ -19,6 +20,7 @@
         name: string;
         email: string;
         phone: string;
+        gender: string;
         selectedDivision: any;
         computedPlayers?: any[];
         teamName?: string;
@@ -43,6 +45,7 @@
                 ['Full name', name, 1],
                 ['Email', email, 1],
                 ['Phone', phone, 1],
+                ['Gender', gender ? (gender === 'male' ? 'Male' : 'Female') : '—', 1],
                 ['Division', divisionName, 0],
             ] as [label, value, step]}
             <div class="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0 text-sm">
@@ -92,6 +95,7 @@
                         <span>{player.name || '—'}</span>
                         <span>{player.email || '—'}</span>
                         <span>{player.phone || '—'}</span>
+                        <span>{player.gender ? (player.gender === 'male' ? 'Male' : 'Female') : '—'}</span>
                     </div>
                 </div>
             {/each}

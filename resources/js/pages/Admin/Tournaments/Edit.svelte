@@ -54,7 +54,7 @@
 
     const categoryLabels: Record<string, string> = { singles: 'Singles', doubles: 'Doubles', team: 'Team' };
 
-    const genderLabels: Record<string, string> = { '': 'Open', mens: 'Men', womens: 'Women', mixed: 'Mixed' };
+    const genderLabels: Record<string, string> = { '': 'Open', mens: 'Men', womens: 'Women', mixed: 'Mixed', coed: 'Coed' };
 
     const emptyDivision: Record<string, any> = {
         id: null,
@@ -73,18 +73,20 @@
         max_age: '',
         min_team_size: '',
         max_team_size: '',
+        min_female_players: '',
+        min_male_players: '',
         prizes: []
     };
 
     let openSection = $state<string | null>(null);
     $effect(() => { if (isCreate) openSection = 'details'; });
     let editingDivision = $state<any>(null);
-    let editingDivisionIndex = $state<number>(-1);
     let divisionErrors = $state<Record<string, string>>({});
     const validateDivisionHttp = useHttp<Record<string, any>>({
         name: '', participation_category: '', draw_size: '', fee: '', format: '',
         gender: '', rating_type: '', rating_min: '', rating_max: '',
         min_age: '', max_age: '', min_team_size: '', max_team_size: '',
+        min_female_players: '', min_male_players: '',
         prizes: [],
     });
     function getDivisionErrors(i: number): string[] {
@@ -478,7 +480,7 @@
                             <span class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold">{form.divisions.length}</span>
                         {/if}
                     </button>
-                    <button type="button" onclick={() => { editingDivision = { ...emptyDivision }; editingDivisionIndex = -1; divisionErrors = {}; }} class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
+                    <button type="button" onclick={() => { editingDivision = { ...emptyDivision }; divisionErrors = {}; }} class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
                         <Plus class="size-3" /> Add Division
                     </button>
                 </div>
@@ -509,7 +511,7 @@
                                         <button type="button" onclick={() => moveDivision(i, 1)} disabled={i === form.divisions.length - 1} class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800 disabled:opacity-20 disabled:cursor-not-allowed"><MoveDown class="size-3.5" /></button>
                                     </div>
                                     <div class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button type="button" onclick={() => { editingDivision = { ...d }; editingDivisionIndex = i; divisionErrors = {}; }} class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800"><Pencil class="size-3.5" /></button>
+                                        <button type="button" onclick={() => { editingDivision = { ...d }; divisionErrors = {}; }} class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800"><Pencil class="size-3.5" /></button>
                                         <button type="button" onclick={() => removeDivision(i)} class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50"><Trash class="size-3.5" /></button>
                                     </div>
                                 </div>
@@ -860,6 +862,22 @@
                                 <p class="text-red-600 text-[11px] mt-1">{divisionErrors.max_team_size}</p>
                             {/if}
                         </div>
+                        {#if editingDivision.gender !== 'mens' && editingDivision.gender !== 'womens'}
+                            <div>
+                                <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Min Female Players</Label>
+                                <Input type="number" bind:value={editingDivision.min_female_players} placeholder="0" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
+                                {#if divisionErrors.min_female_players}
+                                    <p class="text-red-600 text-[11px] mt-1">{divisionErrors.min_female_players}</p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Min Male Players</Label>
+                                <Input type="number" bind:value={editingDivision.min_male_players} placeholder="0" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
+                                {#if divisionErrors.min_male_players}
+                                    <p class="text-red-600 text-[11px] mt-1">{divisionErrors.min_male_players}</p>
+                                {/if}
+                            </div>
+                        {/if}
                     </div>
                 {/if}
 

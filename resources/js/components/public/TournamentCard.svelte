@@ -124,12 +124,12 @@
             </ul>
         {/if}
 
-        <Link
-            href={`/tournaments/${tournament.slug}/register`}
+        <button
+            onclick={() => window.location.href = `/tournaments/${tournament.slug}/register`}
             class="mt-8 w-full h-14 bg-coral text-white font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:bg-background hover:text-foreground transition-colors"
         >
             Register now <ArrowRight size={18}></ArrowRight>
-        </Link>
+        </button>
         <button class="mt-2 w-full h-10 text-xs uppercase tracking-[0.2em] opacity-60 hover:opacity-100 transition-opacity">
             Share with my doubles partner
         </button>

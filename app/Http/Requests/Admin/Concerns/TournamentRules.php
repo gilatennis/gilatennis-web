@@ -39,6 +39,8 @@ trait TournamentRules
             'divisions.*.max_age' => ['nullable', 'integer', 'min:0'],
             'divisions.*.min_team_size' => ['nullable', 'integer', 'min:1'],
             'divisions.*.max_team_size' => ['nullable', 'integer', 'min:1'],
+            'divisions.*.min_female_players' => ['nullable', 'integer', 'min:0'],
+            'divisions.*.min_male_players' => ['nullable', 'integer', 'min:0'],
             'divisions.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'divisions.*.prizes' => ['nullable', 'array'],
             'divisions.*.prizes.*.place' => ['required', 'string', 'max:255'],
