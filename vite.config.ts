@@ -28,7 +28,18 @@ export default defineConfig(({ mode }) => {
             wayfinder({
                 formVariants: true,
             }),
-        ],
+            tunnelHost ? {
+                name: 'fix-css-origin',
+                configureServer(server: any) {
+                    server.httpServer?.once('listening', () => {
+                        const tunnelUrl = `https://${tunnelHost}/`;
+                        if (!server.resolvedUrls.local.includes(tunnelUrl)) {
+                            server.resolvedUrls.local.unshift(tunnelUrl);
+                        }
+                    });
+                },
+            } : undefined,
+        ].filter(Boolean),
         server: tunnelHost ? {
             host: '0.0.0.0',
             port: 5173,
