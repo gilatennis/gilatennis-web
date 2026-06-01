@@ -26,7 +26,7 @@ trait TournamentRules
 
             'divisions' => ['nullable', 'array'],
             'divisions.*.name' => ['required', 'string', 'max:255'],
-            'divisions.*.slug' => ['required', 'string', 'max:255'],
+            'divisions.*.slug' => ['nullable', 'string', 'max:255'],
             'divisions.*.participation_category' => ['required', 'in:singles,doubles,team'],
             'divisions.*.draw_size' => ['required', 'integer', 'min:1'],
             'divisions.*.fee' => ['required', 'numeric', 'min:0'],

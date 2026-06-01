@@ -21,6 +21,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('tournaments/{tournament}/divisions/{division}', [DivisionController::class, 'show'])
         ->name('tournaments.divisions.show');
 
+    Route::post('divisions/validate', [DivisionController::class, 'validateDivision'])
+        ->name('tournaments.divisions.validate');
+
     Route::resource('tournaments', TournamentController::class);
 
     Route::get('settings', [SystemController::class, 'edit'])->name('settings');

@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class DivisionValidateRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255'],
+            'participation_category' => ['required', 'in:singles,doubles,team'],
+            'draw_size' => ['required', 'integer', 'min:1'],
+            'fee' => ['required', 'numeric', 'min:0'],
+            'format' => ['nullable', 'string', 'max:255'],
+            'gender' => ['nullable', 'in:mens,womens,mixed,coed'],
+            'rating_type' => ['nullable', 'string', 'max:20'],
+            'rating_min' => ['nullable', 'numeric'],
+            'rating_max' => ['nullable', 'numeric'],
+            'min_age' => ['nullable', 'integer', 'min:0'],
+            'max_age' => ['nullable', 'integer', 'min:0'],
+            'min_team_size' => ['nullable', 'integer', 'min:1'],
+            'max_team_size' => ['nullable', 'integer', 'min:1'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'prizes' => ['nullable', 'array'],
+            'prizes.*.place' => ['required', 'string', 'max:255'],
+            'prizes.*.value' => ['required', 'string', 'max:255'],
+            'prizes.*.sort_order' => ['nullable', 'integer', 'min:0'],
+        ];
+    }
+}

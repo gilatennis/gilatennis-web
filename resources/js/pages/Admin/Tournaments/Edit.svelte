@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Link, useForm, router } from '@inertiajs/svelte';
+    import { Link, useForm, router, useHttp } from '@inertiajs/svelte';
     import AppHead from '@/components/AppHead.svelte';
     import StatusBadge from '@/components/admin/StatusBadge.svelte';
     import ChevronRight from 'lucide-svelte/icons/chevron-right';
@@ -58,6 +58,7 @@
 
     const emptyDivision: Record<string, any> = {
         id: null,
+        _key: crypto.randomUUID(), // if creating divisions, id will be null, this is required for properly rendering elements
         name: '',
         participation_category: 'singles',
         format: '',
@@ -79,6 +80,13 @@
     $effect(() => { if (isCreate) openSection = 'details'; });
     let editingDivision = $state<any>(null);
     let editingDivisionIndex = $state<number>(-1);
+    let divisionErrors = $state<Record<string, string>>({});
+    const validateDivisionHttp = useHttp<Record<string, any>>({
+        name: '', participation_category: '', draw_size: '', fee: '', format: '',
+        gender: '', rating_type: '', rating_min: '', rating_max: '',
+        min_age: '', max_age: '', min_team_size: '', max_team_size: '',
+        prizes: [],
+    });
     function getDivisionErrors(i: number): string[] {
         const prefix = `divisions.${i}.`;
         return Object.entries(form.errors)
@@ -121,16 +129,29 @@
         form.divisions = form.divisions.filter((_: any, j: number) => j !== i);
     }
 
-    function saveDivision(div: any) {
-        const idx = form.divisions.findIndex((d: any) => d.id === div.id);
-        if (idx >= 0) {
-            const divs = [...form.divisions];
-            divs[idx] = div;
-            form.divisions = divs;
-        } else {
-            form.divisions = [...form.divisions, { ...div, id: Date.now() }];
+    function mapErrors(errors: Record<string, string | string[]>): Record<string, string> {
+        return Object.fromEntries(
+            Object.entries(errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : String(v)])
+        );
+    }
+
+    async function saveDivision(div: any) {
+        divisionErrors = {};
+        validateDivisionHttp.setStore(div);
+        try {
+            await validateDivisionHttp.post('/admin/divisions/validate');
+            const idx = form.divisions.findIndex((d: any) => d.id === div.id);
+            if (idx >= 0) {
+                const divs = [...form.divisions];
+                divs[idx] = div;
+                form.divisions = divs;
+            } else {
+                form.divisions = [...form.divisions, div];
+            }
+            editingDivision = null;
+        } catch {
+            divisionErrors = mapErrors(validateDivisionHttp.errors);
         }
-        editingDivision = null;
     }
 
     function addScheduleDay() {
@@ -457,7 +478,7 @@
                             <span class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold">{form.divisions.length}</span>
                         {/if}
                     </button>
-                    <button type="button" onclick={() => { editingDivision = emptyDivision; editingDivisionIndex = -1; }} class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
+                    <button type="button" onclick={() => { editingDivision = { ...emptyDivision }; editingDivisionIndex = -1; divisionErrors = {}; }} class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
                         <Plus class="size-3" /> Add Division
                     </button>
                 </div>
@@ -476,7 +497,7 @@
                                 <div class="text-right">Order</div>
                                 <div></div>
                             </div>
-                            {#each form.divisions as d, i (d.id)}
+                            {#each form.divisions as d, i (d.id ?? d._key)}
                                 <div class="grid border-b border-black/5 last:border-0 px-3 h-12 items-center hover:bg-neutral-50 group" style="grid-template-columns: 2fr 1fr 90px 80px 70px 80px 80px">
                                     <div class="font-medium text-[13px] text-neutral-900 truncate pr-3">{d.name}</div>
                                     <div class="text-[12px] text-neutral-500">{d.participation_category || 'singles'} · {d.gender || 'open'}</div>
@@ -488,7 +509,7 @@
                                         <button type="button" onclick={() => moveDivision(i, 1)} disabled={i === form.divisions.length - 1} class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800 disabled:opacity-20 disabled:cursor-not-allowed"><MoveDown class="size-3.5" /></button>
                                     </div>
                                     <div class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button type="button" onclick={() => { editingDivision = { ...d }; editingDivisionIndex = i; }} class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800"><Pencil class="size-3.5" /></button>
+                                        <button type="button" onclick={() => { editingDivision = { ...d }; editingDivisionIndex = i; divisionErrors = {}; }} class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800"><Pencil class="size-3.5" /></button>
                                         <button type="button" onclick={() => removeDivision(i)} class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50"><Trash class="size-3.5" /></button>
                                     </div>
                                 </div>
@@ -688,8 +709,8 @@
                 <div>
                     <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Division Name</Label>
                     <Input type="text" bind:value={editingDivision.name} placeholder="Men's Singles 3.5" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                    {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.name`]}
-                        <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.name`]}</p>
+                    {#if divisionErrors.name}
+                        <p class="text-red-600 text-[11px] mt-1">{divisionErrors.name}</p>
                     {/if}
                 </div>
 
@@ -706,8 +727,8 @@
                                     <SelectItem value="team" label="Team" />
                                 </SelectContent>
                             </Select>
-                            {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.participation_category`]}
-                                <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.participation_category`]}</p>
+                            {#if divisionErrors.participation_category}
+                                <p class="text-red-600 text-[11px] mt-1">{divisionErrors.participation_category}</p>
                             {/if}
                     </div>
                     <div>
@@ -724,8 +745,8 @@
                                     <SelectItem value="coed" label="Coed" />
                                 </SelectContent>
                             </Select>
-                            {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.gender`]}
-                                <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.gender`]}</p>
+                            {#if divisionErrors.gender}
+                                <p class="text-red-600 text-[11px] mt-1">{divisionErrors.gender}</p>
                             {/if}
                     </div>
                 </div>
@@ -733,16 +754,16 @@
                 <div>
                     <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Draw Size</Label>
                     <Input type="number" bind:value={editingDivision.draw_size} placeholder="32" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                    {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.draw_size`]}
-                        <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.draw_size`]}</p>
+                    {#if divisionErrors.draw_size}
+                        <p class="text-red-600 text-[11px] mt-1">{divisionErrors.draw_size}</p>
                     {/if}
                 </div>
 
                 <div>
                     <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Entry Fee</Label>
                     <Input type="text" bind:value={editingDivision.fee} placeholder="$45" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                    {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.fee`]}
-                        <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.fee`]}</p>
+                    {#if divisionErrors.fee}
+                        <p class="text-red-600 text-[11px] mt-1">{divisionErrors.fee}</p>
                     {/if}
                 </div>
 
@@ -760,8 +781,8 @@
                                 <SelectItem value="Group + Knockout" label="Group + Knockout" />
                             </SelectContent>
                         </Select>
-                        {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.format`]}
-                            <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.format`]}</p>
+                        {#if divisionErrors.format}
+                            <p class="text-red-600 text-[11px] mt-1">{divisionErrors.format}</p>
                         {/if}
                 </div>
 
@@ -778,8 +799,8 @@
                                 <SelectItem value="USTA" label="USTA" />
                             </SelectContent>
                         </Select>
-                        {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.rating_type`]}
-                            <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.rating_type`]}</p>
+                        {#if divisionErrors.rating_type}
+                            <p class="text-red-600 text-[11px] mt-1">{divisionErrors.rating_type}</p>
                         {/if}
                 </div>
 
@@ -789,15 +810,15 @@
                         <div>
                             <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Min</Label>
                             <Input type="text" bind:value={editingDivision.rating_min} placeholder="3.0" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                            {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.rating_min`]}
-                                <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.rating_min`]}</p>
+                            {#if divisionErrors.rating_min}
+                                <p class="text-red-600 text-[11px] mt-1">{divisionErrors.rating_min}</p>
                             {/if}
                         </div>
                         <div>
                             <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Max</Label>
                             <Input type="text" bind:value={editingDivision.rating_max} placeholder="3.5" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                            {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.rating_max`]}
-                                <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.rating_max`]}</p>
+                            {#if divisionErrors.rating_max}
+                                <p class="text-red-600 text-[11px] mt-1">{divisionErrors.rating_max}</p>
                             {/if}
                         </div>
                     </div>
@@ -809,15 +830,15 @@
                         <div>
                             <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Min Age</Label>
                             <Input type="number" bind:value={editingDivision.min_age} placeholder="—" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                            {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.min_age`]}
-                                <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.min_age`]}</p>
+                            {#if divisionErrors.min_age}
+                                <p class="text-red-600 text-[11px] mt-1">{divisionErrors.min_age}</p>
                             {/if}
                         </div>
                         <div>
                             <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Max Age</Label>
                             <Input type="number" bind:value={editingDivision.max_age} placeholder="—" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                            {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.max_age`]}
-                                <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.max_age`]}</p>
+                            {#if divisionErrors.max_age}
+                                <p class="text-red-600 text-[11px] mt-1">{divisionErrors.max_age}</p>
                             {/if}
                         </div>
                     </div>
@@ -828,15 +849,15 @@
                         <div>
                             <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Min Team Size</Label>
                             <Input type="number" bind:value={editingDivision.min_team_size} placeholder="2" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                            {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.min_team_size`]}
-                                <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.min_team_size`]}</p>
+                            {#if divisionErrors.min_team_size}
+                                <p class="text-red-600 text-[11px] mt-1">{divisionErrors.min_team_size}</p>
                             {/if}
                         </div>
                         <div>
                             <Label class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5">Max Team Size</Label>
                             <Input type="number" bind:value={editingDivision.max_team_size} placeholder="6" class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300" />
-                            {#if editingDivisionIndex >= 0 && form.errors[`divisions.${editingDivisionIndex}.max_team_size`]}
-                                <p class="text-red-600 text-[11px] mt-1">{form.errors[`divisions.${editingDivisionIndex}.max_team_size`]}</p>
+                            {#if divisionErrors.max_team_size}
+                                <p class="text-red-600 text-[11px] mt-1">{divisionErrors.max_team_size}</p>
                             {/if}
                         </div>
                     </div>

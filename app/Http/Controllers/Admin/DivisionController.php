@@ -4,14 +4,21 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\ShapesRegistration;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\DivisionValidateRequest;
 use App\Models\Division;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 
 class DivisionController extends Controller
 {
     use ShapesRegistration;
+
+    public function validateDivision(DivisionValidateRequest $request): JsonResponse
+    {
+        return response()->json(['valid' => true]);
+    }
 
     public function show(Tournament $tournament, Division $division)
     {
