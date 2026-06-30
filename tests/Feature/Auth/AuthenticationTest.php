@@ -16,7 +16,7 @@ test('admin users can authenticate using the login screen', function () {
     $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);
     $user->roles()->syncWithoutDetaching([$role->id]);
 
-    $response = $this->post(route('login.store'), [
+    $response = $this->post(route('admin.login.store'), [
         'email' => $user->email,
         'password' => 'password',
     ]);
@@ -28,7 +28,7 @@ test('admin users can authenticate using the login screen', function () {
 test('non-admin users are blocked from logging in', function () {
     $user = User::factory()->create();
 
-    $response = $this->post(route('login.store'), [
+    $response = $this->post(route('admin.login.store'), [
         'email' => $user->email,
         'password' => 'password',
     ]);
@@ -36,6 +36,22 @@ test('non-admin users are blocked from logging in', function () {
     $this->assertGuest();
     $response->assertRedirect(route('admin.login'));
     $response->assertSessionHas('error');
+});
+
+test('admin login always redirects to /admin/dashboard', function () {
+    $user = User::factory()->create();
+    $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);
+    $user->roles()->syncWithoutDetaching([$role->id]);
+
+    $this->session(['url.intended' => url('/dashboard')]);
+
+    $response = $this->post(route('admin.login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticated();
+    $response->assertRedirect('/admin/dashboard');
 });
 
 test('users with two factor enabled are redirected to two factor challenge', function () {
