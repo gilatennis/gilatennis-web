@@ -3,13 +3,14 @@
 use App\Http\Controllers\Admin\DivisionController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SystemController;
+use App\Http\Controllers\Admin\TennisMatchController;
 use App\Http\Controllers\Admin\TournamentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::redirect('admin', '/admin/dashboard');
 
-Route::get('admin/login', fn() => Inertia::render('Admin/Login', [
+Route::get('admin/login', fn () => Inertia::render('Admin/Login', [
     'status' => session('status'),
 ]))->name('admin.login');
 
@@ -32,4 +33,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     Route::get('settings', [SystemController::class, 'edit'])->name('settings');
     Route::patch('settings', [SystemController::class, 'update'])->name('settings.update');
+
+    Route::get('tennis-matches', [TennisMatchController::class, 'index'])->name('tennis-matches.index');
+    Route::get('tennis-matches/create', [TennisMatchController::class, 'create'])->name('tennis-matches.create');
 });

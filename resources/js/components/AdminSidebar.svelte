@@ -2,6 +2,7 @@
     import { Link } from '@inertiajs/svelte';
     import LayoutGrid from 'lucide-svelte/icons/layout-grid';
     import Settings from 'lucide-svelte/icons/settings';
+    import Swords from 'lucide-svelte/icons/swords';
     import Trophy from 'lucide-svelte/icons/trophy';
     import AppLogo from '@/components/AppLogo.svelte';
     import NavUser from '@/components/NavUser.svelte';
@@ -73,6 +74,24 @@
                         >
                             <Trophy class="size-4 shrink-0" />
                             <span>Tournaments</span>
+                        </Link>
+                    {/snippet}
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton
+                    asChild
+                    isActive={url.currentUrl.includes('/admin/tennis-matches')}
+                    tooltip="Tennis Matches"
+                >
+                    {#snippet children(props)}
+                        <Link
+                            {...props}
+                            href="/admin/tennis-matches"
+                            class={props.class}
+                        >
+                            <Swords class="size-4 shrink-0" />
+                            <span>Tennis Matches</span>
                         </Link>
                     {/snippet}
                 </SidebarMenuButton>

@@ -22,6 +22,7 @@ Multi-phased plan to implement the Gilatennis prototype (`docs/Gilatennis/`) as 
 | 4 | [Tournament Registration](./phase-4-registration.md) | Detail page, multi-step form, Duitku payment, guest checkout | Phases 1, 2 |
 | 5 | [Search](./phase-5-search.md) | Scout + Meilisearch integration, search drawer | Phases 2, 3 |
 | 6 | [Admin Tournaments](./phase-6-admin-tournaments.md) | Tournament CRUD, registration management, division detail | Phases 2, 4 |
+| 7 | [Match Scoring Umpire](./phase-7-match-scoring-umpire.md) | Interactive point-by-point umpire screen, flexible format, live scoreboard | Phases 1, 2 |
 
 ## Design Decisions
 
