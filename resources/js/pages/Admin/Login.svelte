@@ -7,7 +7,7 @@
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
     import { Spinner } from '@/components/ui/spinner';
-    import { store } from '@/routes/login';
+    import { store } from '@/routes/admin/login';
 
     let {
         status = '',
@@ -23,18 +23,28 @@
 <div class="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
     <div class="w-full max-w-sm space-y-8">
         <div class="text-center">
-            <h1 class="font-display font-black text-[28px] tracking-[-0.025em] leading-none">Admin Panel</h1>
-            <p class="mt-2 text-[13px] text-neutral-500">Sign in to manage tournaments and matches.</p>
+            <h1
+                class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+            >
+                Admin Panel
+            </h1>
+            <p class="mt-2 text-[13px] text-neutral-500">
+                Sign in to manage tournaments and matches.
+            </p>
         </div>
 
         {#if status}
-            <div class="border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm text-emerald-700">
+            <div
+                class="border border-emerald-200 bg-emerald-50 px-3 py-2 text-center text-sm text-emerald-700"
+            >
                 {status}
             </div>
         {/if}
 
         {#if page.props.flash?.error}
-            <div class="border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700">
+            <div
+                class="border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700"
+            >
                 {page.props.flash.error}
             </div>
         {/if}

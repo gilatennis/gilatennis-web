@@ -1,15 +1,15 @@
 <script lang="ts">
     import { Link, router } from '@inertiajs/svelte';
-    import AppHead from '@/components/AppHead.svelte';
-    import StatusBadge from '@/components/admin/StatusBadge.svelte';
-    import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
-    import Trophy from 'lucide-svelte/icons/trophy';
+    import Pencil from 'lucide-svelte/icons/pencil';
     import Plus from 'lucide-svelte/icons/plus';
     import Search from 'lucide-svelte/icons/search';
-    import X from 'lucide-svelte/icons/x';
-    import Pencil from 'lucide-svelte/icons/pencil';
     import Trash from 'lucide-svelte/icons/trash';
+    import Trophy from 'lucide-svelte/icons/trophy';
+    import X from 'lucide-svelte/icons/x';
+    import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
+    import StatusBadge from '@/components/admin/StatusBadge.svelte';
+    import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
 
     interface Tournament {
@@ -68,20 +68,30 @@
 <AppHead title="Tournaments" />
 
 <div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2">
+    <div
+        class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2"
+    >
         <span class="text-[12px] text-neutral-400 font-medium">Admin</span>
         <span class="text-neutral-300 text-[12px]">/</span>
-        <span class="text-[12px] font-semibold text-neutral-800">Tournaments</span>
+        <span class="text-[12px] font-semibold text-neutral-800"
+            >Tournaments</span
+        >
     </div>
 
     <div class="flex-1 overflow-y-auto px-8 py-8">
         <div class="flex items-start justify-between mb-7">
             <div>
-                <h1 class="font-display font-black text-[28px] tracking-[-0.025em] leading-none">Tournaments</h1>
+                <h1
+                    class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+                >
+                    Tournaments
+                </h1>
                 <p class="mt-1.5 text-[13px] text-neutral-500">
                     {stats.total} total
                     <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-emerald-600 font-medium">{stats.open} open</span>
+                    <span class="text-emerald-600 font-medium"
+                        >{stats.open} open</span
+                    >
                 </p>
             </div>
 
@@ -96,11 +106,14 @@
 
         <div class="flex items-center gap-3 mb-4">
             <div class="relative max-w-[280px] w-full">
-                <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+                <Search
+                    class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+                />
                 <input
                     type="text"
                     value={search}
-                    oninput={(e: Event) => doSearch((e.target as HTMLInputElement).value)}
+                    oninput={(e: Event) =>
+                        doSearch((e.target as HTMLInputElement).value)}
                     placeholder="Search name or city..."
                     class="w-full h-9 pl-9 pr-8 border border-black/12 bg-white text-sm placeholder:text-neutral-400 outline-none focus:border-black/35 transition-colors"
                 />
@@ -117,17 +130,27 @@
 
             {#if search}
                 <span class="text-[12px] text-neutral-400">
-                    {tournaments.total} result{tournaments.total !== 1 ? 's' : ''}
+                    {tournaments.total} result{tournaments.total !== 1
+                        ? 's'
+                        : ''}
                 </span>
             {/if}
         </div>
 
         {#if tournaments.data.length === 0}
-            <div class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8">
+            <div
+                class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
+            >
                 <Trophy class="size-14 mb-5 text-neutral-200" />
                 {#if search}
-                    <p class="font-display font-bold text-[17px] text-neutral-700">No results for "{filters.search}"</p>
-                    <p class="mt-1 text-[13px] text-neutral-400">Try a different name or city</p>
+                    <p
+                        class="font-display font-bold text-[17px] text-neutral-700"
+                    >
+                        No results for "{filters.search}"
+                    </p>
+                    <p class="mt-1 text-[13px] text-neutral-400">
+                        Try a different name or city
+                    </p>
                     <button
                         type="button"
                         onclick={clearSearch}
@@ -136,8 +159,14 @@
                         Clear search
                     </button>
                 {:else}
-                    <p class="font-display font-bold text-[17px] text-neutral-700">No tournaments yet</p>
-                    <p class="mt-1 text-[13px] text-neutral-400">Create your first tournament to get started</p>
+                    <p
+                        class="font-display font-bold text-[17px] text-neutral-700"
+                    >
+                        No tournaments yet
+                    </p>
+                    <p class="mt-1 text-[13px] text-neutral-400">
+                        Create your first tournament to get started
+                    </p>
                     <Link
                         href="/admin/tournaments/create"
                         class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
@@ -171,18 +200,44 @@
                             href={`/admin/tournaments/${t.id}`}
                             class="contents"
                         >
-                            <div class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4">{t.name}</div>
-                            <div class="text-[13px] text-neutral-500 truncate pr-3">{t.city}</div>
-                            <div class="text-[13px] text-neutral-500 pr-3">{t.dates}</div>
-                            <div><StatusBadge status={t.status as 'draft' | 'open' | 'closed' | 'completed'} /></div>
-                            <div class="text-right font-mono text-[13px] tabular-nums text-neutral-700">
-                                {t.spots_used}<span class="text-neutral-300">/{t.spots_total}</span>
+                            <div
+                                class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4"
+                            >
+                                {t.name}
                             </div>
-                            <div class="text-right text-[13px] tabular-nums font-medium text-neutral-700">
+                            <div
+                                class="text-[13px] text-neutral-500 truncate pr-3"
+                            >
+                                {t.city}
+                            </div>
+                            <div class="text-[13px] text-neutral-500 pr-3">
+                                {t.dates}
+                            </div>
+                            <div>
+                                <StatusBadge
+                                    status={t.status as
+                                        | 'draft'
+                                        | 'open'
+                                        | 'closed'
+                                        | 'completed'}
+                                />
+                            </div>
+                            <div
+                                class="text-right font-mono text-[13px] tabular-nums text-neutral-700"
+                            >
+                                {t.spots_used}<span class="text-neutral-300"
+                                    >/{t.spots_total}</span
+                                >
+                            </div>
+                            <div
+                                class="text-right text-[13px] tabular-nums font-medium text-neutral-700"
+                            >
                                 {t.registration_count}
                             </div>
                         </Link>
-                        <div class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div
+                            class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
                             <Link
                                 href={`/admin/tournaments/${t.id}/edit`}
                                 class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-black/5 transition-colors"

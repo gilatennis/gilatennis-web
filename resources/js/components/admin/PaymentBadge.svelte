@@ -21,6 +21,11 @@
     let { status }: { status: PaymentStatus } = $props();
 </script>
 
-<Badge variant="secondary" class="text-[10px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 {variants[status] ?? variants.pending}">
+<Badge
+    variant="secondary"
+    class="text-[10px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 {variants[
+        status
+    ] ?? variants.pending}"
+>
     {labels[status] ?? status}
 </Badge>

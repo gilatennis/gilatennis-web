@@ -20,6 +20,11 @@
     let { status }: { status: TournamentStatus } = $props();
 </script>
 
-<Badge variant="secondary" class="text-[10px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 {variants[status] ?? variants.draft}">
+<Badge
+    variant="secondary"
+    class="text-[10px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 {variants[
+        status
+    ] ?? variants.draft}"
+>
     {labels[status] ?? status}
 </Badge>

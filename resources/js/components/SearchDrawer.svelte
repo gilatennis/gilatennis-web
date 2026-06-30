@@ -56,12 +56,15 @@
 
         debounceTimer = setTimeout(async () => {
             try {
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}&type=all`, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
+                const response = await fetch(
+                    `/search?q=${encodeURIComponent(query)}&type=all`,
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
                     },
-                });
+                );
 
                 if (response.ok) {
                     results = await response.json();
@@ -141,9 +144,16 @@
         role="dialog"
         aria-modal="true"
     >
-        <div class="flex items-center justify-between p-4 border-b border-border">
+        <div
+            class="flex items-center justify-between p-4 border-b border-border"
+        >
             <h2 class="text-lg font-semibold">Search</h2>
-            <Button variant="ghost" size="icon" onclick={closeDrawer} class="h-8 w-8">
+            <Button
+                variant="ghost"
+                size="icon"
+                onclick={closeDrawer}
+                class="h-8 w-8"
+            >
                 <X size={18} />
             </Button>
         </div>
@@ -168,11 +178,15 @@
         <div class="px-4 pb-4 max-h-[calc(100vh-140px)] overflow-y-auto">
             {#if isLoading}
                 <div class="flex items-center justify-center py-8">
-                    <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                    <div
+                        class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
+                    ></div>
                 </div>
             {:else if searchQuery.length === 0}
                 <div class="py-4">
-                    <h3 class="text-sm font-medium text-muted-foreground mb-3">Trending searches</h3>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">
+                        Trending searches
+                    </h3>
                     <div class="flex flex-wrap gap-2">
                         {#each TRENDING_TERMS as term}
                             <button
@@ -199,25 +213,44 @@
                 <div class="space-y-4">
                     {#if results.tournaments && results.tournaments.length > 0}
                         <div>
-                            <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            <h3
+                                class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2"
+                            >
                                 Tournaments
                             </h3>
                             <div class="space-y-1">
                                 {#each results.tournaments as result, i}
                                     <a
                                         href={result.url}
-                                        class="flex items-center gap-3 px-3 py-2.5 hover:bg-accent rounded-md transition-colors {selectedIndex === i ? 'bg-accent' : ''}"
+                                        class="flex items-center gap-3 px-3 py-2.5 hover:bg-accent rounded-md transition-colors {selectedIndex ===
+                                        i
+                                            ? 'bg-accent'
+                                            : ''}"
                                         onmousedown={(e) => {
                                             e.preventDefault();
                                             navigateTo(result.url);
                                         }}
                                     >
-                                        <Trophy size={14} class="text-coral shrink-0" />
+                                        <Trophy
+                                            size={14}
+                                            class="text-coral shrink-0"
+                                        />
                                         <div class="flex-1 min-w-0">
-                                            <div class="font-medium text-sm truncate">{result.title}</div>
-                                            <div class="text-xs text-muted-foreground truncate">{result.subtitle}</div>
+                                            <div
+                                                class="font-medium text-sm truncate"
+                                            >
+                                                {result.title}
+                                            </div>
+                                            <div
+                                                class="text-xs text-muted-foreground truncate"
+                                            >
+                                                {result.subtitle}
+                                            </div>
                                         </div>
-                                        <ChevronRight size={14} class="text-muted-foreground shrink-0" />
+                                        <ChevronRight
+                                            size={14}
+                                            class="text-muted-foreground shrink-0"
+                                        />
                                     </a>
                                 {/each}
                             </div>
@@ -226,7 +259,9 @@
 
                     {#if results.articles && results.articles.length > 0}
                         <div>
-                            <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            <h3
+                                class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2"
+                            >
                                 Articles
                             </h3>
                             <div class="space-y-1">
@@ -239,12 +274,26 @@
                                             navigateTo(result.url);
                                         }}
                                     >
-                                        <FileText size={14} class="text-coral shrink-0" />
+                                        <FileText
+                                            size={14}
+                                            class="text-coral shrink-0"
+                                        />
                                         <div class="flex-1 min-w-0">
-                                            <div class="font-medium text-sm truncate">{result.title}</div>
-                                            <div class="text-xs text-muted-foreground truncate">{result.subtitle}</div>
+                                            <div
+                                                class="font-medium text-sm truncate"
+                                            >
+                                                {result.title}
+                                            </div>
+                                            <div
+                                                class="text-xs text-muted-foreground truncate"
+                                            >
+                                                {result.subtitle}
+                                            </div>
                                         </div>
-                                        <ChevronRight size={14} class="text-muted-foreground shrink-0" />
+                                        <ChevronRight
+                                            size={14}
+                                            class="text-muted-foreground shrink-0"
+                                        />
                                     </a>
                                 {/each}
                             </div>
@@ -253,7 +302,9 @@
 
                     {#if results.courts && results.courts.length > 0}
                         <div>
-                            <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            <h3
+                                class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2"
+                            >
                                 Courts
                             </h3>
                             <div class="space-y-1">
@@ -266,12 +317,26 @@
                                             navigateTo(result.url);
                                         }}
                                     >
-                                        <MapPin size={14} class="text-coral shrink-0" />
+                                        <MapPin
+                                            size={14}
+                                            class="text-coral shrink-0"
+                                        />
                                         <div class="flex-1 min-w-0">
-                                            <div class="font-medium text-sm truncate">{result.title}</div>
-                                            <div class="text-xs text-muted-foreground truncate">{result.subtitle}</div>
+                                            <div
+                                                class="font-medium text-sm truncate"
+                                            >
+                                                {result.title}
+                                            </div>
+                                            <div
+                                                class="text-xs text-muted-foreground truncate"
+                                            >
+                                                {result.subtitle}
+                                            </div>
                                         </div>
-                                        <ChevronRight size={14} class="text-muted-foreground shrink-0" />
+                                        <ChevronRight
+                                            size={14}
+                                            class="text-muted-foreground shrink-0"
+                                        />
                                     </a>
                                 {/each}
                             </div>

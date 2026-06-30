@@ -10,9 +10,15 @@
     } = $props();
 
     const href = $derived(() => {
-        if (!waNumber) return null;
+        if (!waNumber) {
+            return null;
+        }
+
         const cleanNumber = waNumber.replace(/[^0-9]/g, '');
-        const message = encodeURIComponent(`Hi, I need help with registration for ${tournamentName}`);
+        const message = encodeURIComponent(
+            `Hi, I need help with registration for ${tournamentName}`,
+        );
+
         return `https://wa.me/${cleanNumber}?text=${message}`;
     });
 </script>

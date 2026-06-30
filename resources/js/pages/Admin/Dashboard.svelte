@@ -5,4 +5,7 @@
 
 <AppHead title="Admin Dashboard" />
 
-<Heading title="Admin Dashboard" description="Manage tournaments, courts, and content." />
+<Heading
+    title="Admin Dashboard"
+    description="Manage tournaments, courts, and content."
+/>

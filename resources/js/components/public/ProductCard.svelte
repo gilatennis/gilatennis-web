@@ -1,8 +1,8 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
     import { Star, Heart, ArrowRight } from 'lucide-svelte/icons';
-    import ImagePlaceholder from './ImagePlaceholder.svelte';
     import { Badge } from '@/components/ui/badge';
+    import ImagePlaceholder from './ImagePlaceholder.svelte';
 
     let {
         product,
@@ -21,7 +21,9 @@
     } = $props();
 </script>
 
-<div class="group bg-card border border-border flex flex-col overflow-hidden hover:border-foreground/30 transition-colors">
+<div
+    class="group bg-card border border-border flex flex-col overflow-hidden hover:border-foreground/30 transition-colors"
+>
     <!-- Image -->
     <div class="relative">
         <Link href={`/gear/${product.slug}`} class="block">
@@ -59,14 +61,22 @@
 
     <!-- Info -->
     <div class="p-4 flex flex-col flex-1">
-        <div class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{product.category}</div>
-        <div class="mt-1 font-display font-bold text-[15px] leading-tight group-hover:text-coral transition-colors">
+        <div
+            class="text-[10px] uppercase tracking-[0.2em] text-muted-foreground"
+        >
+            {product.category}
+        </div>
+        <div
+            class="mt-1 font-display font-bold text-[15px] leading-tight group-hover:text-coral transition-colors"
+        >
             {product.name}
         </div>
 
         <!-- Rating -->
         {#if product.rating !== undefined}
-            <div class="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <div
+                class="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"
+            >
                 <Star size={11} fill="currentColor" class="text-coral" />
                 <span class="font-bold text-foreground">{product.rating}</span>
                 {#if product.reviewCount}
@@ -77,9 +87,12 @@
 
         <!-- Price -->
         <div class="mt-auto pt-3 flex items-baseline gap-2">
-            <span class="font-display font-black text-lg">${product.price}</span>
+            <span class="font-display font-black text-lg">${product.price}</span
+            >
             {#if product.wasPrice}
-                <span class="text-xs line-through text-muted-foreground">${product.wasPrice}</span>
+                <span class="text-xs line-through text-muted-foreground"
+                    >${product.wasPrice}</span
+                >
             {/if}
         </div>
     </div>

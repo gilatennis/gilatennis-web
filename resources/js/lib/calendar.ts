@@ -25,12 +25,12 @@ export function googleCalendarUrl(event: CalendarEvent): string {
     });
 
     if (event.description) {
-params.set('details', event.description);
-}
+        params.set('details', event.description);
+    }
 
     if (event.location) {
-params.set('location', event.location);
-}
+        params.set('location', event.location);
+    }
 
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
@@ -44,12 +44,12 @@ export function outlookCalendarUrl(event: CalendarEvent): string {
     });
 
     if (event.description) {
-params.set('body', event.description);
-}
+        params.set('body', event.description);
+    }
 
     if (event.location) {
-params.set('location', event.location);
-}
+        params.set('location', event.location);
+    }
 
     return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
 }
@@ -73,16 +73,18 @@ export function downloadIcs(event: CalendarEvent): void {
     ];
 
     if (event.description) {
-lines.push(`DESCRIPTION:${esc(event.description)}`);
-}
+        lines.push(`DESCRIPTION:${esc(event.description)}`);
+    }
 
     if (event.location) {
-lines.push(`LOCATION:${esc(event.location)}`);
-}
+        lines.push(`LOCATION:${esc(event.location)}`);
+    }
 
     lines.push('END:VEVENT', 'END:VCALENDAR');
 
-    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const blob = new Blob([lines.join('\r\n')], {
+        type: 'text/calendar;charset=utf-8',
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

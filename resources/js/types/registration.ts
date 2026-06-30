@@ -32,7 +32,12 @@ export interface Registration {
     players: Player[];
 }
 
-export type PaymentStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'refunded';
+export type PaymentStatus =
+    | 'pending'
+    | 'processing'
+    | 'paid'
+    | 'failed'
+    | 'refunded';
 
 export interface ByDivision {
     division_id: number;

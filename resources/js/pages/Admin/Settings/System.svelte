@@ -1,12 +1,12 @@
 <script lang="ts">
     import { Form } from '@inertiajs/svelte';
-    import { update } from '@/routes/admin/settings';
     import AppHead from '@/components/AppHead.svelte';
     import Heading from '@/components/Heading.svelte';
     import InputError from '@/components/InputError.svelte';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
+    import { update } from '@/routes/admin/settings';
 
     let {
         contactWaNumber = '',
@@ -40,7 +40,10 @@
                         required
                         placeholder="+6287872440444"
                     />
-                    <InputError class="mt-2" message={errors.contact_wa_number} />
+                    <InputError
+                        class="mt-2"
+                        message={errors.contact_wa_number}
+                    />
                 </div>
 
                 <div class="flex items-center gap-4 pt-2">

@@ -1,15 +1,15 @@
 <script lang="ts">
     import { Link, router } from '@inertiajs/svelte';
-    import AppHead from '@/components/AppHead.svelte';
-    import RegistrantsTable from '@/components/admin/RegistrantsTable.svelte';
-    import RegistrationSlideOver from '@/components/admin/RegistrationSlideOver.svelte';
     import ChevronDown from 'lucide-svelte/icons/chevron-down';
+    import Download from 'lucide-svelte/icons/download';
     import Search from 'lucide-svelte/icons/search';
     import X from 'lucide-svelte/icons/x';
-    import Download from 'lucide-svelte/icons/download';
-    import type { Registration } from '@/types';
     import Pagination from '@/components/admin/Pagination.svelte';
+    import RegistrantsTable from '@/components/admin/RegistrantsTable.svelte';
+    import RegistrationSlideOver from '@/components/admin/RegistrationSlideOver.svelte';
+    import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
+    import type { Registration } from '@/types';
 
     interface DivisionOption {
         id: number;
@@ -24,9 +24,22 @@
         filters,
     }: {
         tournament: { id: number; name: string; slug: string };
-        registrations: { data: Registration[]; current_page: number; last_page: number; from: number; to: number; total: number };
+        registrations: {
+            data: Registration[];
+            current_page: number;
+            last_page: number;
+            from: number;
+            to: number;
+            total: number;
+        };
         divisions: DivisionOption[];
-        stats: { total: number; paid: number; pending: number; failed: number; refunded: number };
+        stats: {
+            total: number;
+            paid: number;
+            pending: number;
+            failed: number;
+            refunded: number;
+        };
         filters: { status?: string; division_id?: string; search?: string };
     } = $props();
 
@@ -78,29 +91,53 @@
 <AppHead title={`${tournament.name} — Registrations`} />
 
 <div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div class="h-14 bg-white border-b border-black/8 flex items-center px-8 gap-2 shrink-0">
-        <Link href={`/admin/tournaments/${tournament.id}`} class="text-[12px] text-neutral-400 font-medium hover:text-neutral-700 flex items-center gap-1 transition-colors">
-            <ChevronLeft class="size-3" /> {tournament.name}
+    <div
+        class="h-14 bg-white border-b border-black/8 flex items-center px-8 gap-2 shrink-0"
+    >
+        <Link
+            href={`/admin/tournaments/${tournament.id}`}
+            class="text-[12px] text-neutral-400 font-medium hover:text-neutral-700 flex items-center gap-1 transition-colors"
+        >
+            <ChevronLeft class="size-3" />
+            {tournament.name}
         </Link>
         <span class="text-neutral-300 text-[12px]">/</span>
-        <span class="text-[12px] font-semibold text-neutral-800">Registrations</span>
+        <span class="text-[12px] font-semibold text-neutral-800"
+            >Registrations</span
+        >
     </div>
 
     <div class="flex-1 overflow-y-auto px-8 py-8">
         <div class="flex items-start justify-between mb-6">
             <div>
-                <h1 class="font-display font-black text-[28px] tracking-[-0.025em] leading-none">{tournament.name}</h1>
+                <h1
+                    class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+                >
+                    {tournament.name}
+                </h1>
                 <p class="mt-1 text-[13px] text-neutral-500">
-                    <span class="font-medium text-neutral-800">{stats.total}</span> total
+                    <span class="font-medium text-neutral-800"
+                        >{stats.total}</span
+                    >
+                    total
                     <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-emerald-700 font-medium">{stats.paid} paid</span>
+                    <span class="text-emerald-700 font-medium"
+                        >{stats.paid} paid</span
+                    >
                     <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-amber-600 font-medium">{stats.pending} pending</span>
+                    <span class="text-amber-600 font-medium"
+                        >{stats.pending} pending</span
+                    >
                     <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-red-600 font-medium">{stats.failed} failed</span>
+                    <span class="text-red-600 font-medium"
+                        >{stats.failed} failed</span
+                    >
                 </p>
             </div>
-            <button type="button" class="h-10 px-4 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] inline-flex items-center gap-2 text-neutral-700 hover:border-black/30 transition-colors">
+            <button
+                type="button"
+                class="h-10 px-4 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] inline-flex items-center gap-2 text-neutral-700 hover:border-black/30 transition-colors"
+            >
                 <Download class="size-3.5" /> Export CSV
             </button>
         </div>
@@ -110,7 +147,10 @@
                 {#each ['', 'pending', 'processing', 'paid', 'failed', 'refunded'] as s}
                     <button
                         type="button"
-                        onclick={() => { statusFilter = s; applyFilters(); }}
+                        onclick={() => {
+                            statusFilter = s;
+                            applyFilters();
+                        }}
                         class={`h-8 px-3 text-[11px] font-bold uppercase tracking-[0.15em] transition-colors ${
                             statusFilter === s
                                 ? 'bg-neutral-900 text-white'
@@ -125,7 +165,10 @@
             <div class="relative">
                 <select
                     value={divisionFilter}
-                    onchange={(e: Event) => { divisionFilter = (e.target as HTMLSelectElement).value; applyFilters(); }}
+                    onchange={(e: Event) => {
+                        divisionFilter = (e.target as HTMLSelectElement).value;
+                        applyFilters();
+                    }}
                     class="h-8 pl-3 pr-8 border border-black/12 bg-white text-[12px] text-neutral-700 outline-none focus:border-black/30 appearance-none cursor-pointer"
                     style="-webkit-appearance: none"
                 >
@@ -134,20 +177,31 @@
                         <option value={String(d.id)}>{d.name}</option>
                     {/each}
                 </select>
-                <ChevronDown class="size-3 absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+                <ChevronDown
+                    class="size-3 absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+                />
             </div>
 
             <div class="relative ml-auto max-w-[260px] w-full">
-                <Search class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+                <Search
+                    class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+                />
                 <input
                     type="text"
                     value={searchHandler.search}
-                    oninput={(e: Event) => searchHandler.doSearch((e.target as HTMLInputElement).value)}
+                    oninput={(e: Event) =>
+                        searchHandler.doSearch(
+                            (e.target as HTMLInputElement).value,
+                        )}
                     placeholder="Name, email, or code..."
                     class="w-full h-8 pl-9 pr-8 border border-black/12 bg-white text-[12px] placeholder:text-neutral-400 outline-none focus:border-black/30 transition-colors"
                 />
                 {#if searchHandler.search}
-                    <button type="button" onclick={searchHandler.clearSearch} class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black">
+                    <button
+                        type="button"
+                        onclick={searchHandler.clearSearch}
+                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"
+                    >
                         <X class="size-3" />
                     </button>
                 {/if}
@@ -155,8 +209,12 @@
         </div>
 
         {#if registrations.data.length === 0}
-            <div class="bg-white border border-black/10 flex flex-col items-center justify-center py-16 px-8">
-                <p class="text-[13px] text-neutral-400">No registrations match your filters.</p>
+            <div
+                class="bg-white border border-black/10 flex flex-col items-center justify-center py-16 px-8"
+            >
+                <p class="text-[13px] text-neutral-400">
+                    No registrations match your filters.
+                </p>
             </div>
         {:else}
             <RegistrantsTable

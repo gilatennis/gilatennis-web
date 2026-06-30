@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte';
-    import Header from './Header.svelte';
     import Footer from './Footer.svelte';
+    import Header from './Header.svelte';
     import Newsletter from './Newsletter.svelte';
 
     let {

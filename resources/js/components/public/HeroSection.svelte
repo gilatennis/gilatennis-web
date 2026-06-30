@@ -1,10 +1,10 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
     import { ArrowUpRight, Clock, Star } from 'lucide-svelte/icons';
+    import { Badge } from '@/components/ui/badge';
+    import DetailStat from './DetailStat.svelte';
     import ImagePlaceholder from './ImagePlaceholder.svelte';
     import SideStory from './SideStory.svelte';
-    import DetailStat from './DetailStat.svelte';
-    import { Badge } from '@/components/ui/badge';
 
     let {
         featuredArticle = {
@@ -12,8 +12,9 @@
             imageLabel: 'hero · alcaraz forehand at madrid',
             type: 'Gear Review',
             readTime: '8 min read',
-            title: 'The racket that\'s redefining control on clay.',
-            excerpt: 'We strung, tested and beat up the new Aero Pro X for six weeks across three surfaces. Here\'s what we found — and who should actually buy it.',
+            title: "The racket that's redefining control on clay.",
+            excerpt:
+                "We strung, tested and beat up the new Aero Pro X for six weeks across three surfaces. Here's what we found — and who should actually buy it.",
             author: 'M. Alvarez',
             timeAgo: '2h ago',
         },
@@ -25,12 +26,12 @@
             },
             {
                 kicker: 'Pro Watch',
-                title: 'Why Świątek\'s slice is suddenly her best shot.',
+                title: "Why Świątek's slice is suddenly her best shot.",
                 meta: 'The Editors · 4 min',
                 tone: 'light' as const,
             },
             {
-                kicker: 'Buyer\'s Guide',
+                kicker: "Buyer's Guide",
                 title: 'Best tennis shoes for wide feet in 2026.',
                 meta: 'Gear desk · 9 min',
             },
@@ -53,11 +54,18 @@
             meta: string;
             tone?: 'dark' | 'light';
         }>;
-        stats?: { articleCount: number; tournamentCount: number; memberCount: number };
+        stats?: {
+            articleCount: number;
+            tournamentCount: number;
+            memberCount: number;
+        };
     } = $props();
 
     function formatCount(n: number): string {
-        if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+        if (n >= 1000) {
+            return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+        }
+
         return n.toString();
     }
 </script>
@@ -66,11 +74,20 @@
     <div class="max-w-350 mx-auto px-6 pt-8 pb-14 lg:pt-12 lg:pb-20">
         <!-- Eyebrow row -->
         <div class="flex items-end justify-between mb-6">
-            <div class="flex items-center gap-3 text-[11px] uppercase tracking-[0.25em]">
-                <span class="px-2 py-1 text-white font-bold bg-coral">This Week</span>
-                <span class="text-muted-foreground">Issue No. 142 · April 26</span>
+            <div
+                class="flex items-center gap-3 text-[11px] uppercase tracking-[0.25em]"
+            >
+                <span class="px-2 py-1 text-white font-bold bg-coral"
+                    >This Week</span
+                >
+                <span class="text-muted-foreground"
+                    >Issue No. 142 · April 26</span
+                >
             </div>
-            <Link href="/archive" class="hidden md:flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] hover:text-coral transition-colors">
+            <Link
+                href="/archive"
+                class="hidden md:flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] hover:text-coral transition-colors"
+            >
                 View archive <ArrowUpRight size={14} />
             </Link>
         </div>
@@ -79,7 +96,10 @@
             <!-- Hero feature -->
             <article class="lg:col-span-8 group">
                 <div class="relative">
-                    <Link href={`/articles/${featuredArticle.slug}`} class="block">
+                    <Link
+                        href={`/articles/${featuredArticle.slug}`}
+                        class="block"
+                    >
                         <ImagePlaceholder
                             label={featuredArticle.imageLabel ?? 'hero image'}
                             aspect="16/10"
@@ -87,27 +107,43 @@
                             class="w-full"
                         >
                             <!-- Top tag -->
-                            <div class="absolute top-5 left-5 flex items-center gap-2">
-                                <Badge variant="default">{featuredArticle.type}</Badge>
-                                <span class="px-2.5 py-1 text-white text-[10px] font-bold uppercase tracking-[0.2em] bg-black/40 backdrop-blur-sm">
+                            <div
+                                class="absolute top-5 left-5 flex items-center gap-2"
+                            >
+                                <Badge variant="default"
+                                    >{featuredArticle.type}</Badge
+                                >
+                                <span
+                                    class="px-2.5 py-1 text-white text-[10px] font-bold uppercase tracking-[0.2em] bg-black/40 backdrop-blur-sm"
+                                >
                                     {featuredArticle.readTime}
                                 </span>
                             </div>
 
                             <!-- Title overlay -->
-                            <div class="absolute inset-x-0 bottom-0 p-5 sm:p-6 lg:p-10 bg-linear-to-t from-black/90 via-black/50 to-transparent">
-                                <h1 class="font-display font-black text-white text-[26px] sm:text-[44px] lg:text-[72px] leading-[0.95] sm:leading-[0.92] tracking-[-0.03em] max-w-3xl">
+                            <div
+                                class="absolute inset-x-0 bottom-0 p-5 sm:p-6 lg:p-10 bg-linear-to-t from-black/90 via-black/50 to-transparent"
+                            >
+                                <h1
+                                    class="font-display font-black text-white text-[26px] sm:text-[44px] lg:text-[72px] leading-[0.95] sm:leading-[0.92] tracking-[-0.03em] max-w-3xl"
+                                >
                                     {featuredArticle.title}
                                 </h1>
                                 {#if featuredArticle.excerpt}
-                                    <p class="mt-3 sm:mt-4 text-white/80 max-w-xl text-[13px] sm:text-[15px] leading-relaxed line-clamp-2 sm:line-clamp-none">
+                                    <p
+                                        class="mt-3 sm:mt-4 text-white/80 max-w-xl text-[13px] sm:text-[15px] leading-relaxed line-clamp-2 sm:line-clamp-none"
+                                    >
                                         {featuredArticle.excerpt}
                                     </p>
                                 {/if}
-                                <div class="mt-4 sm:mt-6 flex items-center gap-3 sm:gap-4 text-white/70 text-[11px] sm:text-xs">
+                                <div
+                                    class="mt-4 sm:mt-6 flex items-center gap-3 sm:gap-4 text-white/70 text-[11px] sm:text-xs"
+                                >
                                     {#if featuredArticle.author}
                                         <span class="flex items-center gap-2">
-                                            <span class="h-7 w-7 rounded-full bg-white/20"></span>
+                                            <span
+                                                class="h-7 w-7 rounded-full bg-white/20"
+                                            ></span>
                                             by {featuredArticle.author}
                                         </span>
                                     {/if}
@@ -125,20 +161,50 @@
 
                     <!-- Featured gear card overlay (outside Link to avoid nested <a>) -->
                     <div class="absolute right-5 top-5 w-65 hidden md:block">
-                        <div class="bg-white dark:bg-neutral-950 shadow-2xl border-t-2 border-coral">
+                        <div
+                            class="bg-white dark:bg-neutral-950 shadow-2xl border-t-2 border-coral"
+                        >
                             <div class="p-4">
-                                <div class="text-[10px] font-bold uppercase tracking-[0.2em] mb-2 text-coral">Featured Gear</div>
-                                <ImagePlaceholder label="racket" aspect="4/3" tone="light" class="mb-3 w-full" />
-                                <div class="font-display font-bold text-[15px] leading-tight">Aero Pro X 100 · 305g</div>
-                                <div class="mt-1 text-xs text-muted-foreground">Reviewed in this article</div>
-                                <div class="mt-3 flex items-baseline justify-between">
+                                <div
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] mb-2 text-coral"
+                                >
+                                    Featured Gear
+                                </div>
+                                <ImagePlaceholder
+                                    label="racket"
+                                    aspect="4/3"
+                                    tone="light"
+                                    class="mb-3 w-full"
+                                />
+                                <div
+                                    class="font-display font-bold text-[15px] leading-tight"
+                                >
+                                    Aero Pro X 100 · 305g
+                                </div>
+                                <div class="mt-1 text-xs text-muted-foreground">
+                                    Reviewed in this article
+                                </div>
+                                <div
+                                    class="mt-3 flex items-baseline justify-between"
+                                >
                                     <div>
-                                        <span class="font-display font-black text-xl">$249</span>
-                                        <span class="ml-2 text-xs line-through text-muted-foreground">$279</span>
+                                        <span
+                                            class="font-display font-black text-xl"
+                                            >$249</span
+                                        >
+                                        <span
+                                            class="ml-2 text-xs line-through text-muted-foreground"
+                                            >$279</span
+                                        >
                                     </div>
-                                    <span class="flex items-center gap-0.5 text-coral">
-                                        {#each [1,2,3,4,5] as _}
-                                            <Star size={11} fill="currentColor" />
+                                    <span
+                                        class="flex items-center gap-0.5 text-coral"
+                                    >
+                                        {#each [1, 2, 3, 4, 5] as _}
+                                            <Star
+                                                size={11}
+                                                fill="currentColor"
+                                            />
                                         {/each}
                                     </span>
                                 </div>
@@ -163,11 +229,22 @@
         </div>
 
         <!-- Stat strip -->
-        <div class="mt-12 grid grid-cols-2 md:grid-cols-3 border-t border-border pt-8">
-            <DetailStat value={formatCount(stats.articleCount) + '+'} label="Gear reviews" />
-            <DetailStat value={stats.tournamentCount.toString()} label="Active tournaments" />
-            <DetailStat value={formatCount(stats.memberCount)} label="Community members" />
-            {/* <DetailStat value="Free" label="Returns to 60 days" />*/''}
+        <div
+            class="mt-12 grid grid-cols-2 md:grid-cols-3 border-t border-border pt-8"
+        >
+            <DetailStat
+                value={formatCount(stats.articleCount) + '+'}
+                label="Gear reviews"
+            />
+            <DetailStat
+                value={stats.tournamentCount.toString()}
+                label="Active tournaments"
+            />
+            <DetailStat
+                value={formatCount(stats.memberCount)}
+                label="Community members"
+            />
+            {/* <DetailStat value="Free" label="Returns to 60 days" />*/ ''}
         </div>
     </div>
 </section>

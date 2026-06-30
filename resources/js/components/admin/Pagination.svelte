@@ -23,7 +23,8 @@
 
 <div class={`px-5 h-12 flex items-center justify-between ${extraClass}`}>
     <span class="text-[12px] text-neutral-400">
-        {from}–{to} <span class="text-neutral-300">of</span> {total}
+        {from}–{to} <span class="text-neutral-300">of</span>
+        {total}
     </span>
     <div class="flex items-center gap-1">
         <button

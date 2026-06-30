@@ -45,7 +45,10 @@
             <SidebarMenuItem>
                 <SidebarMenuButton
                     asChild
-                    isActive={url.isCurrentUrl('/admin/dashboard', url.currentUrl)}
+                    isActive={url.isCurrentUrl(
+                        '/admin/dashboard',
+                        url.currentUrl,
+                    )}
                     tooltip="Dashboard"
                 >
                     {#snippet children(props)}

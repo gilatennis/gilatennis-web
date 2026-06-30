@@ -14,7 +14,7 @@
     width={size}
     height={size}
     viewBox="0 0 24 24"
-    fill={fill}
+    {fill}
     stroke="currentColor"
     stroke-width="1.6"
     stroke-linecap="round"

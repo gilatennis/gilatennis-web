@@ -22,8 +22,15 @@
 
     const genderReqParts = $derived.by(() => {
         const parts: string[] = [];
-        if (minFemalePlayers > 0) parts.push(`at least ${minFemalePlayers} female`);
-        if (minMalePlayers > 0) parts.push(`at least ${minMalePlayers} male`);
+
+        if (minFemalePlayers > 0) {
+            parts.push(`at least ${minFemalePlayers} female`);
+        }
+
+        if (minMalePlayers > 0) {
+            parts.push(`at least ${minMalePlayers} male`);
+        }
+
         return parts;
     });
 
@@ -34,7 +41,11 @@
     );
 
     const formatIDR = (amount: number) =>
-        new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount);
+        new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0,
+        }).format(amount);
 
     const selectedDivision = $derived(
         divisions.find((d: any) => d.id === selectedDivisionId) ?? null,
@@ -45,54 +56,101 @@
     <h2 class="font-display font-black text-2xl mb-6">Select division</h2>
 
     <div>
-        <Label required class="text-[11px] uppercase tracking-[0.2em] font-bold mb-3 block">
+        <Label
+            required
+            class="text-[11px] uppercase tracking-[0.2em] font-bold mb-3 block"
+        >
             Division
         </Label>
         <div class="flex flex-col gap-2">
             {#each divisions as div}
                 {@const soldOut = (div.spots_available ?? 0) <= 0}
-                <button type="button" onclick={() => !soldOut && (selectedDivisionId = div.id)}
+                <button
+                    type="button"
+                    onclick={() => !soldOut && (selectedDivisionId = div.id)}
                     disabled={soldOut}
                     class="text-left border p-4 flex items-center justify-between transition-colors
-                        {selectedDivisionId === div.id ? 'border-black dark:border-white bg-black/5 dark:bg-white/5' : 'border-black/15 dark:border-white/15 hover:border-black/30 dark:hover:border-white/30'}
-                        {soldOut ? 'opacity-40 cursor-not-allowed' : ''}">
+                        {selectedDivisionId === div.id
+                        ? 'border-black dark:border-white bg-black/5 dark:bg-white/5'
+                        : 'border-black/15 dark:border-white/15 hover:border-black/30 dark:hover:border-white/30'}
+                        {soldOut ? 'opacity-40 cursor-not-allowed' : ''}"
+                >
                     <div class="flex items-center gap-3">
-                        <div class="h-4 w-4 rounded-full border-2 grid place-items-center shrink-0 {selectedDivisionId === div.id ? 'border-black dark:border-white' : 'border-black/30 dark:border-white/30'}">
+                        <div
+                            class="h-4 w-4 rounded-full border-2 grid place-items-center shrink-0 {selectedDivisionId ===
+                            div.id
+                                ? 'border-black dark:border-white'
+                                : 'border-black/30 dark:border-white/30'}"
+                        >
                             {#if selectedDivisionId === div.id}
-                                <div class="h-2 w-2 rounded-full bg-black dark:bg-white"></div>
+                                <div
+                                    class="h-2 w-2 rounded-full bg-black dark:bg-white"
+                                ></div>
                             {/if}
                         </div>
                         <div>
-                            <span class="font-display font-bold text-base">{div.name}</span>
-                            <span class="ml-2 text-[10px] uppercase tracking-[0.15em] text-neutral-400">
+                            <span class="font-display font-bold text-base"
+                                >{div.name}</span
+                            >
+                            <span
+                                class="ml-2 text-[10px] uppercase tracking-[0.15em] text-neutral-400"
+                            >
                                 {div.participation_category}
                             </span>
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="font-display font-bold text-sm">{formatIDR(div.fee)}</div>
-                        <div class="text-[10px] uppercase tracking-[0.15em] {soldOut ? 'text-coral font-bold' : 'text-neutral-400'}">
-                            {soldOut ? 'Sold out' : `${div.spots_available} spots left`}
+                        <div class="font-display font-bold text-sm">
+                            {formatIDR(div.fee)}
+                        </div>
+                        <div
+                            class="text-[10px] uppercase tracking-[0.15em] {soldOut
+                                ? 'text-coral font-bold'
+                                : 'text-neutral-400'}"
+                        >
+                            {soldOut
+                                ? 'Sold out'
+                                : `${div.spots_available} spots left`}
                         </div>
                     </div>
                 </button>
             {/each}
         </div>
-        <input type="hidden" name="division_id" value={selectedDivisionId ?? ''} />
+        <input
+            type="hidden"
+            name="division_id"
+            value={selectedDivisionId ?? ''}
+        />
         {#if errors.division_id}
-            <p class="mt-1 text-xs text-coral font-medium">{errors.division_id}</p>
+            <p class="mt-1 text-xs text-coral font-medium">
+                {errors.division_id}
+            </p>
         {/if}
     </div>
 
     {#if selectedDivision && isTeamDivision}
         <div>
-            <Label for="teamName" required class="text-[11px] uppercase tracking-[0.2em] font-bold mb-2 block">
+            <Label
+                for="teamName"
+                required
+                class="text-[11px] uppercase tracking-[0.2em] font-bold mb-2 block"
+            >
                 Team name
             </Label>
-            <Input id="teamName" name="team_name" type="text" placeholder="Enter team name" bind:value={teamName}
-                class={errors.team_name ? 'border-coral ring-2 ring-coral/30' : ''} />
+            <Input
+                id="teamName"
+                name="team_name"
+                type="text"
+                placeholder="Enter team name"
+                bind:value={teamName}
+                class={errors.team_name
+                    ? 'border-coral ring-2 ring-coral/30'
+                    : ''}
+            />
             {#if errors.team_name}
-                <p class="mt-1 text-xs text-coral font-medium">{errors.team_name}</p>
+                <p class="mt-1 text-xs text-coral font-medium">
+                    {errors.team_name}
+                </p>
             {/if}
         </div>
         {#if genderReqText}

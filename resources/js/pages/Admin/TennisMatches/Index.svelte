@@ -1,44 +1,100 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
+    import { Link, router } from '@inertiajs/svelte';
     import Plus from 'lucide-svelte/icons/plus';
     import Swords from 'lucide-svelte/icons/swords';
+    import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
+    import Pagination from '@/components/admin/Pagination.svelte';
     import AppHead from '@/components/AppHead.svelte';
+    import { show as showMatch } from '@/routes/admin/tennis-matches';
+
+    type MatchStatus = 'pending' | 'running' | 'completed' | 'canceled';
+
+    interface Match {
+        id: number;
+        side_a_name: string;
+        side_b_name: string;
+        format_label: string;
+        status: MatchStatus;
+        started_at: string | null;
+    }
 
     let {
         matches,
         stats,
     }: {
         matches: {
-            data: unknown[];
+            data: Match[];
             current_page: number;
             last_page: number;
             from: number;
             to: number;
             total: number;
         };
-        stats: { total: number; running: number; completed: number };
+        stats: {
+            total: number;
+            pending: number;
+            running: number;
+            completed: number;
+        };
     } = $props();
+
+    function changePage(page: number) {
+        router.visit(window.location.pathname, {
+            data: { page },
+            preserveState: true,
+        });
+    }
+
+    function formatDate(iso: string | null): string {
+        if (!iso) {
+            return '—';
+        }
+
+        const d = new Date(iso);
+
+        return d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    }
 </script>
 
 <AppHead title="Tennis Matches" />
 
 <div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2">
+    <div
+        class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2"
+    >
         <span class="text-[12px] text-neutral-400 font-medium">Admin</span>
         <span class="text-neutral-300 text-[12px]">/</span>
-        <span class="text-[12px] font-semibold text-neutral-800">Tennis Matches</span>
+        <span class="text-[12px] font-semibold text-neutral-800"
+            >Tennis Matches</span
+        >
     </div>
 
     <div class="flex-1 overflow-y-auto px-8 py-8">
         <div class="flex items-start justify-between mb-7">
             <div>
-                <h1 class="font-display font-black text-[28px] tracking-[-0.025em] leading-none">Tennis Matches</h1>
+                <h1
+                    class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+                >
+                    Tennis Matches
+                </h1>
                 <p class="mt-1.5 text-[13px] text-neutral-500">
                     {stats.total} total
                     <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-emerald-600 font-medium">{stats.running} running</span>
+                    <span class="text-amber-600 font-medium"
+                        >{stats.pending} pending</span
+                    >
                     <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-blue-600 font-medium">{stats.completed} completed</span>
+                    <span class="text-emerald-600 font-medium"
+                        >{stats.running} running</span
+                    >
+                    <span class="mx-1.5 text-neutral-300">·</span>
+                    <span class="text-blue-600 font-medium"
+                        >{stats.completed} completed</span
+                    >
                 </p>
             </div>
 
@@ -51,21 +107,85 @@
             </Link>
         </div>
 
-        <div class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8">
-            <Swords class="size-14 mb-5 text-neutral-200" />
-            <p class="font-display font-bold text-[17px] text-neutral-700">
-                {stats.total === 0 ? 'No matches yet' : 'No matches found'}
-            </p>
-            <p class="mt-1 text-[13px] text-neutral-400">
-                {matches.total} total
-            </p>
-            <Link
-                href="/admin/tennis-matches/create"
-                class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
+        {#if matches.data.length === 0}
+            <div
+                class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
             >
-                <Plus class="size-3.5" />
-                New Match
-            </Link>
-        </div>
+                <Swords class="size-14 mb-5 text-neutral-200" />
+                <p class="font-display font-bold text-[17px] text-neutral-700">
+                    No matches yet
+                </p>
+                <p class="mt-1 text-[13px] text-neutral-400">
+                    Create your first match to get started
+                </p>
+                <Link
+                    href="/admin/tennis-matches/create"
+                    class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
+                >
+                    <Plus class="size-3.5" />
+                    New Match
+                </Link>
+            </div>
+        {:else}
+            <div class="bg-white border border-black/10">
+                <div
+                    class="grid border-b border-black/8 px-5 h-10 items-center text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 select-none"
+                    style="grid-template-columns: 60px 2fr 1.6fr 110px 120px"
+                >
+                    <div>#</div>
+                    <div>Matchup</div>
+                    <div>Format</div>
+                    <div>Status</div>
+                    <div>Started</div>
+                </div>
+
+                {#each matches.data as m (m.id)}
+                    <div
+                        class="grid border-b border-black/5 last:border-0 px-5 h-[58px] items-center hover:bg-neutral-50 transition-colors"
+                        style="grid-template-columns: 60px 2fr 1.6fr 110px 120px"
+                    >
+                        <Link
+                            href={showMatch({ match: m.id }).url}
+                            class="contents"
+                        >
+                            <div
+                                class="font-mono text-[13px] tabular-nums text-neutral-500"
+                            >
+                                #{m.id}
+                            </div>
+                            <div
+                                class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4"
+                            >
+                                {m.side_a_name}
+                                <span
+                                    class="text-neutral-300 font-normal mx-1.5"
+                                    >vs</span
+                                >
+                                {m.side_b_name}
+                            </div>
+                            <div
+                                class="text-[13px] text-neutral-500 truncate pr-3"
+                            >
+                                {m.format_label}
+                            </div>
+                            <div><MatchStatusBadge status={m.status} /></div>
+                            <div class="text-[13px] text-neutral-500">
+                                {formatDate(m.started_at)}
+                            </div>
+                        </Link>
+                    </div>
+                {/each}
+
+                <Pagination
+                    class="border-t border-black/8"
+                    from={matches.from}
+                    to={matches.to}
+                    total={matches.total}
+                    currentPage={matches.current_page}
+                    lastPage={matches.last_page}
+                    onPage={changePage}
+                />
+            </div>
+        {/if}
     </div>
 </div>

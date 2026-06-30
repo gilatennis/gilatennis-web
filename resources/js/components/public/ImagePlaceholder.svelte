@@ -18,23 +18,30 @@
 
     const isDark = $derived(tone === 'dark');
     const bg = $derived(isDark ? '#0a0a0a' : '#e8e8e6');
-    const stripe = $derived(isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)');
-    const textColor = $derived(isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)');
-    const labelBg = $derived(isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.6)');
+    const stripe = $derived(
+        isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+    );
+    const textColor = $derived(
+        isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)',
+    );
+    const labelBg = $derived(
+        isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.6)',
+    );
 
     const style = $derived(() => {
         const parts: string[] = [
             `background: repeating-linear-gradient(135deg, ${bg} 0 14px, ${stripe} 14px 28px)`,
         ];
-        if (aspect) parts.push(`aspect-ratio: ${aspect}`);
+
+        if (aspect) {
+            parts.push(`aspect-ratio: ${aspect}`);
+        }
+
         return parts.join('; ');
     });
 </script>
 
-<div
-    class={cn('relative overflow-hidden', className)}
-    style={style()}
->
+<div class={cn('relative overflow-hidden', className)} style={style()}>
     {#if children}
         {@render children()}
     {:else}
