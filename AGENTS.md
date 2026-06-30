@@ -99,6 +99,12 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Always use single quotes to prevent shell expansion: `php artisan tinker --execute 'Your::code();'`
   - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
 
+## Database Migrations
+
+- NEVER run `php artisan migrate:fresh` — it wipes the entire database, including seeded data, user accounts, tournaments, and registrations. This is destructive and irreversible.
+- Use `php artisan migrate` to apply new migrations safely without losing data.
+- To alter an existing table, create a new migration (e.g., `php artisan make:migration alter_<table>_<change>`) rather than editing a previously-run migration.
+
 === php rules ===
 
 # PHP

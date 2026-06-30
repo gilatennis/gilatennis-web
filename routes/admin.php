@@ -39,6 +39,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('settings', [SystemController::class, 'edit'])->name('settings');
     Route::patch('settings', [SystemController::class, 'update'])->name('settings.update');
 
-    Route::get('tennis-matches', [TennisMatchController::class, 'index'])->name('tennis-matches.index');
-    Route::get('tennis-matches/create', [TennisMatchController::class, 'create'])->name('tennis-matches.create');
+    Route::resource('tennis-matches', TennisMatchController::class)
+        ->only(['index', 'create', 'store', 'show'])
+        ->parameters(['tennis-matches' => 'match']);
 });
