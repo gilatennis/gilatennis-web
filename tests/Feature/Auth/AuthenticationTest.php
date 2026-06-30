@@ -1,17 +1,20 @@
 <?php
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
 
 test('login screen can be rendered', function () {
-    $response = $this->get(route('login'));
+    $response = $this->get(route('admin.login'));
 
     $response->assertOk();
 });
 
-test('users can authenticate using the login screen', function () {
+test('admin users can authenticate using the login screen', function () {
     $user = User::factory()->create();
+    $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);
+    $user->roles()->syncWithoutDetaching([$role->id]);
 
     $response = $this->post(route('login.store'), [
         'email' => $user->email,
@@ -19,7 +22,20 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('admin.dashboard', absolute: false));
+});
+
+test('non-admin users are blocked from logging in', function () {
+    $user = User::factory()->create();
+
+    $response = $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $this->assertGuest();
+    $response->assertRedirect(route('admin.login'));
+    $response->assertSessionHas('error');
 });
 
 test('users with two factor enabled are redirected to two factor challenge', function () {

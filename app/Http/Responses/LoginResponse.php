@@ -3,7 +3,6 @@
 namespace App\Http\Responses;
 
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
-use Laravel\Fortify\Fortify;
 
 class LoginResponse implements LoginResponseContract
 {
@@ -15,10 +14,15 @@ class LoginResponse implements LoginResponseContract
 
         $user = $request->user();
 
-        $fallback = $user?->isAdmin()
-            ? '/admin/dashboard'
-            : Fortify::redirects('login');
+        if (! $user?->isAdmin()) {
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
-        return redirect()->intended($fallback);
+            return redirect('/admin/login')
+                ->with('error', 'You do not have permission to access the admin panel.');
+        }
+
+        return redirect()->intended('/admin/dashboard');
     }
 }

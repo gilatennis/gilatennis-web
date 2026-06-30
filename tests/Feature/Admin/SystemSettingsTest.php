@@ -61,12 +61,12 @@ describe('Admin System Settings', function () {
 
     it('guest cannot access system settings', function () {
         $this->get(route('admin.settings'))
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('admin.login'));
 
         $this->patch(route('admin.settings.update'), [
             'contact_wa_number' => '+6289998887776',
         ])
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('admin.login'));
     });
 
     it('validates required whatsapp number', function () {

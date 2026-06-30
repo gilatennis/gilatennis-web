@@ -274,10 +274,10 @@ describe('Admin Tournament CRUD', function () {
             ->assertStatus(403);
     });
 
-    it('guest is redirected to login', function () {
+    it('guest is redirected to admin login', function () {
         $tournament = Tournament::factory()->create();
 
         $this->get(route('admin.tournaments.index'))
-            ->assertRedirect('/login');
+            ->assertRedirect('/admin/login');
     });
 });

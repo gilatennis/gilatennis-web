@@ -9,6 +9,10 @@ use Inertia\Inertia;
 
 Route::redirect('admin', '/admin/dashboard');
 
+Route::get('admin/login', fn() => Inertia::render('Admin/Login', [
+    'status' => session('status'),
+]))->name('admin.login');
+
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('dashboard', fn () => Inertia::render('Admin/Dashboard'))->name('dashboard');
 
