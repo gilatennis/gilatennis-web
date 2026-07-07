@@ -198,14 +198,31 @@
         }
     });
 
+    function isAdditionalPlayersInputValid(
+        additionalPlayers: PlayerData[],
+        division: DivisionContext,
+    ): boolean {
+        return additionalPlayers.every((p) => {
+            if (!p.name?.trim()) return false;
+            if (!p.email?.trim()) return false;
+            if (!p.phone?.trim()) return false;
+            if (!p.gender) return false;
+            if (division.isTeam && !p.level) return false;
+
+            return true;
+        });
+    }
+
     // Clear player errors when team is valid
     $effect(() => {
         additionalPlayers;
         gender;
+        level;
         division.isTeam;
         division.minTeamSize;
         division.minMalePlayers;
         division.minFemalePlayers;
+        division.levelRequirements;
         const teamSizeMet =
             !division.isTeam ||
             1 + additionalPlayers.length >= division.minTeamSize;
@@ -220,9 +237,38 @@
                 teamMaleCount >= division.minMalePlayers) &&
             (!division.minFemalePlayers ||
                 teamFemaleCount >= division.minFemalePlayers);
+        const hasLevelRequirements = Object.values(
+            division.levelRequirements,
+        ).some((v) => (v ?? 0) > 0);
+        const levelCounts: Record<string, number> = {};
+        for (const lvl of LEVEL_OPTIONS) {
+            levelCounts[lvl] = 0;
+        }
+        if (level && levelCounts[level] !== undefined) {
+            levelCounts[level] += 1;
+        }
+        for (const p of additionalPlayers) {
+            if (p.level && levelCounts[p.level] !== undefined) {
+                levelCounts[p.level] += 1;
+            }
+        }
+        const levelRequirementsMet = Object.entries(
+            division.levelRequirements,
+        ).every(
+            ([lvl, req]) =>
+                (req ?? 0) <= 0 || (levelCounts[lvl] ?? 0) >= (req ?? 0),
+        );
+        const additionalPlayersValid = isAdditionalPlayersInputValid(
+            additionalPlayers,
+            division,
+        );
 
         const shouldClearPlayers =
-            clientErrors.players && teamSizeMet && teamCompositionMet;
+            clientErrors.players &&
+            teamSizeMet &&
+            teamCompositionMet &&
+            (!hasLevelRequirements || levelRequirementsMet) &&
+            additionalPlayersValid;
 
         if (shouldClearPlayers) {
             clientErrors = Object.fromEntries(
