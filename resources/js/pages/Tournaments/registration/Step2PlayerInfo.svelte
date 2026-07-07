@@ -309,11 +309,6 @@
         </div>
     {/if}
 
-    <ErrorBanner
-        errors={bannerErrors}
-        exclude={['name', 'email', 'phone', 'gender']}
-        excludePrefixes={['players.']}
-    />
 </div>
 
 {#if showTeamMembers}
@@ -329,3 +324,9 @@
         />
     </div>
 {/if}
+
+<ErrorBanner
+    errors={bannerErrors}
+    exclude={['name', 'email', 'phone', 'gender']}
+    excludePrefixes={['players.']}
+/>
