@@ -1,34 +1,35 @@
 <script lang="ts">
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
+    import ErrorBanner from '@/components/registration/ErrorBanner.svelte';
+    import type { FieldErrors, FormErrors } from '@/types/errors';
+    import type { DivisionContext } from '@/types/registration';
 
     let {
         divisions,
         selectedDivisionId = $bindable(null),
         teamName = $bindable(''),
-        isTeamDivision = false,
-        minFemalePlayers = 0,
-        minMalePlayers = 0,
-        errors = {} as Record<string, string>,
+        division,
+        fieldErrors = {} as FieldErrors,
+        bannerErrors = {} as Record<string, string[]>,
     }: {
         divisions: any[];
         selectedDivisionId?: number | null;
         teamName?: string;
-        isTeamDivision?: boolean;
-        minFemalePlayers?: number;
-        minMalePlayers?: number;
-        errors?: Record<string, string>;
+        division: DivisionContext;
+        fieldErrors?: FieldErrors;
+        bannerErrors?: Record<string, string[]>;
     } = $props();
 
     const genderReqParts = $derived.by(() => {
         const parts: string[] = [];
 
-        if (minFemalePlayers > 0) {
-            parts.push(`at least ${minFemalePlayers} female`);
+        if (division.minFemalePlayers > 0) {
+            parts.push(`at least ${division.minFemalePlayers} female`);
         }
 
-        if (minMalePlayers > 0) {
-            parts.push(`at least ${minMalePlayers} male`);
+        if (division.minMalePlayers > 0) {
+            parts.push(`at least ${division.minMalePlayers} male`);
         }
 
         return parts;
@@ -40,6 +41,18 @@
             : '',
     );
 
+    const levelReqText = $derived.by(() => {
+        const parts: string[] = [];
+
+        for (const [lvl, req] of Object.entries(division.levelRequirements)) {
+            if ((req ?? 0) > 0) {
+                parts.push(`at least ${req} ${lvl}`);
+            }
+        }
+
+        return parts.length > 0 ? 'Requires ' + parts.join(' and ') + ' player(s).' : '';
+    });
+
     const formatIDR = (amount: number) =>
         new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -50,10 +63,29 @@
     const selectedDivision = $derived(
         divisions.find((d: any) => d.id === selectedDivisionId) ?? null,
     );
+
+    export function validate(): FormErrors {
+        const errs: FormErrors = {};
+
+        if (!selectedDivisionId) {
+            errs.division_id = 'Please select a division.';
+        }
+
+        if (division.isTeam && !teamName.trim()) {
+            errs.team_name = 'Team name is required.';
+        }
+
+        return errs;
+    }
 </script>
 
 <div class="space-y-6">
     <h2 class="font-display font-black text-2xl mb-6">Select division</h2>
+
+    <ErrorBanner
+        errors={bannerErrors}
+        exclude={['division_id', 'team_name', 'players']}
+    />
 
     <div>
         <Label
@@ -121,14 +153,14 @@
             name="division_id"
             value={selectedDivisionId ?? ''}
         />
-        {#if errors.division_id}
+        {#if fieldErrors.division_id}
             <p class="mt-1 text-xs text-coral font-medium">
-                {errors.division_id}
+                {fieldErrors.division_id}
             </p>
         {/if}
     </div>
 
-    {#if selectedDivision && isTeamDivision}
+    {#if selectedDivision && division.isTeam}
         <div>
             <Label
                 for="teamName"
@@ -143,19 +175,24 @@
                 type="text"
                 placeholder="Enter team name"
                 bind:value={teamName}
-                class={errors.team_name
+                class={fieldErrors.team_name
                     ? 'border-coral ring-2 ring-coral/30'
                     : ''}
             />
-            {#if errors.team_name}
+            {#if fieldErrors.team_name}
                 <p class="mt-1 text-xs text-coral font-medium">
-                    {errors.team_name}
+                    {fieldErrors.team_name}
                 </p>
             {/if}
         </div>
         {#if genderReqText}
             <p class="text-[11px] text-neutral-500 leading-relaxed mt-2">
                 {genderReqText}
+            </p>
+        {/if}
+        {#if levelReqText}
+            <p class="text-[11px] text-neutral-500 leading-relaxed mt-1">
+                {levelReqText}
             </p>
         {/if}
     {/if}

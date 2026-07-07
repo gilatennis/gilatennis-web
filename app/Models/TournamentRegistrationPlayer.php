@@ -13,7 +13,7 @@ class TournamentRegistrationPlayer extends Model
     protected $fillable = [
         'tournament_registration_id', 'tournament_id', 'team_id',
         'name', 'email', 'gender', 'phone', 'date_of_birth',
-        'rating_type', 'rating_value',
+        'rating_type', 'rating_value', 'level',
         'tshirt_size', 'dietary', 'sort_order',
     ];
 

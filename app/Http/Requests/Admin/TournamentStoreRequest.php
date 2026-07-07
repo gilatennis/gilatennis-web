@@ -20,4 +20,9 @@ class TournamentStoreRequest extends FormRequest
             'slug' => ['required', 'string', 'max:255', 'unique:tournaments,slug'],
         ]);
     }
+
+    public function withValidator($validator): void
+    {
+        $this->validateLevelRequirementKeys($validator);
+    }
 }

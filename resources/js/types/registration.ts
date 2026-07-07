@@ -52,3 +52,32 @@ export interface RegistrationStats {
     failed: number;
     by_division: ByDivision[];
 }
+
+export interface Division {
+    id: number;
+    name: string;
+    participation_category: 'singles' | 'doubles' | 'team';
+    fee: number;
+    spots_available: number;
+    draw_size: number;
+    min_team_size?: number;
+    max_team_size?: number;
+    min_female_players?: number;
+    min_male_players?: number;
+    level_requirements?: Record<string, number> | null;
+    gender?: 'mens' | 'womens' | 'mixed' | null;
+}
+
+export type ParticipationCategory = 'singles' | 'doubles' | 'team' | '';
+
+export interface DivisionContext {
+    selected: Division | null;
+    isTeam: boolean;
+    participationCategory: ParticipationCategory;
+    total: number;
+    minTeamSize: number;
+    maxTeamSize: number;
+    minFemalePlayers: number;
+    minMalePlayers: number;
+    levelRequirements: Record<string, number>;
+}

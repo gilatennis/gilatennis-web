@@ -8,32 +8,29 @@
         SelectContent,
         SelectItem,
     } from '@/components/ui/select';
+    import type { FieldErrors } from '@/types/errors';
+    import type { DivisionContext } from '@/types/registration';
 
     let {
         computedPlayers = [] as any[],
         memberStartIndex = 0,
-        participationCategory = '',
-        maxTeamSize = 0,
-        minTeamSize = 0,
-        minFemalePlayers = 0,
-        minMalePlayers = 0,
-        errors = {} as Record<string, string>,
+        division,
+        levelOptions = [] as string[],
+        fieldErrors = {} as FieldErrors,
         onAddPlayer = () => {},
         onRemovePlayer = (index: number) => {},
     }: {
         computedPlayers?: any[];
         memberStartIndex?: number;
-        participationCategory?: string;
-        maxTeamSize?: number;
-        minTeamSize?: number;
-        minFemalePlayers?: number;
-        minMalePlayers?: number;
-        errors?: Record<string, string>;
+        division: DivisionContext;
+        levelOptions?: string[];
+        fieldErrors?: FieldErrors;
         onAddPlayer?: () => void;
         onRemovePlayer?: (index: number) => void;
     } = $props();
 
-    const isTeam = $derived(participationCategory === 'team');
+    const isTeam = $derived(division.isTeam);
+    const showLevel = $derived(isTeam && levelOptions.length > 0);
     const members = $derived(computedPlayers.slice(memberStartIndex));
 
     const femaleCount = $derived(
@@ -46,12 +43,12 @@
     const genderReqParts = $derived.by(() => {
         const parts: string[] = [];
 
-        if (minFemalePlayers > 0) {
-            parts.push(`min ${minFemalePlayers} female`);
+        if (division.minFemalePlayers > 0) {
+            parts.push(`min ${division.minFemalePlayers} female`);
         }
 
-        if (minMalePlayers > 0) {
-            parts.push(`min ${minMalePlayers} male`);
+        if (division.minMalePlayers > 0) {
+            parts.push(`min ${division.minMalePlayers} male`);
         }
 
         return parts;
@@ -76,7 +73,7 @@
                     Team members
                 </Label>
                 <span class="text-[10px] text-neutral-400">
-                    {computedPlayers.length} / {maxTeamSize} players (min {minTeamSize})
+                    {computedPlayers.length} / {division.maxTeamSize} players (min {division.minTeamSize})
                 </span>
             </div>
             {#if genderReqParts.length > 0}
@@ -121,17 +118,17 @@
                                     type="text"
                                     placeholder="Full name"
                                     bind:value={player.name}
-                                    class="text-sm {errors[
+                                    class="text-sm {fieldErrors[
                                         `players.${actualIndex}.name`
                                     ]
                                         ? 'border-coral ring-2 ring-coral/30'
                                         : ''}"
                                 />
-                                {#if errors[`players.${actualIndex}.name`]}
+                                {#if fieldErrors[`players.${actualIndex}.name`]}
                                     <p
                                         class="mt-1 text-xs text-coral font-medium"
                                     >
-                                        {errors[`players.${actualIndex}.name`]}
+                                        {fieldErrors[`players.${actualIndex}.name`]}
                                     </p>
                                 {/if}
                             </div>
@@ -147,17 +144,17 @@
                                     type="email"
                                     placeholder="email@example.com"
                                     bind:value={player.email}
-                                    class="text-sm {errors[
+                                    class="text-sm {fieldErrors[
                                         `players.${actualIndex}.email`
                                     ]
                                         ? 'border-coral ring-2 ring-coral/30'
                                         : ''}"
                                 />
-                                {#if errors[`players.${actualIndex}.email`]}
+                                {#if fieldErrors[`players.${actualIndex}.email`]}
                                     <p
                                         class="mt-1 text-xs text-coral font-medium"
                                     >
-                                        {errors[`players.${actualIndex}.email`]}
+                                        {fieldErrors[`players.${actualIndex}.email`]}
                                     </p>
                                 {/if}
                             </div>
@@ -175,17 +172,17 @@
                                     type="tel"
                                     placeholder="0821123123123"
                                     bind:value={player.phone}
-                                    class="text-sm {errors[
+                                    class="text-sm {fieldErrors[
                                         `players.${actualIndex}.phone`
                                     ]
                                         ? 'border-coral ring-2 ring-coral/30'
                                         : ''}"
                                 />
-                                {#if errors[`players.${actualIndex}.phone`]}
+                                {#if fieldErrors[`players.${actualIndex}.phone`]}
                                     <p
                                         class="mt-1 text-xs text-coral font-medium"
                                     >
-                                        {errors[`players.${actualIndex}.phone`]}
+                                        {fieldErrors[`players.${actualIndex}.phone`]}
                                     </p>
                                 {/if}
                             </div>
@@ -198,7 +195,7 @@
                                 <Select bind:value={player.gender}>
                                     <SelectTrigger
                                         id={`player-${actualIndex}-gender`}
-                                        class="w-full h-9 px-3 text-[13px] {errors[
+                                        class="w-full h-9 px-3 text-[13px] {fieldErrors[
                                             `players.${actualIndex}.gender`
                                         ]
                                             ? 'border-coral ring-2 ring-coral/30'
@@ -218,22 +215,60 @@
                                         />
                                     </SelectContent>
                                 </Select>
-                                {#if errors[`players.${actualIndex}.gender`]}
+                                {#if fieldErrors[`players.${actualIndex}.gender`]}
                                     <p
                                         class="mt-1 text-xs text-coral font-medium"
                                     >
-                                        {errors[
+                                        {fieldErrors[
                                             `players.${actualIndex}.gender`
                                         ]}
                                     </p>
                                 {/if}
                             </div>
                         </div>
+                        {#if showLevel}
+                            <div>
+                                <Label
+                                    for={`player-${actualIndex}-level`}
+                                    class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
+                                    >Level</Label
+                                >
+                                <Select bind:value={player.level}>
+                                    <SelectTrigger
+                                        id={`player-${actualIndex}-level`}
+                                        class="w-full h-9 px-3 text-[13px] {fieldErrors[
+                                            `players.${actualIndex}.level`
+                                        ]
+                                            ? 'border-coral ring-2 ring-coral/30'
+                                            : ''}"
+                                    >
+                                        {player.level || 'Select level'}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {#each levelOptions as opt}
+                                            <SelectItem
+                                                value={opt}
+                                                label={opt}
+                                            />
+                                        {/each}
+                                    </SelectContent>
+                                </Select>
+                                {#if fieldErrors[`players.${actualIndex}.level`]}
+                                    <p
+                                        class="mt-1 text-xs text-coral font-medium"
+                                    >
+                                        {fieldErrors[
+                                            `players.${actualIndex}.level`
+                                        ]}
+                                    </p>
+                                {/if}
+                            </div>
+                        {/if}
                     </div>
                 {/each}
             </div>
 
-            {#if computedPlayers.length < maxTeamSize}
+            {#if computedPlayers.length < division.maxTeamSize}
                 <button
                     type="button"
                     onclick={onAddPlayer}
@@ -263,13 +298,13 @@
                     name="players.1.name"
                     type="text"
                     placeholder="Partner full name"
-                    class="text-sm {errors['players.1.name']
+                    class="text-sm {fieldErrors['players.1.name']
                         ? 'border-coral ring-2 ring-coral/30'
                         : ''}"
                 />
-                {#if errors['players.1.name']}
+                {#if fieldErrors['players.1.name']}
                     <p class="mt-1 text-xs text-coral font-medium">
-                        {errors['players.1.name']}
+                        {fieldErrors['players.1.name']}
                     </p>
                 {/if}
             </div>
@@ -284,13 +319,13 @@
                     name="players.1.email"
                     type="email"
                     placeholder="partner@email.com"
-                    class="text-sm {errors['players.1.email']
+                    class="text-sm {fieldErrors['players.1.email']
                         ? 'border-coral ring-2 ring-coral/30'
                         : ''}"
                 />
-                {#if errors['players.1.email']}
+                {#if fieldErrors['players.1.email']}
                     <p class="mt-1 text-xs text-coral font-medium">
-                        {errors['players.1.email']}
+                        {fieldErrors['players.1.email']}
                     </p>
                 {/if}
             </div>
@@ -307,13 +342,13 @@
                     name="players.1.phone"
                     type="tel"
                     placeholder="0821123123123"
-                    class="text-sm {errors['players.1.phone']
+                    class="text-sm {fieldErrors['players.1.phone']
                         ? 'border-coral ring-2 ring-coral/30'
                         : ''}"
                 />
-                {#if errors['players.1.phone']}
+                {#if fieldErrors['players.1.phone']}
                     <p class="mt-1 text-xs text-coral font-medium">
-                        {errors['players.1.phone']}
+                        {fieldErrors['players.1.phone']}
                     </p>
                 {/if}
             </div>
@@ -326,7 +361,7 @@
                 <Select name="players.1.gender">
                     <SelectTrigger
                         id="player-1-gender"
-                        class="w-full h-9 px-3 text-[13px] {errors[
+                        class="w-full h-9 px-3 text-[13px] {fieldErrors[
                             'players.1.gender'
                         ]
                             ? 'border-coral ring-2 ring-coral/30'
@@ -339,16 +374,12 @@
                         <SelectItem value="female" label="Female" />
                     </SelectContent>
                 </Select>
-                {#if errors['players.1.gender']}
+                {#if fieldErrors['players.1.gender']}
                     <p class="mt-1 text-xs text-coral font-medium">
-                        {errors['players.1.gender']}
+                        {fieldErrors['players.1.gender']}
                     </p>
                 {/if}
             </div>
         </div>
     </div>
-{/if}
-
-{#if errors.players}
-    <p class="mt-1 text-xs text-coral font-medium">{errors.players}</p>
 {/if}

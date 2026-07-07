@@ -109,6 +109,7 @@ class TournamentRegistrationController extends Controller
                 'date_of_birth' => $player['date_of_birth'] ?? '2000-01-01',
                 'rating_type' => $player['rating_type'] ?? null,
                 'rating_value' => $player['rating_value'] ?? null,
+                'level' => $player['level'] ?? null,
                 'tshirt_size' => $player['tshirt_size'] ?? 'M',
                 'dietary' => $player['dietary'] ?? null,
                 'sort_order' => $index,

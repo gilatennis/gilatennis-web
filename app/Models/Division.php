@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TennisLevel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,8 @@ class Division extends Model
         'participation_category', 'draw_size', 'fee', 'format',
         'gender', 'rating_type', 'rating_min', 'rating_max',
         'min_age', 'max_age', 'min_team_size', 'max_team_size',
-        'min_female_players', 'min_male_players', 'sort_order',
+        'min_female_players', 'min_male_players',
+        'level_requirements', 'sort_order',
     ];
 
     protected $casts = [
@@ -28,6 +30,7 @@ class Division extends Model
         'max_team_size' => 'integer',
         'min_female_players' => 'integer',
         'min_male_players' => 'integer',
+        'level_requirements' => 'array',
     ];
 
     protected $appends = ['spots_available', 'is_sold_out', 'category_label', 'gender_label'];
@@ -86,6 +89,18 @@ class Division extends Model
     public function hasRatingConstraints(): bool
     {
         return $this->rating_type !== null && $this->rating_min !== null && $this->rating_max !== null;
+    }
+
+    public function hasLevelRequirements(): bool
+    {
+        $reqs = $this->level_requirements ?? [];
+
+        return collect($reqs)->filter(fn ($v) => (int) $v > 0)->isNotEmpty();
+    }
+
+    public function getLevelRequirement(TennisLevel $level): int
+    {
+        return (int) ($this->level_requirements[$level->value] ?? 0);
     }
 
     public function scopeHasAvailableSpots($query)

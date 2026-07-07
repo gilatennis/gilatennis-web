@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\TennisLevel;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TournamentStoreRequest;
 use App\Http\Requests\Admin\TournamentUpdateRequest;
@@ -157,6 +158,7 @@ class TournamentController extends Controller
                 'max_team_size' => $data['max_team_size'] ?? null,
                 'min_female_players' => $data['min_female_players'] ?? null,
                 'min_male_players' => $data['min_male_players'] ?? null,
+                'level_requirements' => $this->normalizeLevelRequirements($data['level_requirements'] ?? null),
                 'sort_order' => $data['sort_order'] ?? $index,
             ];
 
@@ -307,6 +309,7 @@ class TournamentController extends Controller
                     'max_team_size' => $d->max_team_size,
                     'min_female_players' => $d->min_female_players,
                     'min_male_players' => $d->min_male_players,
+                    'level_requirements' => $d->level_requirements ?? [],
                     'sort_order' => $d->sort_order,
                     'registration_count' => $d->registrations()->count(),
                     'prizes' => $d->prizes->map(fn (TournamentPrize $p) => [
@@ -332,6 +335,7 @@ class TournamentController extends Controller
                     'rating_type' => $d->rating_type,
                     'rating_min' => $d->rating_min,
                     'rating_max' => $d->rating_max,
+                    'level_requirements' => $d->level_requirements ?? [],
                     'registration_count' => $d->registrations()->count(),
                     'sort_order' => $d->sort_order,
                 ]),
@@ -351,6 +355,31 @@ class TournamentController extends Controller
                 'sort_order' => $rule->sort_order,
             ]),
         ]);
+    }
+
+    private function normalizeLevelRequirements(mixed $value): ?array
+    {
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $clean = [];
+
+        foreach (TennisLevel::cases() as $level) {
+            $raw = $value[$level->value] ?? null;
+
+            if ($raw === null || $raw === '') {
+                continue;
+            }
+
+            $int = (int) $raw;
+
+            if ($int > 0) {
+                $clean[$level->value] = $int;
+            }
+        }
+
+        return $clean === [] ? null : $clean;
     }
 
     private function registrationStats(Tournament $tournament): array

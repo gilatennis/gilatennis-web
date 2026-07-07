@@ -360,6 +360,175 @@ describe('Registration Result Pages', function () {
     });
 });
 
+describe('Registration - Team Levels', function () {
+    it('passes when level counts meet requirements', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeTeamDivision($t, [
+            'min_team_size' => 6,
+            'max_team_size' => 8,
+            'level_requirements' => ['Upper Beginner' => 4, 'Intermediate' => 2],
+        ]);
+
+        fakeInvoiceService();
+
+        $players = array_merge(
+            [
+                ['name' => 'Captain', 'email' => 'cap@test.com', 'phone' => '0811', 'gender' => 'male', 'level' => 'Upper Beginner'],
+            ],
+            array_map(fn ($i) => [
+                'name' => "UB Player {$i}",
+                'email' => "ub{$i}@test.com",
+                'phone' => "0812{$i}",
+                'gender' => $i % 2 === 0 ? 'male' : 'female',
+                'level' => 'Upper Beginner',
+            ], range(1, 3)),
+            array_map(fn ($i) => [
+                'name' => "INT Player {$i}",
+                'email' => "int{$i}@test.com",
+                'phone' => "0813{$i}",
+                'gender' => $i % 2 === 0 ? 'male' : 'female',
+                'level' => 'Intermediate',
+            ], range(1, 2)),
+        );
+
+        $this->post(route('tournaments.register.store', $t->slug), [
+            'division_id' => $div->id,
+            'name' => 'Captain',
+            'email' => 'cap@test.com',
+            'phone' => '0811',
+            'date_of_birth' => '1990-01-01',
+            'team_name' => 'Level Team',
+            'tshirt_size' => 'M',
+            'waiver_accepted' => true,
+            'players' => $players,
+        ])->assertStatus(302);
+
+        $this->assertDatabaseHas('tournament_registrations', [
+            'email' => 'cap@test.com',
+            'division_id' => $div->id,
+            'payment_status' => 'processing',
+        ]);
+
+        $reg = TournamentRegistration::where('email', 'cap@test.com')->first();
+        expect($reg->players()->where('level', 'Upper Beginner')->count())->toBe(4);
+        expect($reg->players()->where('level', 'Intermediate')->count())->toBe(2);
+    });
+
+    it('fails when level minimum not met', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeTeamDivision($t, [
+            'min_team_size' => 4,
+            'max_team_size' => 8,
+            'level_requirements' => ['Upper Beginner' => 4, 'Intermediate' => 2],
+        ]);
+
+        $players = [
+            ['name' => 'Captain', 'email' => 'cap@test.com', 'phone' => '0811', 'gender' => 'male', 'level' => 'Upper Beginner'],
+            ['name' => 'UB2', 'email' => 'ub2@test.com', 'phone' => '0812', 'gender' => 'male', 'level' => 'Upper Beginner'],
+            ['name' => 'UB3', 'email' => 'ub3@test.com', 'phone' => '0813', 'gender' => 'female', 'level' => 'Upper Beginner'],
+            ['name' => 'UB4', 'email' => 'ub4@test.com', 'phone' => '0814', 'gender' => 'female', 'level' => 'Upper Beginner'],
+            ['name' => 'INT1', 'email' => 'int1@test.com', 'phone' => '0815', 'gender' => 'male', 'level' => 'Intermediate'],
+        ];
+
+        $this->postJson(route('tournaments.register.store', $t->slug), [
+            'division_id' => $div->id,
+            'name' => 'Captain',
+            'email' => 'cap@test.com',
+            'phone' => '0811',
+            'date_of_birth' => '1990-01-01',
+            'team_name' => 'Under Level',
+            'waiver_accepted' => true,
+            'players' => $players,
+        ])->assertStatus(422)->assertJsonValidationErrors(['players']);
+    });
+
+    it('returns multiple player error messages as an array when several constraints fail', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeTeamDivision($t, [
+            'min_team_size' => 6,
+            'max_team_size' => 8,
+            'min_female_players' => 2,
+            'min_male_players' => 2,
+            'level_requirements' => ['Upper Beginner' => 4, 'Intermediate' => 2],
+        ]);
+
+        $players = [
+            ['name' => 'Captain', 'email' => 'cap@test.com', 'phone' => '0811', 'gender' => 'male', 'level' => 'Upper Beginner'],
+        ];
+
+        $response = $this->postJson(route('tournaments.register.store', $t->slug), [
+            'division_id' => $div->id,
+            'name' => 'Captain',
+            'email' => 'cap@test.com',
+            'phone' => '0811',
+            'date_of_birth' => '1990-01-01',
+            'team_name' => 'Many Errors',
+            'waiver_accepted' => true,
+            'players' => $players,
+        ])->assertStatus(422)->assertJsonValidationErrors(['players']);
+
+        $playerErrors = $response->json('errors.players');
+
+        expect($playerErrors)->toBeArray();
+        expect(count($playerErrors))->toBeGreaterThanOrEqual(4);
+        expect(collect($playerErrors)->implode(' '))->toContain('Team requires at least 6 players')
+            ->toContain('female')
+            ->toContain('male')
+            ->toContain('Upper Beginner')
+            ->toContain('Intermediate');
+    });
+
+    it('ignores level requirements when not configured', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeTeamDivision($t, [
+            'min_team_size' => 2,
+            'max_team_size' => 4,
+            'level_requirements' => null,
+        ]);
+
+        fakeInvoiceService();
+
+        $this->post(route('tournaments.register.store', $t->slug), [
+            'division_id' => $div->id,
+            'name' => 'Captain',
+            'email' => 'cap@test.com',
+            'phone' => '0811',
+            'date_of_birth' => '1990-01-01',
+            'team_name' => 'No Levels',
+            'waiver_accepted' => true,
+            'players' => [
+                ['name' => 'Captain', 'email' => 'cap@test.com', 'phone' => '0811', 'gender' => 'male'],
+                ['name' => 'P2', 'email' => 'p2@test.com', 'phone' => '0812', 'gender' => 'female'],
+            ],
+        ])->assertStatus(302);
+
+        $this->assertDatabaseHas('tournament_registrations', [
+            'email' => 'cap@test.com',
+            'division_id' => $div->id,
+            'payment_status' => 'processing',
+        ]);
+    });
+
+    it('rejects invalid level value', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeTeamDivision($t);
+
+        $this->postJson(route('tournaments.register.store', $t->slug), [
+            'division_id' => $div->id,
+            'name' => 'Captain',
+            'email' => 'cap@test.com',
+            'phone' => '0811',
+            'date_of_birth' => '1990-01-01',
+            'team_name' => 'Bad Level',
+            'waiver_accepted' => true,
+            'players' => [
+                ['name' => 'Captain', 'email' => 'cap@test.com', 'phone' => '0811', 'gender' => 'male', 'level' => 'Pro Hacker'],
+                ['name' => 'P2', 'email' => 'p2@test.com', 'phone' => '0812', 'gender' => 'female'],
+            ],
+        ])->assertStatus(422)->assertJsonValidationErrors(['players.0.level']);
+    });
+});
+
 describe('Duitku Return Controller', function () {
     it('redirects paid registration to success page', function () {
         $reg = TournamentRegistration::factory()->create(['payment_status' => 'paid']);

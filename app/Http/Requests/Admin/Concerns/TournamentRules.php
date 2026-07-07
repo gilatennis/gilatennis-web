@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin\Concerns;
 
+use App\Enums\TennisLevel;
+
 trait TournamentRules
 {
     protected function baseRules(): array
@@ -41,6 +43,8 @@ trait TournamentRules
             'divisions.*.max_team_size' => ['nullable', 'integer', 'min:1'],
             'divisions.*.min_female_players' => ['nullable', 'integer', 'min:0'],
             'divisions.*.min_male_players' => ['nullable', 'integer', 'min:0'],
+            'divisions.*.level_requirements' => ['nullable', 'array'],
+            'divisions.*.level_requirements.*' => ['nullable', 'integer', 'min:0'],
             'divisions.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'divisions.*.prizes' => ['nullable', 'array'],
             'divisions.*.prizes.*.place' => ['required', 'string', 'max:255'],
@@ -58,5 +62,32 @@ trait TournamentRules
             'rules.*.body' => ['required', 'string'],
             'rules.*.sort_order' => ['nullable', 'integer', 'min:0'],
         ];
+    }
+
+    private function levelRequirementKeys(): array
+    {
+        return TennisLevel::values();
+    }
+
+    protected function validateLevelRequirementKeys($validator): void
+    {
+        $validKeys = $this->levelRequirementKeys();
+
+        foreach ($this->input('divisions', []) as $i => $division) {
+            $reqs = $division['level_requirements'] ?? null;
+
+            if (! is_array($reqs)) {
+                continue;
+            }
+
+            foreach (array_keys($reqs) as $key) {
+                if (! in_array($key, $validKeys, true)) {
+                    $validator->errors()->add(
+                        "divisions.{$i}.level_requirements.{$key}",
+                        "Invalid level '{$key}'. Allowed: ".implode(', ', $validKeys).'.',
+                    );
+                }
+            }
+        }
     }
 }

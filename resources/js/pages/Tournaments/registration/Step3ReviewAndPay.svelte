@@ -1,46 +1,50 @@
 <script lang="ts">
     import { CreditCard, Shield } from 'lucide-svelte/icons';
+    import ErrorBanner from '@/components/registration/ErrorBanner.svelte';
+    import type { FieldErrors } from '@/types/errors';
+    import type { DivisionContext } from '@/types/registration';
 
     let {
         name,
         email,
         phone,
         gender,
-        selectedDivision,
+        division,
         computedPlayers = [] as any[],
         teamName = '',
-        total,
         formatIDR,
         waiverAccepted = $bindable(false),
         emailOptIn = $bindable(true),
         processing,
-        errors = {} as Record<string, string>,
+        fieldErrors = {} as FieldErrors,
+        bannerErrors = {} as Record<string, string[]>,
         onEdit,
     }: {
         name: string;
         email: string;
         phone: string;
         gender: string;
-        selectedDivision: any;
+        division: DivisionContext;
         computedPlayers?: any[];
         teamName?: string;
-        total: number;
         formatIDR: (amount: number) => string;
         waiverAccepted?: boolean;
         emailOptIn?: boolean;
         processing: boolean;
-        errors?: Record<string, string>;
+        fieldErrors?: FieldErrors;
+        bannerErrors?: Record<string, string[]>;
         onEdit: (step: number) => void;
     } = $props();
 
-    const divisionName = $derived(selectedDivision?.name ?? '—');
-    const isTeam = $derived(
-        selectedDivision?.participation_category === 'team',
-    );
+    const divisionName = $derived(division.selected?.name ?? '—');
+    const isTeam = $derived(division.isTeam);
+    const participationCategory = $derived(division.participationCategory);
 </script>
 
 <div>
     <h2 class="font-display font-black text-2xl mb-6">Review &amp; pay</h2>
+
+    <ErrorBanner errors={bannerErrors} exclude={['waiver_accepted']} />
 
     <div class="border border-black/10 dark:border-white/10 mb-6">
         {#each [['Full name', name, 1], ['Email', email, 1], ['Phone', phone, 1], ['Gender', gender ? (gender === 'male' ? 'Male' : 'Female') : '—', 1], ['Division', divisionName, 0]] as [label, value, step]}
@@ -93,7 +97,7 @@
             >
                 {isTeam
                     ? 'Team roster'
-                    : selectedDivision?.participation_category === 'doubles'
+                    : participationCategory === 'doubles'
                       ? 'Players'
                       : 'Player'}
             </div>
@@ -144,7 +148,7 @@
         <div class="flex justify-between items-baseline">
             <span class="text-[11px] uppercase tracking-[0.2em]">Total</span>
             <span class="font-display font-black text-3xl"
-                >{formatIDR(total)}</span
+                >{formatIDR(division.total)}</span
             >
         </div>
     </div>
@@ -171,9 +175,9 @@
             <span class="text-coral">*</span>
         </span>
     </label>
-    {#if errors.waiver_accepted}
-        <p class="mb-3 text-xs text-coral font-medium">
-            {errors.waiver_accepted}
+    {#if fieldErrors.waiver_accepted}
+        <p class="mt-1 text-xs text-coral font-medium">
+            {fieldErrors.waiver_accepted}
         </p>
     {/if}
 

@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\TennisLevel;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
 
 class TournamentRegistrationRequest extends FormRequest
 {
@@ -38,6 +40,7 @@ class TournamentRegistrationRequest extends FormRequest
             'players.*.date_of_birth' => ['nullable', 'date', 'before:today'],
             'players.*.rating_type' => ['nullable', 'in:UTR,ITN,USTA'],
             'players.*.rating_value' => ['nullable', 'numeric'],
+            'players.*.level' => ['nullable', new Enum(TennisLevel::class)],
             'players.*.tshirt_size' => ['nullable', 'in:XS,S,M,L,XL,XXL'],
             'players.*.dietary' => ['nullable', 'string', 'max:500'],
         ];
@@ -91,6 +94,29 @@ class TournamentRegistrationRequest extends FormRequest
                         $validator->errors()->add(
                             'players',
                             "Team requires at least {$division->min_male_players} male player(s).",
+                        );
+                    }
+                }
+            }
+
+            if ($division->hasLevelRequirements()) {
+                $counts = collect($this->input('players', []))
+                    ->groupBy(fn ($p) => $p['level'] ?? '__none__')
+                    ->map->count();
+
+                foreach (TennisLevel::cases() as $level) {
+                    $required = $division->getLevelRequirement($level);
+
+                    if ($required <= 0) {
+                        continue;
+                    }
+
+                    $have = (int) ($counts[$level->value] ?? 0);
+
+                    if ($have < $required) {
+                        $validator->errors()->add(
+                            'players',
+                            "Team requires at least {$required} {$level->label()} player(s); have {$have}.",
                         );
                     }
                 }

@@ -110,6 +110,7 @@
         max_team_size: '',
         min_female_players: '',
         min_male_players: '',
+        level_requirements: {},
         prizes: [],
     };
 
@@ -137,8 +138,11 @@
         max_team_size: '',
         min_female_players: '',
         min_male_players: '',
+        level_requirements: {},
         prizes: [],
     });
+
+    const levelOptions = ['Upper Beginner', 'Intermediate'];
     function getDivisionErrors(i: number): string[] {
         const prefix = `divisions.${i}.`;
 
@@ -1711,6 +1715,58 @@
                                 {/if}
                             </div>
                         {/if}
+                        <div class="col-span-2">
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-2"
+                            >
+                                Level Requirements (optional)
+                            </p>
+                            <p
+                                class="text-[10px] text-neutral-400 mb-2"
+                            >
+                                Set minimum number of players per level. Leave
+                                blank to skip.
+                            </p>
+                            <div class="grid grid-cols-2 gap-3">
+                                {#each levelOptions as lvl (lvl)}
+                                    <div>
+                                        <Label
+                                            class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                            >Min {lvl}</Label
+                                        >
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            value={editingDivision
+                                                .level_requirements?.[lvl] ??
+                                                ''}
+                                            oninput={(e: Event) => {
+                                                const v = (
+                                                    e.target as HTMLInputElement
+                                                ).value;
+                                                editingDivision.level_requirements =
+                                                    {
+                                                        ...(editingDivision.level_requirements ??
+                                                            {}),
+                                                        [lvl]: v === '' ? '' : Number(v),
+                                                    };
+                                            }}
+                                            placeholder="0"
+                                            class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300"
+                                        />
+                                        {#if divisionErrors[`level_requirements.${lvl}`]}
+                                            <p
+                                                class="text-red-600 text-[11px] mt-1"
+                                            >
+                                                {divisionErrors[
+                                                    `level_requirements.${lvl}`
+                                                ]}
+                                            </p>
+                                        {/if}
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
                     </div>
                 {/if}
 

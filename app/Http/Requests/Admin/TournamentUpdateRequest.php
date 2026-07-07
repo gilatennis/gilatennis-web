@@ -28,4 +28,9 @@ class TournamentUpdateRequest extends FormRequest
             'rules.*.id' => ['nullable', 'integer', 'exists:tournament_rules,id'],
         ]);
     }
+
+    public function withValidator($validator): void
+    {
+        $this->validateLevelRequirementKeys($validator);
+    }
 }
