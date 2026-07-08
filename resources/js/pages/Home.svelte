@@ -30,6 +30,7 @@
             surface: string;
             surfaceLabel?: string;
             imageLabel?: string;
+            cover_image_url?: string;
             playerCount?: number;
             maxPlayers?: number;
             fee?: number;
@@ -135,9 +136,10 @@
 
 <PublicLayout>
     <!-- Hero -->
-    <HeroSection {featuredArticle} {sideStories} {stats} />
+    <!-- <HeroSection {featuredArticle} {sideStories} {stats} /> -->
 
     <!-- Articles -->
+    <!--
     <section id="articles" class="border-b border-border">
         <div class="max-w-[1400px] mx-auto px-6 py-16 lg:py-24">
             <div
@@ -170,8 +172,9 @@
                     {/each}
                 </div>
             </div>
-
+    -->
             <!-- Article grid -->
+    <!--
             {#if filteredArticles.length > 0}
                 <div
                     class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12"
@@ -202,6 +205,7 @@
             </div>
         </div>
     </section>
+    -->
 
     <!-- Tournament Board -->
     <section
@@ -222,17 +226,19 @@
                     >
                         <Trophy size={14} /> Tournament Board
                     </div>
+                    <!--
                     <h2
                         class="font-display font-black text-4xl lg:text-5xl tracking-[-0.03em] leading-[0.95] max-w-2xl"
                     >
                         Find a draw. Pay your fee. Show up and play.
                     </h2>
+                    -->
                     <p class="mt-4 text-muted-foreground max-w-xl">
                         Sanctioned &amp; rec-league events from coaches and
-                        clubs in our network. Filter by skill level — register
-                        in under 60 seconds.
+                        clubs in our network.
                     </p>
                 </div>
+                <!--
                 <div class="flex gap-2">
                     <button
                         class="px-4 h-10 border border-border text-xs uppercase tracking-[0.18em] font-bold flex items-center gap-2 hover:border-coral hover:text-coral transition-colors"
@@ -245,6 +251,7 @@
                         All filters <ChevronDown size={14} />
                     </button>
                 </div>
+                -->
             </div>
 
             <div class="grid lg:grid-cols-12 gap-6">
@@ -283,6 +290,7 @@
     </section>
 
     <!-- Featured Courts -->
+    <!--
     <section id="courts" class="border-b border-border">
         <div class="max-w-[1400px] mx-auto px-6 py-16 lg:py-24">
             <div
@@ -345,6 +353,7 @@
             </div>
         </div>
     </section>
+    -->
 
     <!-- Trust Bar -->
     <TrustBar />

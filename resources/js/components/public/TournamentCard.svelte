@@ -15,6 +15,7 @@
             surface: string;
             surfaceLabel?: string;
             imageLabel?: string;
+            cover_image_url?: string;
             playerCount?: number;
             maxPlayers?: number;
             fee?: number;
@@ -45,6 +46,19 @@
         tone="dark"
         class="w-full"
     >
+        {#if tournament.cover_image_url}
+            <img
+                src={tournament.cover_image_url}
+                alt={tournament.name}
+                class="absolute inset-0 w-full h-full object-cover"
+            />
+            <div
+                class="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/70 to-transparent pointer-events-none"
+            ></div>
+            <div
+                class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none"
+            ></div>
+        {/if}
         <div
             class="absolute top-4 left-4 px-2.5 py-1 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-1.5"
         >
@@ -185,10 +199,12 @@
         >
             Register now <ArrowRight size={18}></ArrowRight>
         </button>
+        <!--
         <button
             class="mt-2 w-full h-10 text-xs uppercase tracking-[0.2em] opacity-60 hover:opacity-100 transition-opacity"
         >
             Share with my doubles partner
         </button>
+        -->
     </div>
 </div>

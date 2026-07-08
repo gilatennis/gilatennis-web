@@ -4,6 +4,7 @@ use App\Models\Article;
 use App\Models\Court;
 use App\Models\Division;
 use App\Models\Tournament;
+use Illuminate\Support\Facades\Storage;
 
 describe('HomePage', function () {
     it('loads successfully', function () {
@@ -88,6 +89,26 @@ describe('HomePage', function () {
         $response->assertInertia(
             fn ($page) => $page
                 ->where('canRegister', true)
+        );
+    });
+
+    it('includes cover_image_url in featuredTournaments payload', function () {
+        Storage::fake('public');
+
+        $t = Tournament::factory()->create([
+            'is_featured' => true,
+            'status' => 'open',
+            'cover_image' => 'tournament-covers/abc.jpg',
+        ]);
+        Division::factory()->forTournament($t)->singles()->create([
+            'draw_size' => 32,
+            'fee' => 45000,
+        ]);
+
+        $response = $this->get('/');
+        $response->assertInertia(
+            fn ($page) => $page
+                ->where('featuredTournaments.0.cover_image_url', fn ($v) => is_string($v) && $v !== '')
         );
     });
 });

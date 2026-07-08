@@ -12,9 +12,14 @@ use App\Models\TournamentPrize;
 use App\Models\TournamentRule;
 use App\Models\TournamentScheduleDay;
 use App\Models\TournamentScheduleItem;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\ImageManager;
 
 class TournamentController extends Controller
 {
@@ -97,6 +102,7 @@ class TournamentController extends Controller
         DB::transaction(function () use ($request) {
             $tournament = Tournament::create($request->safe()->only(self::FILLABLE_FIELDS));
 
+            $this->handleCoverImage($tournament, $request);
             $this->syncDivisions($tournament, $request->input('divisions', []));
             $this->syncSchedule($tournament, $request->input('schedule', []));
             $this->syncRules($tournament, $request->input('rules', []));
@@ -122,6 +128,7 @@ class TournamentController extends Controller
         DB::transaction(function () use ($request, $tournament) {
             $tournament->update($request->safe()->only(self::FILLABLE_FIELDS));
 
+            $this->handleCoverImage($tournament, $request);
             $this->syncDivisions($tournament, $request->input('divisions', []));
             $this->syncSchedule($tournament, $request->input('schedule', []));
             $this->syncRules($tournament, $request->input('rules', []));
@@ -139,6 +146,45 @@ class TournamentController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Tournament deleted.']);
 
         return redirect()->route('admin.tournaments.index');
+    }
+
+    private function handleCoverImage(Tournament $tournament, Request $request): void
+    {
+        if ($request->boolean('cover_image_remove')) {
+            if ($tournament->cover_image) {
+                Storage::disk('public')->delete($tournament->cover_image);
+                $tournament->cover_image = null;
+                $tournament->save();
+            }
+
+            return;
+        }
+
+        if (! $request->hasFile('cover_image')) {
+            return;
+        }
+
+        if ($tournament->cover_image) {
+            Storage::disk('public')->delete($tournament->cover_image);
+        }
+
+        $tournament->cover_image = $this->storeResizedCover($request->file('cover_image'));
+        $tournament->save();
+    }
+
+    private function storeResizedCover(UploadedFile $file): string
+    {
+        $manager = new ImageManager(new GdDriver);
+
+        $image = $manager->decodePath($file->getRealPath());
+        $image->scaleDown(width: 1920);
+        $encoded = $image->encode();
+
+        $path = 'tournament-covers/'.Str::uuid().'.'.$file->getClientOriginalExtension();
+
+        Storage::disk('public')->put($path, (string) $encoded);
+
+        return $path;
     }
 
     private function syncDivisions(Tournament $tournament, array $divisionsData): void

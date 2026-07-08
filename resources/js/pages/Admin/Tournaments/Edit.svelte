@@ -5,10 +5,12 @@
     import MoveUp from 'lucide-svelte/icons/arrow-up';
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import ChevronRight from 'lucide-svelte/icons/chevron-right';
+    import Image from 'lucide-svelte/icons/image';
     import Pencil from 'lucide-svelte/icons/pencil';
     import Plus from 'lucide-svelte/icons/plus';
     import Save from 'lucide-svelte/icons/save';
     import Trash from 'lucide-svelte/icons/trash';
+    import Upload from 'lucide-svelte/icons/upload';
     import X from 'lucide-svelte/icons/x';
     import StatusBadge from '@/components/admin/StatusBadge.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -41,6 +43,8 @@
         registration_closes: tournament?.registration_closes ?? '',
         is_featured: tournament?.is_featured ?? false,
         status: tournament?.status ?? 'draft',
+        cover_image: null as File | null,
+        cover_image_remove: false,
         divisions: (tournament?.divisions ?? []) as any[],
         schedule: (tournament?.schedule ?? []).map((d) => ({
             ...d,
@@ -58,8 +62,28 @@
 
     const newKey = () => crypto.randomUUID();
 
+    let coverPreviewUrl = $state<string | null>(null);
+    let coverInput = $state<HTMLInputElement | null>(null);
+    $effect(() => {
+        const file = form.cover_image;
+
+        if (file instanceof File) {
+            const url = URL.createObjectURL(file);
+            coverPreviewUrl = url;
+
+            return () => URL.revokeObjectURL(url);
+        }
+
+        coverPreviewUrl = null;
+    });
+
     // useForm captures initial values — state_referenced_locally is expected here.
     const form = useForm(init);
+
+    const existingCoverUrl = $derived(tournament?.cover_image_url ?? null);
+    const showExistingCover = $derived(
+        existingCoverUrl && !form.cover_image && !form.cover_image_remove,
+    );
 
     const statusLabels: Record<string, string> = {
         draft: 'Draft',
@@ -374,6 +398,153 @@
                 >
                     {isCreate ? 'Create Tournament' : 'Edit Tournament'}
                 </h1>
+            </div>
+
+            <!-- Section: Cover Image -->
+            <div class="border border-black/10 bg-white mb-4">
+                <button
+                    type="button"
+                    class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
+                    onclick={() => toggle('cover')}
+                >
+                    <span
+                        class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
+                        style="transform: rotate({openSection === 'cover'
+                            ? 90
+                            : 0}deg)"
+                    >
+                        <ChevronRight class="size-3.5" />
+                    </span>
+                    <Image class="size-3.5 mr-2 text-neutral-400" />
+                    <span
+                        class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
+                        >Cover Image</span
+                    >
+                    {#if existingCoverUrl && !form.cover_image_remove}
+                        <span
+                            class="ml-2 px-1.5 h-4 inline-flex items-center bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-[0.15em]"
+                            >Uploaded</span
+                        >
+                    {/if}
+                </button>
+                {#if openSection === 'cover'}
+                    <div class="border-t border-black/8 p-6">
+                        <div class="grid grid-cols-3 gap-6">
+                            <div class="col-span-1">
+                                {#if coverPreviewUrl}
+                                    <div
+                                        class="aspect-video bg-neutral-100 border border-black/10 overflow-hidden"
+                                    >
+                                        <img
+                                            src={coverPreviewUrl}
+                                            alt="Cover preview"
+                                            class="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <p
+                                        class="mt-2 text-[10px] text-neutral-500"
+                                    >
+                                        New file — will replace current cover
+                                        on save.
+                                    </p>
+                                {:else if showExistingCover}
+                                    <div
+                                        class="aspect-video bg-neutral-100 border border-black/10 overflow-hidden"
+                                    >
+                                        <img
+                                            src={existingCoverUrl}
+                                            alt={tournament?.name ?? 'Cover'}
+                                            class="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                {:else}
+                                    <div
+                                        class="aspect-video bg-neutral-50 border border-dashed border-black/15 flex flex-col items-center justify-center text-neutral-400"
+                                    >
+                                        <Image class="size-6 mb-2" />
+                                        <span
+                                            class="text-[11px] font-medium uppercase tracking-[0.18em]"
+                                            >No cover yet</span
+                                        >
+                                    </div>
+                                {/if}
+                            </div>
+
+                            <div class="col-span-2 flex flex-col gap-3">
+                                <p
+                                    class="text-[11px] text-neutral-500 leading-relaxed"
+                                >
+                                    A wide hero image shown at the top of the
+                                    public tournament page. Recommended
+                                    <span class="font-bold text-neutral-700"
+                                        >1600×900 px</span
+                                    >
+                                    (16:9), JPG / PNG / WebP, max 5 MB.
+                                </p>
+
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onclick={() => coverInput?.click()}
+                                        class="h-9 px-4 border border-black/12 text-[11px] font-medium text-neutral-700 inline-flex items-center gap-1.5 hover:border-black/30 transition-colors"
+                                    >
+                                        <Upload class="size-3" />
+                                        {existingCoverUrl &&
+                                        !form.cover_image_remove
+                                            ? 'Replace'
+                                            : 'Upload cover'}
+                                    </button>
+                                    {#if existingCoverUrl && !form.cover_image_remove && !coverPreviewUrl}
+                                        <button
+                                            type="button"
+                                            onclick={() => {
+                                                form.cover_image = null;
+                                                form.cover_image_remove = true;
+                                            }}
+                                            class="h-9 px-3 text-[11px] font-medium text-neutral-500 inline-flex items-center gap-1.5 hover:text-red-600 transition-colors"
+                                        >
+                                            <X class="size-3" /> Remove
+                                        </button>
+                                    {/if}
+                                    {#if coverPreviewUrl || form.cover_image_remove}
+                                        <button
+                                            type="button"
+                                            onclick={() => {
+                                                form.cover_image = null;
+                                                form.cover_image_remove = false;
+                                                if (coverInput) {
+                                                    coverInput.value = '';
+                                                }
+                                            }}
+                                            class="h-9 px-3 text-[11px] font-medium text-neutral-500 inline-flex items-center gap-1.5 hover:text-neutral-800 transition-colors"
+                                        >
+                                            <X class="size-3" /> Clear
+                                        </button>
+                                    {/if}
+                                </div>
+
+                                <input
+                                    bind:this={coverInput}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    class="hidden"
+                                    onchange={(e: Event) => {
+                                        const target = e.target as HTMLInputElement;
+                                        const file = target.files?.[0] ?? null;
+                                        form.cover_image = file;
+                                        form.cover_image_remove = false;
+                                    }}
+                                />
+
+                                {#if form.errors.cover_image}
+                                    <p class="text-red-600 text-[11px]">
+                                        {form.errors.cover_image}
+                                    </p>
+                                {/if}
+                            </div>
+                        </div>
+                    </div>
+                {/if}
             </div>
 
             <!-- Section: Details -->

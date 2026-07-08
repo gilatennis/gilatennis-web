@@ -15,6 +15,7 @@
             surface: string;
             surfaceLabel?: string;
             imageLabel?: string;
+            cover_image_url?: string;
             playerCount?: number;
             maxPlayers?: number;
             entryFee?: number;

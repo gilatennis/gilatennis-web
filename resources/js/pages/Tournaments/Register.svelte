@@ -417,11 +417,23 @@
         <!-- Left: order summary (sticky) -->
         <div class="lg:col-span-4 lg:sticky lg:top-35">
             <div class="bg-neutral-100 dark:bg-neutral-900">
-                <ImagePlaceholder
-                    label={tournament?.image_alt ?? 'tournament'}
-                    aspect="16/9"
-                    class="w-full"
-                />
+                {#if tournament?.cover_image_url}
+                    <div
+                        class="relative w-full aspect-video bg-neutral-100 overflow-hidden"
+                    >
+                        <img
+                            src={tournament.cover_image_url}
+                            alt={tournament.name ?? 'Tournament'}
+                            class="absolute inset-0 w-full h-full object-cover"
+                        />
+                    </div>
+                {:else}
+                    <ImagePlaceholder
+                        label={tournament?.image_alt ?? 'tournament'}
+                        aspect="16/9"
+                        class="w-full"
+                    />
+                {/if}
                 <div class="p-6">
                     <div
                         class="text-[10px] uppercase tracking-[0.2em] text-coral font-bold mb-1"
@@ -455,9 +467,9 @@
                             >
                         </div>
                         <div class="flex justify-between text-sm mb-2">
-                            <span class="opacity-50">Spots left</span>
+                            <span class="opacity-50">Registered</span>
                             <span class="font-mono"
-                                >{selectedDivision.spots_available}/{selectedDivision.draw_size}</span
+                                >{Math.max(0, (selectedDivision.draw_size ?? 0) - (selectedDivision.spots_available ?? 0))}/{selectedDivision.draw_size}</span
                             >
                         </div>
                     {/if}

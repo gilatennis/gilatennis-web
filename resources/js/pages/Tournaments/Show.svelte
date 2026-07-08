@@ -71,22 +71,44 @@
         <div class="grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             <!-- Cols 1–8: hero image -->
             <div class="lg:col-span-8">
-                <ImagePlaceholder
-                    label={tournament?.image_alt ?? 'tennis court'}
-                    aspect="16/9"
-                    class="w-full"
-                >
-                    <!-- Title overlay -->
+                {#if tournament?.cover_image_url}
                     <div
-                        class="absolute inset-x-0 bottom-0 p-6 lg:p-10 bg-gradient-to-t from-black/90 via-black/50 to-transparent"
+                        class="relative w-full aspect-video bg-neutral-100 overflow-hidden"
                     >
-                        <h1
-                            class="font-display font-black text-white text-[32px] sm:text-[52px] lg:text-[72px] leading-[0.92] tracking-[-0.03em] max-w-3xl"
+                        <img
+                            src={tournament.cover_image_url}
+                            alt={tournament.name ?? 'Tournament'}
+                            class="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <!-- Title overlay -->
+                        <div
+                            class="absolute inset-x-0 bottom-0 p-6 lg:p-10 bg-gradient-to-t from-black/90 via-black/50 to-transparent"
                         >
-                            {tournament?.name ?? 'Tournament'}
-                        </h1>
+                            <h1
+                                class="font-display font-black text-white text-[18px] sm:text-[52px] lg:text-[72px] leading-[0.92] tracking-[-0.03em] max-w-3xl"
+                            >
+                                {tournament?.name ?? 'Tournament'}
+                            </h1>
+                        </div>
                     </div>
-                </ImagePlaceholder>
+                {:else}
+                    <ImagePlaceholder
+                        label={tournament?.image_alt ?? 'tennis court'}
+                        aspect="16/9"
+                        class="w-full"
+                    >
+                        <!-- Title overlay -->
+                        <div
+                            class="absolute inset-x-0 bottom-0 p-6 lg:p-10 bg-gradient-to-t from-black/90 via-black/50 to-transparent"
+                        >
+                            <h1
+                                class="font-display font-black text-white text-[32px] sm:text-[52px] lg:text-[72px] leading-[0.92] tracking-[-0.03em] max-w-3xl"
+                            >
+                                {tournament?.name ?? 'Tournament'}
+                            </h1>
+                        </div>
+                    </ImagePlaceholder>
+                {/if}
             </div>
 
             <!-- Cols 9–12: registration card -->

@@ -5,11 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Scout\Searchable;
 
 class Tournament extends Model
 {
     use HasFactory, Searchable;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Tournament $tournament) {
+            if (! $tournament->cover_image) {
+                return;
+            }
+
+            try {
+                Storage::disk('public')->delete($tournament->cover_image);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        });
+    }
 
     public function toSearchableArray(): array
     {
@@ -30,7 +46,24 @@ class Tournament extends Model
         return 'tournaments';
     }
 
-    protected $guarded = [];
+    protected $fillable = [
+        'name',
+        'slug',
+        'tagline',
+        'dates',
+        'start',
+        'end',
+        'city',
+        'venue',
+        'surface',
+        'ball_type',
+        'venue_type',
+        'cover_image',
+        'perks',
+        'registration_closes',
+        'is_featured',
+        'status',
+    ];
 
     protected $appends = [
         'max_players',
@@ -40,6 +73,7 @@ class Tournament extends Model
         'status_label',
         'venue_type_label',
         'is_sold_out',
+        'cover_image_url',
     ];
 
     protected $casts = [
@@ -151,5 +185,14 @@ class Tournament extends Model
             'closed' => 'Closed',
             'completed' => 'Completed',
         };
+    }
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        if (! $this->cover_image) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->cover_image);
     }
 }
