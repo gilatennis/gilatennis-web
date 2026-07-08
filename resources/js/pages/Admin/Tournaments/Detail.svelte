@@ -483,7 +483,7 @@
                     <div class="border-t border-black/8 p-6">
                         {#if tournament.schedule?.length}
                             <div class="space-y-4">
-                                {#each tournament.schedule as day (day.id)}
+                                {#each tournament.schedule as day (day.id ?? day._key)}
                                     <div>
                                         <div
                                             class="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 mb-2"
@@ -493,7 +493,7 @@
                                         <div
                                             class="space-y-1 pl-3 border-l-2 border-black/8"
                                         >
-                                            {#each day.items as item (item.id)}
+                                            {#each day.items as item (item.id ?? item._key)}
                                                 <div
                                                     class="text-[13px] text-neutral-700"
                                                 >
@@ -544,9 +544,9 @@
                     <div class="border-t border-black/8 p-6">
                         {#if tournament.rules?.length}
                             <div class="space-y-2">
-                                {#each tournament.rules as rule, i (rule.id)}
+                                {#each tournament.rules as rule, i (rule.id ?? rule._key)}
                                     <div
-                                        class="flex items-start gap-3 text-[13px] text-neutral-700"
+                                        class="flex items-start gap-3 text-[13px] text-neutral-700 whitespace-pre-line"
                                     >
                                         <span
                                             class="font-bold font-mono text-neutral-300 shrink-0 w-4 text-right select-none mt-px"

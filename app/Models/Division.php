@@ -50,6 +50,12 @@ class Division extends Model
         return $this->hasMany(TournamentRegistration::class);
     }
 
+    public function paidRegistrations(): HasMany
+    {
+        return $this->hasMany(TournamentRegistration::class)
+            ->where('payment_status', 'paid');
+    }
+
     public function getSpotsAvailableAttribute(): int
     {
         return max(0, $this->draw_size - $this->paid_registrations_count);
@@ -62,6 +68,10 @@ class Division extends Model
 
     public function getPaidRegistrationsCountAttribute(): int
     {
+        if (array_key_exists('paid_registrations_count', $this->attributes)) {
+            return (int) $this->attributes['paid_registrations_count'];
+        }
+
         return $this->registrations()->where('payment_status', 'paid')->count();
     }
 

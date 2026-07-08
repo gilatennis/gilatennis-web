@@ -19,9 +19,21 @@ use Inertia\Inertia;
 class TournamentController extends Controller
 {
     private const FILLABLE_FIELDS = [
-        'name', 'slug', 'tagline', 'dates', 'start', 'end',
-        'city', 'venue', 'surface', 'ball_type', 'venue_type', 'perks',
-        'registration_closes', 'is_featured', 'status',
+        'name',
+        'slug',
+        'tagline',
+        'dates',
+        'start',
+        'end',
+        'city',
+        'venue',
+        'surface',
+        'ball_type',
+        'venue_type',
+        'perks',
+        'registration_closes',
+        'is_featured',
+        'status',
     ];
 
     public function index()

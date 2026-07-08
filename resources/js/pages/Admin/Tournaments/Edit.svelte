@@ -42,9 +42,21 @@
         is_featured: tournament?.is_featured ?? false,
         status: tournament?.status ?? 'draft',
         divisions: (tournament?.divisions ?? []) as any[],
-        schedule: (tournament?.schedule ?? []) as any[],
-        rules: (tournament?.rules ?? []) as any[],
+        schedule: (tournament?.schedule ?? []).map((d) => ({
+            ...d,
+            _key: d._key ?? newKey(),
+            items: (d.items ?? []).map((it) => ({
+                ...it,
+                _key: it._key ?? newKey(),
+            })),
+        })),
+        rules: (tournament?.rules ?? []).map((r) => ({
+            ...r,
+            _key: r._key ?? newKey(),
+        })),
     });
+
+    const newKey = () => crypto.randomUUID();
 
     // useForm captures initial values — state_referenced_locally is expected here.
     const form = useForm(init);
@@ -230,7 +242,8 @@
         form.schedule = [
             ...form.schedule,
             {
-                id: Date.now(),
+                id: null,
+                _key: newKey(),
                 day_label: '',
                 sort_order: form.schedule.length,
                 items: [],
@@ -255,7 +268,8 @@
             items: [
                 ...sched[di].items,
                 {
-                    id: Date.now(),
+                    id: null,
+                    _key: newKey(),
                     label: '',
                     sort_order: sched[di].items.length,
                 },
@@ -284,7 +298,7 @@
     function addRule() {
         form.rules = [
             ...form.rules,
-            { id: Date.now(), body: '', sort_order: form.rules.length },
+            { id: null, _key: newKey(), body: '', sort_order: form.rules.length },
         ];
     }
 
@@ -1000,7 +1014,7 @@
                             </p>
                         {:else}
                             <div class="space-y-4">
-                                {#each form.schedule as day, di (day.id)}
+                                {#each form.schedule as day, di (day.id ?? day._key)}
                                     <div class="border border-black/8">
                                         <div
                                             class="flex items-center gap-2 px-4 py-2.5 bg-neutral-50 border-b border-black/6"
@@ -1041,7 +1055,7 @@
                                             >
                                         </div>
                                         <div class="p-4 space-y-2">
-                                            {#each day.items as item, ii (item.id)}
+                                            {#each day.items as item, ii (item.id ?? item._key)}
                                                 <div
                                                     class="flex items-center gap-2"
                                                 >
@@ -1141,7 +1155,7 @@
                             </p>
                         {:else}
                             <div class="space-y-2">
-                                {#each form.rules as rule, i (rule.id)}
+                                {#each form.rules as rule, i (rule.id ?? rule._key)}
                                     <div class="flex items-start gap-2">
                                         <div
                                             class="flex flex-col gap-0.5 pt-2 shrink-0"

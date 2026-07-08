@@ -28,9 +28,21 @@ class TournamentRegistrationController extends Controller
 
         abort_if(! $hasOpenDivisions, 403, 'Tournament is sold out.');
 
+        $preselectedDivisionId = null;
+        $requested = request('division');
+
+        if ($requested !== null) {
+            $div = $tournament->divisions->firstWhere('id', (int) $requested);
+
+            if ($div && $div->spots_available > 0) {
+                $preselectedDivisionId = $div->id;
+            }
+        }
+
         return Inertia::render('Tournaments/Register', [
             'tournament' => $tournament,
             'divisions' => $tournament->divisions,
+            'preselectedDivisionId' => $preselectedDivisionId,
             'wa_number' => Settings::getWaNumber(),
         ]);
     }

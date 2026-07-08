@@ -40,9 +40,11 @@
     let {
         tournament,
         divisions,
+        preselectedDivisionId = null,
     }: {
         tournament: any;
         divisions: any[];
+        preselectedDivisionId?: number | null;
     } = $props();
 
     // === SHARED ===
@@ -71,6 +73,16 @@
 
     let selectedDivisionId = $state<number | null>(
         (() => {
+            if (preselectedDivisionId !== null) {
+                const match = divisions.find(
+                    (d: any) => d.id === preselectedDivisionId,
+                );
+
+                if (match && (match.spots_available ?? 0) > 0) {
+                    return match.id;
+                }
+            }
+
             const open = divisions.filter(
                 (d: any) => (d.spots_available ?? 0) > 0,
             );
