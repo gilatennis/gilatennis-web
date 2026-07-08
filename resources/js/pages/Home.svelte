@@ -356,5 +356,5 @@
     -->
 
     <!-- Trust Bar -->
-    <TrustBar />
+    <!-- <TrustBar /> -->
 </PublicLayout>

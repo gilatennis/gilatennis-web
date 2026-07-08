@@ -20,9 +20,11 @@
         {@render children?.()}
     </main>
 
+    <!--
     {#if showNewsletter}
         <Newsletter />
     {/if}
+    -->
 
     <Footer />
 </div>

@@ -12,18 +12,18 @@
     import { themeState } from '@/lib/theme.svelte';
 
     const categories = [
-        'Rackets',
-        'Strings',
-        'Shoes',
-        'Apparel',
-        'Bags',
-        'Balls',
+        // 'Rackets',
+        // 'Strings',
+        // 'Shoes',
+        // 'Apparel',
+        // 'Bags',
+        // 'Balls',
     ];
 
     const navLinks = [
-        { label: 'Courts', href: '#courts' },
+        // { label: 'Courts', href: '#courts' },
         { label: 'Tournaments', href: '#tournaments' },
-        { label: 'Tips & Reviews', href: '#articles' },
+        // { label: 'Tips & Reviews', href: '#articles' },
     ];
 
     const trendingSearches = [
@@ -98,6 +98,7 @@
         </nav>
 
         <div class="ml-auto flex items-center gap-1">
+            <!--
             <button
                 onclick={() => (searchOpen = !searchOpen)}
                 class="h-10 w-10 grid place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5"
@@ -105,6 +106,7 @@
             >
                 <Search size={19} />
             </button>
+            -->
             <button
                 onclick={() =>
                     updateAppearance(
@@ -116,6 +118,7 @@
                 <Sun size={19} class="hidden dark:block" />
                 <Moon size={19} class="block dark:hidden" />
             </button>
+            <!--
             <button
                 class="h-10 w-10 grid place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 hidden sm:grid"
             >
@@ -135,6 +138,7 @@
                     >2</span
                 >
             </button>
+            -->
         </div>
     </div>
 

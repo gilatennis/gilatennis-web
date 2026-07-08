@@ -2,35 +2,35 @@
     import { Link } from '@inertiajs/svelte';
 
     const cols = [
-        {
-            h: 'Shop',
-            links: [
-                'Rackets',
-                'Strings',
-                'Shoes',
-                'Apparel',
-                'Bags',
-                'Balls',
-                'Sale',
-            ],
-        },
-        {
-            h: 'Read',
-            links: [
-                'Gear Reviews',
-                'Tennis Tips',
-                'Strategy',
-                'Pro Watch',
-                "Buyer's Guides",
-            ],
-        },
+        // {
+        //     h: 'Shop',
+        //     links: [
+        //         'Rackets',
+        //         'Strings',
+        //         'Shoes',
+        //         'Apparel',
+        //         'Bags',
+        //         'Balls',
+        //         'Sale',
+        //     ],
+        // },
+        // {
+        //     h: 'Read',
+        //     links: [
+        //         'Gear Reviews',
+        //         'Tennis Tips',
+        //         'Strategy',
+        //         'Pro Watch',
+        //         "Buyer's Guides",
+        //     ],
+        // },
         {
             h: 'Play',
             links: [
                 'Tournaments',
-                'Find a Coach',
-                'Stringing Service',
-                'Demo Program',
+                // 'Find a Coach',
+                // 'Stringing Service',
+                // 'Demo Program',
             ],
         },
         {
@@ -45,7 +45,7 @@
         },
     ];
 
-    const social = ['IG', 'X', 'YT', 'TT'];
+    const social = ['IG', 'TT'];
 </script>
 
 <footer class="bg-black text-white">
