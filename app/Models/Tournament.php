@@ -59,6 +59,8 @@ class Tournament extends Model
         'ball_type',
         'venue_type',
         'cover_image',
+        'contact_person_name',
+        'contact_person_phone',
         'perks',
         'registration_closes',
         'is_featured',

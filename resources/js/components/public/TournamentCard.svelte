@@ -194,7 +194,7 @@
 
         <button
             onclick={() =>
-                (window.location.href = `/tournaments/${tournament.slug}/register`)}
+                (window.location.href = `/tournaments/${tournament.slug}`)}
             class="mt-8 w-full h-14 bg-coral text-white font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:bg-background hover:text-foreground transition-colors"
         >
             Register now <ArrowRight size={18}></ArrowRight>

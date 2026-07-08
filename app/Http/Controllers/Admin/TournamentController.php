@@ -35,6 +35,8 @@ class TournamentController extends Controller
         'surface',
         'ball_type',
         'venue_type',
+        'contact_person_name',
+        'contact_person_phone',
         'perks',
         'registration_closes',
         'is_featured',

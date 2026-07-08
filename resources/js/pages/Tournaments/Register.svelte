@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Form, Link, page } from '@inertiajs/svelte';
+    import { Form, Link } from '@inertiajs/svelte';
     import { ArrowLeft, ArrowRight } from 'lucide-svelte/icons';
     import ImagePlaceholder from '@/components/public/ImagePlaceholder.svelte';
     import RegistrationProgressRail from '@/components/public/RegistrationProgressRail.svelte';
@@ -42,7 +42,10 @@
         divisions,
         preselectedDivisionId = null,
     }: {
-        tournament: any;
+        tournament: any & {
+            contact_person_name?: string | null;
+            contact_person_phone?: string | null;
+        };
         divisions: any[];
         preselectedDivisionId?: number | null;
     } = $props();
@@ -66,8 +69,6 @@
             currency: 'IDR',
             maximumFractionDigits: 0,
         }).format(amount);
-
-    const waNumber = $derived(page.props.wa_number as string | null);
 
     // === STEP 0: DIVISION ===
 
@@ -457,6 +458,20 @@
                             : ''}
                     </div>
 
+                    {#if tournament?.contact_person_phone}
+                        <div
+                            class="flex justify-between text-sm border-t border-black/10 dark:border-white/10 pt-4 mb-2"
+                        >
+                            <span class="opacity-50">Contact</span>
+                            <span class="text-right font-mono">
+                                {#if tournament?.contact_person_name}
+                                    {tournament.contact_person_name}<br />
+                                {/if}
+                                {tournament.contact_person_phone}
+                            </span>
+                        </div>
+                    {/if}
+
                     {#if selectedDivision}
                         <div
                             class="flex justify-between text-sm border-t border-black/10 dark:border-white/10 pt-4 mb-2"
@@ -653,6 +668,6 @@
 </div>
 
 <WhatsAppHelpButton
-    {waNumber}
+    phoneNumber={tournament?.contact_person_phone}
     tournamentName={tournament?.name ?? 'Tournament'}
 />

@@ -35,11 +35,21 @@ class TournamentFactory extends Factory
             'surface' => fake()->randomElement($surfaces),
             'ball_type' => 'Penn Championship',
             'venue_type' => 'indoor',
+            'contact_person_name' => null,
+            'contact_person_phone' => null,
             'registration_closes' => fn ($attrs) => fake()->dateTimeBetween('now', '+3 months'),
             'perks' => null,
             'is_featured' => false,
             'status' => 'open',
         ];
+    }
+
+    public function withContact(?string $name = null, ?string $phone = null): static
+    {
+        return $this->state(fn () => [
+            'contact_person_name' => $name ?? fake()->name(),
+            'contact_person_phone' => $phone ?? fake()->numerify('+62##########'),
+        ]);
     }
 
     public function featured(): static

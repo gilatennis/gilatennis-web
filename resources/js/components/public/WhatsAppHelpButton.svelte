@@ -2,19 +2,19 @@
     import { MessageCircleMore } from 'lucide-svelte/icons';
 
     let {
-        waNumber,
+        phoneNumber,
         tournamentName,
     }: {
-        waNumber: string | null;
+        phoneNumber: string | null;
         tournamentName: string;
     } = $props();
 
     const href = $derived(() => {
-        if (!waNumber) {
+        if (!phoneNumber) {
             return null;
         }
 
-        const cleanNumber = waNumber.replace(/[^0-9]/g, '');
+        const cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
         const message = encodeURIComponent(
             `Hi, I need help with registration for ${tournamentName}`,
         );

@@ -45,6 +45,8 @@
         status: tournament?.status ?? 'draft',
         cover_image: null as File | null,
         cover_image_remove: false,
+        contact_person_name: tournament?.contact_person_name ?? '',
+        contact_person_phone: tournament?.contact_person_phone ?? '',
         divisions: (tournament?.divisions ?? []) as any[],
         schedule: (tournament?.schedule ?? []).map((d) => ({
             ...d,
@@ -992,6 +994,56 @@
                                 >
                                     <Plus class="size-3" /> Add perk
                                 </button>
+                            </div>
+
+                            <hr class="border-black/8" />
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label
+                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                        >Contact Person Name</Label
+                                    >
+                                    <Input
+                                        type="text"
+                                        bind:value={form.contact_person_name}
+                                        placeholder="Budi Santoso"
+                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                    />
+                                    {#if form.errors.contact_person_name}
+                                        <p
+                                            class="text-red-600 text-[11px] mt-1"
+                                        >
+                                            {form.errors.contact_person_name}
+                                        </p>
+                                    {/if}
+                                </div>
+                                <div>
+                                    <Label
+                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                        >Contact Person Phone</Label
+                                    >
+                                    <Input
+                                        type="text"
+                                        bind:value={form.contact_person_phone}
+                                        placeholder="+628123456789"
+                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                    />
+                                    {#if form.errors.contact_person_phone}
+                                        <p
+                                            class="text-red-600 text-[11px] mt-1"
+                                        >
+                                            {form.errors.contact_person_phone}
+                                        </p>
+                                    {/if}
+                                </div>
+                                <p
+                                    class="col-span-2 text-[10px] text-neutral-500 leading-relaxed"
+                                >
+                                    Used for the floating WhatsApp help button on
+                                    the public tournament and registration pages.
+                                    If empty, the button is hidden.
+                                </p>
                             </div>
                         </div>
                     </div>

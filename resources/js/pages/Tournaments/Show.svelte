@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
-    import { ArrowUpRight, ChevronDown, Users } from 'lucide-svelte/icons';
+    import { ArrowUpRight, ChevronDown, MessageCircleMore, Users } from 'lucide-svelte/icons';
     import ImagePlaceholder from '@/components/public/ImagePlaceholder.svelte';
     import { Badge } from '@/components/ui/badge';
     import {
@@ -18,7 +18,10 @@
         tournament,
         registrationCount = 0,
     }: {
-        tournament: any;
+        tournament: any & {
+            contact_person_name?: string | null;
+            contact_person_phone?: string | null;
+        };
         registrationCount?: number;
     } = $props();
 
@@ -45,6 +48,19 @@
     const registrationOpen = $derived(
         tournament?.status === 'open' && !isSoldOut,
     );
+
+    const waLink = $derived(() => {
+        if (!tournament?.contact_person_phone) {
+            return null;
+        }
+
+        const cleanNumber = tournament.contact_person_phone.replace(/[^0-9]/g, '');
+        const message = encodeURIComponent(
+            `Hi, I need help with registration for ${tournament?.name ?? 'Tournament'}`,
+        );
+
+        return `https://wa.me/${cleanNumber}?text=${message}`;
+    });
 
     // Format registration closes date
     const closesLabel = $derived(() => {
@@ -209,6 +225,41 @@
                                 </div>
                             </div>
                         </div>
+
+                        {#if tournament?.contact_person_phone}
+                            <div
+                                class="mb-6 pt-6 border-t border-white/10 dark:border-black/10"
+                            >
+                                <div
+                                    class="text-[10px] uppercase tracking-[0.18em] opacity-50 mb-1"
+                                >
+                                    Contact
+                                </div>
+                                {#if tournament?.contact_person_name}
+                                    <div
+                                        class="font-display font-bold text-base"
+                                    >
+                                        {tournament.contact_person_name}
+                                    </div>
+                                {/if}
+                                <div
+                                    class="font-display font-bold text-base tabular-nums flex items-center gap-2"
+                                >
+                                    <span>{tournament.contact_person_phone}</span>
+                                    {#if waLink()}
+                                        <a
+                                            href={waLink()}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#25D366] text-white hover:scale-110 transition-transform"
+                                            aria-label="Chat on WhatsApp"
+                                        >
+                                            <MessageCircleMore size={14} />
+                                        </a>
+                                    {/if}
+                                </div>
+                            </div>
+                        {/if}
 
                         <!--
                         <button

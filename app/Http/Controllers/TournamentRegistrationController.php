@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TournamentRegistrationRequest;
 use App\Models\Division;
-use App\Models\Settings;
 use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
@@ -43,7 +42,6 @@ class TournamentRegistrationController extends Controller
             'tournament' => $tournament,
             'divisions' => $tournament->divisions,
             'preselectedDivisionId' => $preselectedDivisionId,
-            'wa_number' => Settings::getWaNumber(),
         ]);
     }
 

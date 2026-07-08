@@ -26,6 +26,8 @@ trait TournamentRules
             'is_featured' => ['boolean'],
             'status' => ['required', 'in:draft,open,closed,completed'],
             'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'contact_person_name' => ['nullable', 'string', 'max:255'],
+            'contact_person_phone' => ['nullable', 'string', 'max:20'],
 
             'divisions' => ['nullable', 'array'],
             'divisions.*.name' => ['required', 'string', 'max:255'],
