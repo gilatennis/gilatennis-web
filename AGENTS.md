@@ -204,4 +204,25 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 
 - IMPORTANT: Activate `inertia-svelte-development` when working with Inertia Svelte client-side patterns.
 
+## Production Deploy Verification
+
+After rebuilding and pushing a new image (`make build && make push` on Mac, `make pull && make up` on the server), confirm the storage symlink is correct in the running container:
+
+```sh
+docker compose exec app ls -la /app/public/storage
+# Must show: storage -> /app/storage/app/public  (any path that resolves inside the container)
+```
+
+If the target contains the host's `/Users/kevin/...` (Mac) or another non-container path, the build picked up the host's broken symlink — check `.dockerignore` includes `public/storage`, then rebuild.
+
+End-to-end check that FrankenPHP can serve uploaded files:
+
+```sh
+curl -sI https://prod.gilatennis.com/storage/.gitignore
+# Expected: 200 OK (the placeholder file created by `storage:link`)
+```
+
+## Storage
+
+`/app/storage` in the container is backed by the named Docker volume `storage` (defined in `docker-compose.yml`). The `public/storage` symlink is created during image build by `php artisan storage:link` (Dockerfile build stage). Re-link on a running container with `make storage-link`.
 </laravel-boost-guidelines>

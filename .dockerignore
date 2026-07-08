@@ -13,3 +13,4 @@ tests/
 .github/
 docker-compose*.yml
 public/hot
+public/storage

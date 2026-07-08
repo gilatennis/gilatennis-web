@@ -25,13 +25,14 @@ RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction
 COPY . .
 RUN composer dump-autoload --optimize \
     && php artisan package:discover --ansi \
-    && npm run build
+    && npm run build \
+    && php artisan storage:link
 
 # --- Production stage ---
 FROM build AS production
 
-RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache \
-    && chmod -R 775 /app/storage /app/bootstrap/cache
+RUN chown -R www-data:www-data /app/bootstrap/cache \
+    && chmod -R 775 /app/bootstrap/cache
 
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 

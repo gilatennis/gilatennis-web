@@ -2,7 +2,7 @@ REGISTRY ?= docker.io
 IMAGE ?= kevinjanada/gilatennis_web
 TAG ?= latest
 
-.PHONY: build push pull up down dev migrate seed logs
+.PHONY: build push pull up down dev migrate seed storage-link logs
 
 # Build for linux (run on Mac)
 build:
@@ -33,6 +33,9 @@ migrate:
 
 seed:
 	docker compose exec app php artisan db:seed
+
+storage-link:
+	docker compose exec app php artisan storage:link
 
 logs:
 	docker compose logs -f app
