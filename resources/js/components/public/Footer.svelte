@@ -57,10 +57,12 @@
                         >Gilatennis</span
                     >
                 </div>
+                <!--
                 <p class="mt-5 text-white/70 max-w-sm leading-relaxed">
                     The internet's most useful tennis publication, with a pro
                     shop attached. Independently owned, obsessively tested.
                 </p>
+                -->
                 <div class="mt-6 flex gap-2">
                     {#each social as s}
                         <a
