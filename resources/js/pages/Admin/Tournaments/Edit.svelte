@@ -22,6 +22,10 @@
         SelectContent,
         SelectItem,
     } from '@/components/ui/select';
+    import {
+        PLAYER_FIELDS,
+        PLAYER_FIELD_KEYS,
+    } from '@/types/registration';
 
     let { tournament }: { tournament: Record<string, any> | null } = $props();
 
@@ -149,6 +153,10 @@
         min_female_players: '',
         min_male_players: '',
         level_requirements: {},
+        player_field_requirements: PLAYER_FIELD_KEYS.map((key) => ({
+            field_key: key,
+            required: PLAYER_FIELDS[key].default,
+        })),
         prizes: [],
     };
 
@@ -181,6 +189,94 @@
     });
 
     const levelOptions = ['Upper Beginner', 'Intermediate'];
+
+    function getPfrValue(key: string, div: any): boolean {
+        if (key === 'gender' && hasGenderMinConstraints) {
+            return true;
+        }
+
+        if (!div) {
+            return PLAYER_FIELDS[key]?.default ?? true;
+        }
+
+        const row = (div.player_field_requirements ?? []).find(
+            (r: any) => r.field_key === key,
+        );
+
+        if (!row) {
+            return key === 'name' ? true : PLAYER_FIELDS[key]?.default ?? true;
+        }
+
+        return !!row.required;
+    }
+
+    function setPfrValue(key: string, value: boolean) {
+        if (!editingDivision) {
+            return;
+        }
+
+        const list = [
+            ...(editingDivision.player_field_requirements ?? []),
+        ];
+        const idx = list.findIndex(
+            (r: any) => r.field_key === key,
+        );
+
+        if (idx >= 0) {
+            list[idx] = { ...list[idx], required: value };
+        } else {
+            list.push({ field_key: key, required: value });
+        }
+
+        editingDivision = {
+            ...editingDivision,
+            player_field_requirements: list,
+        };
+    }
+
+    const hasLevelRequirementValues = $derived.by(() => {
+        const reqs = editingDivision?.level_requirements ?? {};
+
+        return Object.values(reqs).some((v) => Number(v) > 0);
+    });
+    const hasGenderMinConstraints = $derived.by(() => {
+        const div = editingDivision;
+
+        if (!div) {
+            return false;
+        }
+
+        return (
+            (Number(div.min_male_players) || 0) > 0 ||
+            (Number(div.min_female_players) || 0) > 0
+        );
+    });
+
+    $effect(() => {
+        if (!editingDivision || !hasGenderMinConstraints) {
+            return;
+        }
+
+        const list = [...(editingDivision.player_field_requirements ?? [])];
+        const idx = list.findIndex((r: any) => r.field_key === 'gender');
+        const current = idx >= 0 ? list[idx].required : null;
+
+        if (current === true) {
+            return;
+        }
+
+        const next =
+            idx >= 0
+                ? list.map((r, i) =>
+                      i === idx ? { ...r, required: true } : r,
+                  )
+                : [...list, { field_key: 'gender', required: true }];
+
+        editingDivision = {
+            ...editingDivision,
+            player_field_requirements: next,
+        };
+    });
     function getDivisionErrors(i: number): string[] {
         const prefix = `divisions.${i}.`;
 
@@ -2001,6 +2097,63 @@
                                             </p>
                                         {/if}
                                     </div>
+                                {/each}
+                            </div>
+                        </div>
+
+                        <div class="mt-5 col-span-2">
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-2"
+                            >
+                                Required Player Information
+                            </p>
+                            <p
+                                class="text-[10px] text-neutral-400 mb-3"
+                            >
+                                Choose which information the captain must collect
+                                from each teammate. Name is always required.
+                            </p>
+                            <div class="grid grid-cols-2 gap-2">
+                                {#each PLAYER_FIELD_KEYS as key (key)}
+                                    {@const meta = PLAYER_FIELDS[key]}
+                                    {@const locked =
+                                        meta.locked ||
+                                        (key === 'level' &&
+                                            hasLevelRequirementValues) ||
+                                        (key === 'gender' &&
+                                            hasGenderMinConstraints)}
+                                    <label
+                                        class="flex items-center gap-2 h-9 px-3 border border-black/10 bg-white text-[12px] text-neutral-800 select-none {locked
+                                            ? 'opacity-70 cursor-not-allowed'
+                                            : 'cursor-pointer hover:border-black/25'}"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={getPfrValue(
+                                                key,
+                                                editingDivision,
+                                            )}
+                                            disabled={locked}
+                                            onchange={(e: Event) => {
+                                                if (locked) return;
+                                                setPfrValue(
+                                                    key,
+                                                    (e.target as HTMLInputElement)
+                                                        .checked,
+                                                );
+                                            }}
+                                            class="h-3.5 w-3.5 accent-coral"
+                                        />
+                                        <span class="flex-1"
+                                            >{meta.label}</span
+                                        >
+                                        {#if locked}
+                                            <span
+                                                class="text-[9px] uppercase tracking-[0.15em] text-neutral-400"
+                                                >Required</span
+                                            >
+                                        {/if}
+                                    </label>
                                 {/each}
                             </div>
                         </div>

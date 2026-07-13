@@ -56,6 +56,38 @@ class Division extends Model
             ->where('payment_status', 'paid');
     }
 
+    public function playerFieldRequirements(): HasMany
+    {
+        return $this->hasMany(DivisionPlayerFieldRequirement::class);
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public function playerFieldConfig(): array
+    {
+        $rows = $this->relationLoaded('playerFieldRequirements')
+            ? $this->playerFieldRequirements
+            : $this->playerFieldRequirements()->get();
+
+        $byKey = $rows->keyBy('field_key');
+
+        $config = [];
+
+        foreach (DivisionPlayerFieldRequirement::FIELDS as $key => $meta) {
+            $config[$key] = $key === 'name'
+                ? true
+                : (bool) ($byKey[$key]?->required ?? $meta['default']);
+        }
+
+        return $config;
+    }
+
+    public function isPlayerFieldRequired(string $field): bool
+    {
+        return $this->playerFieldConfig()[$field] ?? true;
+    }
+
     public function getSpotsAvailableAttribute(): int
     {
         return max(0, $this->draw_size - $this->paid_registrations_count);

@@ -42,7 +42,11 @@
         onRemovePlayer?: (index: number) => void;
     } = $props();
 
-    const showLevel = $derived(levelOptions.length > 0);
+    const cfg = $derived(division.playerFieldConfig);
+    const effectiveGenderRequired = $derived(
+        cfg.gender || division.minMalePlayers > 0 || division.minFemalePlayers > 0,
+    );
+    const showLevelField = $derived(levelOptions.length > 0 && cfg.level);
     const showTeamMembers = $derived(
         !!division.selected &&
             (division.isTeam || division.participationCategory === 'doubles'),
@@ -167,15 +171,15 @@
                 errs[`players.${i}.name`] = 'Name is required.';
             }
 
-            if (!player.email?.trim()) {
+            if (cfg.email && !player.email?.trim()) {
                 errs[`players.${i}.email`] = 'Email is required.';
             }
 
-            if (!player.phone?.trim()) {
+            if (cfg.phone && !player.phone?.trim()) {
                 errs[`players.${i}.phone`] = 'Phone is required.';
             }
 
-            if (!player.gender) {
+            if (effectiveGenderRequired && !player.gender) {
                 errs[`players.${i}.gender`] = 'Gender is required.';
             }
         }
@@ -280,13 +284,13 @@
         {/if}
     </div>
 
-    {#if showLevel}
+    {#if showLevelField}
         <div>
             <Label
                 for="level"
                 class="text-[11px] uppercase tracking-[0.2em] font-bold mb-2 block"
             >
-                Level
+                Level<span class="text-coral">*</span>
             </Label>
             <Select bind:value={level}>
                 <SelectTrigger

@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Enums\TennisLevel;
+use App\Models\Division;
+use App\Models\DivisionPlayerFieldRequirement;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
@@ -15,43 +17,64 @@ class TournamentRegistrationRequest extends FormRequest
 
     public function rules(): array
     {
-        $division = $this->route('tournament')?->divisions()
-            ->where('id', $this->input('division_id'))
-            ->first();
-
+        $division = $this->resolveDivision();
         $isTeam = $division && $division->participation_category === 'team';
-        $isDoubles = $division && $division->participation_category === 'doubles';
 
-        return [
+        $config = $division
+            ? $division->playerFieldConfig()
+            : DivisionPlayerFieldRequirement::FIELDS;
+
+        $forceLevel = $division && $division->hasLevelRequirements();
+        $forceGender = $division && ($division->min_female_players > 0 || $division->min_male_players > 0);
+
+        $captainBase = [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'phone' => ['required', 'string', 'max:50'],
+            'gender' => ['required', 'in:male,female'],
+            'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'rating_type' => ['nullable', 'in:UTR,ITN,USTA'],
+            'rating_value' => ['nullable', 'numeric'],
+            'level' => ['nullable', new Enum(TennisLevel::class)],
+        ];
+
+        $teammateBase = [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [$config['email'] ?? true ? 'required' : 'nullable', 'email', 'max:255'],
+            'phone' => [$config['phone'] ?? true ? 'required' : 'nullable', 'string', 'max:50'],
+            'gender' => [($config['gender'] ?? true) || $forceGender ? 'required' : 'nullable', 'in:male,female'],
+            'date_of_birth' => [$config['dob'] ?? false ? 'required' : 'nullable', 'date', 'before:today'],
+            'rating_type' => ['nullable', 'in:UTR,ITN,USTA'],
+            'rating_value' => ['nullable', 'numeric'],
+            'level' => [($forceLevel || ($config['level'] ?? true)) ? 'required' : 'nullable', new Enum(TennisLevel::class)],
+        ];
+
+        $rules = [
             'division_id' => ['required', 'exists:divisions,id'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'team_name' => [$isTeam ? 'required' : 'nullable', 'string', 'max:255'],
-            'tshirt_size' => ['nullable', 'in:XS,S,M,L,XL,XXL'],
-            'dietary' => ['nullable', 'string', 'max:500'],
             'waiver_accepted' => ['required', 'accepted'],
             'players' => ['required', 'array'],
-            'players.*.name' => ['required', 'string', 'max:255'],
-            'players.*.email' => ['required', 'email', 'max:255'],
-            'players.*.phone' => ['required', 'string', 'max:50'],
-            'players.*.gender' => ['required', 'in:male,female'],
-            'players.*.date_of_birth' => ['nullable', 'date', 'before:today'],
-            'players.*.rating_type' => ['nullable', 'in:UTR,ITN,USTA'],
-            'players.*.rating_value' => ['nullable', 'numeric'],
-            'players.*.level' => ['nullable', new Enum(TennisLevel::class)],
-            'players.*.tshirt_size' => ['nullable', 'in:XS,S,M,L,XL,XXL'],
-            'players.*.dietary' => ['nullable', 'string', 'max:500'],
         ];
+
+        foreach ($this->input('players', []) as $i => $_) {
+            $base = ($isTeam && $i > 0) ? $teammateBase : $captainBase;
+
+            foreach ($base as $key => $rule) {
+                $rules["players.{$i}.{$key}"] = $rule;
+            }
+        }
+
+        return $rules;
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $division = $this->route('tournament')?->divisions()
-                ->where('id', $this->input('division_id'))
-                ->first();
+            $division = $this->resolveDivision();
 
             if (! $division) {
                 return;
@@ -148,5 +171,12 @@ class TournamentRegistrationRequest extends FormRequest
         return [
             'players.*.email.email' => 'Each player must have a valid email address.',
         ];
+    }
+
+    private function resolveDivision(): ?Division
+    {
+        return $this->route('tournament')?->divisions()
+            ->where('id', $this->input('division_id'))
+            ->first();
     }
 }

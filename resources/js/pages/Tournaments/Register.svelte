@@ -11,7 +11,12 @@
     import Step2PlayerInfo from './registration/Step2PlayerInfo.svelte';
     import Step3ReviewAndPay from './registration/Step3ReviewAndPay.svelte';
     import type { FieldErrors, FormErrors } from '@/types/errors';
-    import type { DivisionContext } from '@/types/registration';
+    import {
+        PLAYER_FIELDS,
+        PLAYER_FIELD_KEYS,
+        type DivisionContext,
+        type PlayerFieldRequirementMap,
+    } from '@/types/registration';
 
     interface PlayerData {
         name: string;
@@ -97,6 +102,33 @@
         divisions.find((d: any) => d.id === selectedDivisionId) ?? null,
     );
 
+    function buildPlayerFieldConfig(
+        d: any,
+    ): PlayerFieldRequirementMap {
+        const config = {} as PlayerFieldRequirementMap;
+
+        for (const key of PLAYER_FIELD_KEYS) {
+            config[key] = key === 'name' ? true : PLAYER_FIELDS[key].default;
+        }
+
+        const rows = (d?.player_field_requirements ?? []) as Array<{
+            field_key: string;
+            required: boolean;
+        }>;
+
+        for (const row of rows) {
+            if (
+                (PLAYER_FIELD_KEYS as string[]).includes(row.field_key) &&
+                row.field_key !== 'name'
+            ) {
+                config[row.field_key as keyof PlayerFieldRequirementMap] =
+                    !!row.required;
+            }
+        }
+
+        return config;
+    }
+
     const division: DivisionContext = $derived.by(() => {
         const d = selectedDivision;
 
@@ -111,6 +143,7 @@
             minMalePlayers: d?.min_male_players ?? 0,
             levelRequirements: (d?.level_requirements ??
                 {}) as Record<string, number>,
+            playerFieldConfig: buildPlayerFieldConfig(d),
         };
     });
 
@@ -215,12 +248,20 @@
         additionalPlayers: PlayerData[],
         division: DivisionContext,
     ): boolean {
+        const cfg = division.playerFieldConfig;
+        const forceLevel =
+            Object.values(division.levelRequirements).some(
+                (v) => (v ?? 0) > 0,
+            );
+
         return additionalPlayers.every((p) => {
             if (!p.name?.trim()) return false;
-            if (!p.email?.trim()) return false;
-            if (!p.phone?.trim()) return false;
-            if (!p.gender) return false;
-            if (division.isTeam && !p.level) return false;
+            if (cfg.email && !p.email?.trim()) return false;
+            if (cfg.phone && !p.phone?.trim()) return false;
+            if (cfg.gender && !p.gender) return false;
+            if (division.isTeam && (forceLevel || cfg.level) && !p.level) {
+                return false;
+            }
 
             return true;
         });
@@ -620,8 +661,6 @@
                         name="division_id"
                         value={selectedDivisionId ?? ''}
                     />
-                    <input type="hidden" name="tshirt_size" value="M" />
-                    <input type="hidden" name="dietary" value="" />
                     {#each computedPlayers as player, i}
                         <input
                             type="hidden"

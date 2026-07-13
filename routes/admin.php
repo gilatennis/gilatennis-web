@@ -11,16 +11,16 @@ use Inertia\Inertia;
 
 Route::redirect('admin', '/admin/dashboard');
 
-Route::get('admin/login', fn() => Inertia::render('Admin/Login', [
+Route::get('admin/login', fn () => Inertia::render('Admin/Login', [
     'status' => session('status'),
 ]))->name('admin.login');
 
 Route::post('admin/login', [AdminLoginController::class, 'store'])
-    ->middleware(array_filter([config('fortify.limiters.login') ? 'throttle:' . config('fortify.limiters.login') : null]))
+    ->middleware(array_filter([config('fortify.limiters.login') ? 'throttle:'.config('fortify.limiters.login') : null]))
     ->name('admin.login.store');
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('dashboard', fn() => Inertia::render('Admin/Dashboard'))->name('dashboard');
+    Route::get('dashboard', fn () => Inertia::render('Admin/Dashboard'))->name('dashboard');
 
     Route::get('tournaments/{tournament}/registrations', [RegistrationController::class, 'index'])
         ->name('tournaments.registrations.index');

@@ -11,6 +11,11 @@
     import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
     import type { Registration } from '@/types';
+    import {
+        PLAYER_FIELDS,
+        PLAYER_FIELD_KEYS,
+        type PlayerFieldRequirement,
+    } from '@/types/registration';
 
     interface Prize {
         id: number;
@@ -45,6 +50,7 @@
             max_age: number | null;
             min_team_size: number | null;
             max_team_size: number | null;
+            player_field_requirements?: PlayerFieldRequirement[];
             prizes: Prize[];
         };
         registrations: {
@@ -66,6 +72,22 @@
         };
         filters: { status?: string; search?: string };
     } = $props();
+
+    const pfrMap = $derived.by(() => {
+        const m: Record<string, boolean> = {};
+
+        for (const key of PLAYER_FIELD_KEYS) {
+            m[key] = key === 'name' ? true : PLAYER_FIELDS[key].default;
+        }
+
+        for (const row of division.player_field_requirements ?? []) {
+            if ((PLAYER_FIELD_KEYS as string[]).includes(row.field_key)) {
+                m[row.field_key] = !!row.required;
+            }
+        }
+
+        return m;
+    });
 
     let tab = $state('registrants');
     let statusFilter = $state(filters.status ?? '');
@@ -223,6 +245,41 @@
             </div>
         </div>
     </div>
+
+    {#if division.participation_category === 'team' && division.player_field_requirements}
+        <div
+            class="bg-neutral-50 border-b border-black/8 px-8 py-4 shrink-0"
+        >
+            <p
+                class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400 mb-2"
+            >
+                Required Player Information
+            </p>
+            <div class="flex flex-wrap gap-2">
+                {#each PLAYER_FIELD_KEYS as key (key)}
+                    {@const required = pfrMap[key]}
+                    <span
+                        class={`inline-flex items-center gap-1.5 px-2.5 h-7 text-[11px] font-medium border ${
+                            required
+                                ? 'bg-white border-black/15 text-neutral-800'
+                                : 'bg-neutral-100 border-neutral-200 text-neutral-400 line-through'
+                        }`}
+                    >
+                        <span
+                            class={`h-1.5 w-1.5 rounded-full ${required ? 'bg-coral' : 'bg-neutral-300'}`}
+                        ></span>
+                        {PLAYER_FIELDS[key].label}
+                        {#if !required}
+                            <span
+                                class="text-[9px] uppercase tracking-[0.15em] text-neutral-400 no-underline"
+                                >optional</span
+                            >
+                        {/if}
+                    </span>
+                {/each}
+            </div>
+        </div>
+    {/if}
 
     <div
         class="bg-white border-b border-black/8 px-8 flex items-end gap-0 shrink-0"

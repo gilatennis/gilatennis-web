@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TournamentStoreRequest;
 use App\Http\Requests\Admin\TournamentUpdateRequest;
 use App\Models\Division;
+use App\Models\DivisionPlayerFieldRequirement;
 use App\Models\Tournament;
 use App\Models\TournamentPrize;
 use App\Models\TournamentRule;
@@ -55,7 +56,7 @@ class TournamentController extends Controller
         }
 
         $tournaments = $query->orderByDesc('created_at')->paginate(10)
-            ->through(fn (Tournament $t) => [
+            ->through(fn(Tournament $t) => [
                 'id' => $t->id,
                 'name' => $t->name,
                 'slug' => $t->slug,
@@ -182,7 +183,7 @@ class TournamentController extends Controller
         $image->scaleDown(width: 1920);
         $encoded = $image->encode();
 
-        $path = 'tournament-covers/'.Str::uuid().'.'.$file->getClientOriginalExtension();
+        $path = 'tournament-covers/' . Str::uuid() . '.' . $file->getClientOriginalExtension();
 
         Storage::disk('public')->put($path, (string) $encoded);
 
@@ -229,7 +230,37 @@ class TournamentController extends Controller
                 $division = Division::create($divisionData);
             }
 
+            // TODO: handle error
+            $this->syncPlayerFieldRequirements($division, $data['player_field_requirements'] ?? null);
             $this->syncPrizes($division, $data['prizes'] ?? []);
+        }
+    }
+
+    private function syncPlayerFieldRequirements(Division $division, ?array $input): void
+    {
+        $inputByKey = [];
+
+        if (is_array($input)) {
+            foreach ($input as $row) {
+                $key = $row['field_key'] ?? null;
+
+                if ($key === null || ! array_key_exists($key, DivisionPlayerFieldRequirement::FIELDS)) {
+                    continue;
+                }
+
+                $inputByKey[$key] = (bool) ($row['required'] ?? true);
+            }
+        }
+
+        foreach (DivisionPlayerFieldRequirement::FIELDS as $key => $meta) {
+            $required = $key === 'name'
+                ? true
+                : ($inputByKey[$key] ?? $meta['default']);
+
+            DivisionPlayerFieldRequirement::updateOrCreate(
+                ['division_id' => $division->id, 'field_key' => $key],
+                ['required' => $required],
+            );
         }
     }
 
@@ -337,6 +368,7 @@ class TournamentController extends Controller
     {
         $tournament->load([
             'divisions.prizes',
+            'divisions.playerFieldRequirements',
             'scheduleDays.items',
             'rules',
         ]);
@@ -348,68 +380,18 @@ class TournamentController extends Controller
             'max_players' => $tournament->max_players,
             'player_count' => $tournament->player_count,
             'is_sold_out' => $tournament->is_sold_out,
-            'divisions' => $tournament->divisions->map(fn (Division $d) => $forEdit
-                ? [
-                    'id' => $d->id,
-                    'name' => $d->name,
-                    'slug' => $d->slug,
-                    'participation_category' => $d->participation_category,
-                    'category_label' => $d->category_label,
-                    'draw_size' => $d->draw_size,
-                    'fee' => $d->fee,
-                    'format' => $d->format,
-                    'gender' => $d->gender,
-                    'gender_label' => $d->gender_label,
-                    'rating_type' => $d->rating_type,
-                    'rating_min' => $d->rating_min,
-                    'rating_max' => $d->rating_max,
-                    'min_age' => $d->min_age,
-                    'max_age' => $d->max_age,
-                    'min_team_size' => $d->min_team_size,
-                    'max_team_size' => $d->max_team_size,
-                    'min_female_players' => $d->min_female_players,
-                    'min_male_players' => $d->min_male_players,
-                    'level_requirements' => $d->level_requirements ?? [],
-                    'sort_order' => $d->sort_order,
-                    'registration_count' => $d->registrations()->count(),
-                    'prizes' => $d->prizes->map(fn (TournamentPrize $p) => [
-                        'id' => $p->id,
-                        'place' => $p->place,
-                        'value' => $p->value,
-                        'sort_order' => $p->sort_order,
-                    ]),
-                ]
-                : [
-                    'id' => $d->id,
-                    'name' => $d->name,
-                    'slug' => $d->slug,
-                    'participation_category' => $d->participation_category,
-                    'category_label' => $d->category_label,
-                    'draw_size' => $d->draw_size,
-                    'spots_available' => $d->spots_available,
-                    'is_sold_out' => $d->is_sold_out,
-                    'fee' => $d->fee,
-                    'format' => $d->format,
-                    'gender' => $d->gender,
-                    'gender_label' => $d->gender_label,
-                    'rating_type' => $d->rating_type,
-                    'rating_min' => $d->rating_min,
-                    'rating_max' => $d->rating_max,
-                    'level_requirements' => $d->level_requirements ?? [],
-                    'registration_count' => $d->registrations()->count(),
-                    'sort_order' => $d->sort_order,
-                ]),
-            'schedule' => $tournament->scheduleDays->map(fn ($day) => [
+            'divisions' => $tournament->divisions->map(fn(Division $d) => $this->shapeDivision($d, $forEdit)),
+            'schedule' => $tournament->scheduleDays->map(fn($day) => [
                 'id' => $day->id,
                 'day_label' => $day->day_label,
                 'sort_order' => $day->sort_order,
-                'items' => $day->items->map(fn ($item) => [
+                'items' => $day->items->map(fn($item) => [
                     'id' => $item->id,
                     'label' => $item->label,
                     'sort_order' => $item->sort_order,
                 ]),
             ]),
-            'rules' => $tournament->rules->map(fn ($rule) => [
+            'rules' => $tournament->rules->map(fn($rule) => [
                 'id' => $rule->id,
                 'body' => $rule->body,
                 'sort_order' => $rule->sort_order,
@@ -442,11 +424,61 @@ class TournamentController extends Controller
         return $clean === [] ? null : $clean;
     }
 
+    private function shapeDivision(Division $d, bool $forEdit): array
+    {
+        $pfr = $d->playerFieldRequirements->map(fn($r) => [
+            'field_key' => $r->field_key,
+            'required' => (bool) $r->required,
+        ])->values()->all();
+
+        $base = [
+            'id' => $d->id,
+            'name' => $d->name,
+            'slug' => $d->slug,
+            'participation_category' => $d->participation_category,
+            'category_label' => $d->category_label,
+            'draw_size' => $d->draw_size,
+            'fee' => $d->fee,
+            'format' => $d->format,
+            'gender' => $d->gender,
+            'gender_label' => $d->gender_label,
+            'rating_type' => $d->rating_type,
+            'rating_min' => $d->rating_min,
+            'rating_max' => $d->rating_max,
+            'level_requirements' => $d->level_requirements ?? [],
+            'player_field_requirements' => $pfr,
+            'sort_order' => $d->sort_order,
+            'registration_count' => $d->registrations()->count(),
+        ];
+
+        if ($forEdit) {
+            return array_merge($base, [
+                'min_age' => $d->min_age,
+                'max_age' => $d->max_age,
+                'min_team_size' => $d->min_team_size,
+                'max_team_size' => $d->max_team_size,
+                'min_female_players' => $d->min_female_players,
+                'min_male_players' => $d->min_male_players,
+                'prizes' => $d->prizes->map(fn(TournamentPrize $p) => [
+                    'id' => $p->id,
+                    'place' => $p->place,
+                    'value' => $p->value,
+                    'sort_order' => $p->sort_order,
+                ]),
+            ]);
+        }
+
+        return array_merge($base, [
+            'spots_available' => $d->spots_available,
+            'is_sold_out' => $d->is_sold_out,
+        ]);
+    }
+
     private function registrationStats(Tournament $tournament): array
     {
         $registrations = $tournament->registrations();
 
-        $byDivision = $tournament->divisions->map(fn (Division $d) => [
+        $byDivision = $tournament->divisions->map(fn(Division $d) => [
             'division_id' => $d->id,
             'name' => $d->name,
             'count' => (clone $registrations)->where('division_id', $d->id)->count(),

@@ -27,8 +27,6 @@ class TournamentRegistrationFactory extends Factory
             'email' => fake()->safeEmail(),
             'phone' => fake()->phoneNumber(),
             'date_of_birth' => fake()->dateTimeBetween('-50 years', '-12 years')->format('Y-m-d'),
-            'tshirt_size' => fake()->randomElement(['XS', 'S', 'M', 'L', 'XL', 'XXL']),
-            'dietary' => fake()->optional()->sentence(),
             'payment_status' => 'pending',
             'payment_reference' => null,
             'payment_url' => null,

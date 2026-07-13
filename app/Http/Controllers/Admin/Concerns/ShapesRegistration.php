@@ -15,8 +15,6 @@ trait ShapesRegistration
             'email' => $registration->email,
             'phone' => $registration->phone,
             'date_of_birth' => $registration->date_of_birth,
-            'tshirt_size' => $registration->tshirt_size,
-            'dietary' => $registration->dietary,
             'payment_status' => $registration->payment_status,
             'payment_reference' => $registration->payment_reference,
             'payment_url' => $registration->payment_url,
@@ -34,11 +32,11 @@ trait ShapesRegistration
                 'name' => $p->name,
                 'email' => $p->email,
                 'phone' => $p->phone,
+                'gender' => $p->gender,
                 'date_of_birth' => $p->date_of_birth,
                 'rating_type' => $p->rating_type,
                 'rating_value' => $p->rating_value,
-                'tshirt_size' => $p->tshirt_size,
-                'dietary' => $p->dietary,
+                'level' => $p->level,
             ]),
         ];
 

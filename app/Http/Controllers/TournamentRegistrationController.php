@@ -21,7 +21,7 @@ class TournamentRegistrationController extends Controller
 
     public function create(Tournament $tournament)
     {
-        $tournament->load('divisions');
+        $tournament->load('divisions.playerFieldRequirements');
 
         $hasOpenDivisions = $tournament->divisions->contains(fn (Division $d) => $d->spots_available > 0);
 
@@ -99,8 +99,6 @@ class TournamentRegistrationController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'date_of_birth' => $request->date_of_birth ?? '2000-01-01',
-            'tshirt_size' => $request->tshirt_size ?? 'M',
-            'dietary' => $request->dietary,
             'amount_cents' => $amountCents,
             'currency' => 'IDR',
             'payment_status' => 'pending',
@@ -113,15 +111,13 @@ class TournamentRegistrationController extends Controller
                 'tournament_id' => $tournament->id,
                 'team_id' => $team?->id,
                 'name' => $player['name'],
-                'email' => $player['email'],
+                'email' => $player['email'] ?? null,
                 'gender' => $player['gender'] ?? null,
-                'phone' => $player['phone'],
-                'date_of_birth' => $player['date_of_birth'] ?? '2000-01-01',
+                'phone' => $player['phone'] ?? null,
+                'date_of_birth' => $player['date_of_birth'] ?? null,
                 'rating_type' => $player['rating_type'] ?? null,
                 'rating_value' => $player['rating_value'] ?? null,
                 'level' => $player['level'] ?? null,
-                'tshirt_size' => $player['tshirt_size'] ?? 'M',
-                'dietary' => $player['dietary'] ?? null,
                 'sort_order' => $index,
             ]);
         }

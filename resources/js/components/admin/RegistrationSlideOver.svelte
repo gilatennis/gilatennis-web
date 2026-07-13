@@ -195,26 +195,6 @@
                             <div
                                 class="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 mb-0.5"
                             >
-                                Shirt Size
-                            </div>
-                            <div class="text-[13px] text-neutral-800">
-                                {registration?.tshirt_size || '—'}
-                            </div>
-                        </div>
-                        <div class="col-span-2">
-                            <div
-                                class="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 mb-0.5"
-                            >
-                                Dietary
-                            </div>
-                            <div class="text-[13px] text-neutral-800">
-                                {registration?.dietary || 'None'}
-                            </div>
-                        </div>
-                        <div>
-                            <div
-                                class="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 mb-0.5"
-                            >
                                 Division
                             </div>
                             <div class="text-[13px] text-neutral-800">
@@ -277,18 +257,20 @@
                                             </div>
                                         </div>
                                     {/if}
-                                    <div class="text-right shrink-0">
-                                        <div
-                                            class="text-[10px] uppercase tracking-[0.15em] text-neutral-400 font-bold"
-                                        >
-                                            Shirt
+                                    {#if player.level}
+                                        <div class="text-right shrink-0">
+                                            <div
+                                                class="text-[10px] uppercase tracking-[0.15em] text-neutral-400 font-bold"
+                                            >
+                                                Level
+                                            </div>
+                                            <div
+                                                class="text-[13px] text-neutral-700"
+                                            >
+                                                {player.level}
+                                            </div>
                                         </div>
-                                        <div
-                                            class="text-[13px] text-neutral-700"
-                                        >
-                                            {player.tshirt_size || '—'}
-                                        </div>
-                                    </div>
+                                    {/if}
                                 </div>
                             {/each}
                         </div>

@@ -29,8 +29,6 @@ class TournamentRegistrationPlayerFactory extends Factory
             'date_of_birth' => fake()->dateTimeBetween('-50 years', '-12 years')->format('Y-m-d'),
             'rating_type' => $ratingType,
             'rating_value' => fake()->randomFloat(1, 1, 15),
-            'tshirt_size' => fake()->randomElement(['XS', 'S', 'M', 'L', 'XL', 'XXL']),
-            'dietary' => fake()->optional()->sentence(),
             'sort_order' => 0,
         ];
     }

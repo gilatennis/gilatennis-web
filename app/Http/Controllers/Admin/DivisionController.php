@@ -24,7 +24,7 @@ class DivisionController extends Controller
     {
         abort_if($division->tournament_id !== $tournament->id, 404);
 
-        $division->load('prizes');
+        $division->load(['prizes', 'playerFieldRequirements']);
 
         $query = $division->registrations()
             ->with(['team', 'players']);
@@ -80,6 +80,10 @@ class DivisionController extends Controller
                 'max_age' => $division->max_age,
                 'min_team_size' => $division->min_team_size,
                 'max_team_size' => $division->max_team_size,
+                'player_field_requirements' => $division->playerFieldRequirements->map(fn ($r) => [
+                    'field_key' => $r->field_key,
+                    'required' => (bool) $r->required,
+                ])->values()->all(),
                 'prizes' => $division->prizes->map(fn ($p) => [
                     'id' => $p->id,
                     'place' => $p->place,

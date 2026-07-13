@@ -2,6 +2,7 @@
 
 use App\DTOs\DuitkuInvoiceResponse;
 use App\Models\Division;
+use App\Models\DivisionPlayerFieldRequirement;
 use App\Models\Tournament;
 use App\Services\DuitkuService;
 use Illuminate\Support\Facades\Vite;
@@ -43,6 +44,27 @@ function fakeBrowserInvoiceService(): void
             );
         }
     });
+}
+
+function setBrowserPfrConfig(Division $division, array $overrides): void
+{
+    $defaults = [
+        'name' => true,
+        'gender' => true,
+        'email' => true,
+        'phone' => true,
+        'level' => true,
+        'dob' => false,
+    ];
+
+    $config = array_merge($defaults, $overrides);
+
+    foreach ($config as $key => $required) {
+        DivisionPlayerFieldRequirement::updateOrCreate(
+            ['division_id' => $division->id, 'field_key' => $key],
+            ['required' => (bool) $required],
+        );
+    }
 }
 
 beforeEach(fn () => Vite::useHotFile(sys_get_temp_dir().'/vite-hot-file-disabled'));
@@ -173,5 +195,91 @@ describe('registration form validation display', function () {
         $page->check('waiver_accepted')
             ->click('Proceed to Payment')
             ->assertUrlIs('https://sandbox.duitku.com/pay/DEMO123');
+    });
+
+    it('hides teammate email and phone fields when PFR relaxes them', function () {
+        $div = browserTeamDivision();
+        setBrowserPfrConfig($div, ['email' => false, 'phone' => false]);
+
+        $page = visit(route('tournaments.register', $div->tournament->slug));
+
+        $page->fill('team_name', 'Relaxed Team')
+            ->click('Next');
+
+        $page->fill('name', 'Captain')
+            ->fill('email', 'cap@test.com')
+            ->fill('phone', '0811')
+            ->click('#gender')
+            ->click('[data-value="male"]');
+
+        $page->click('Add player');
+
+        $page->assertPresent('#player-1-name')
+            ->assertNotPresent('#player-1-email')
+            ->assertNotPresent('#player-1-phone');
+    });
+
+    it('shows required * on teammate gender when min_female_players is set', function () {
+        $div = browserTeamDivision(['min_female_players' => 1]);
+
+        $page = visit(route('tournaments.register', $div->tournament->slug));
+
+        $page->fill('team_name', 'Min Female')
+            ->click('Next');
+
+        $page->fill('name', 'Captain')
+            ->fill('email', 'cap@test.com')
+            ->fill('phone', '0811')
+            ->click('#gender')
+            ->click('[data-value="male"]');
+
+        $page->click('Add player');
+
+        $page->assertPresent('#player-1-gender')
+            ->assertScript(
+                "document.querySelector('label[for=\"player-1-gender\"]').textContent.includes('*')",
+                true
+            );
+    });
+
+    it('hides captain level field when PFR.level is false', function () {
+        $div = browserTeamDivision();
+        setBrowserPfrConfig($div, ['level' => false]);
+
+        $page = visit(route('tournaments.register', $div->tournament->slug));
+
+        $page->fill('team_name', 'No Level')
+            ->click('Next');
+
+        $page->fill('name', 'Captain')
+            ->fill('email', 'cap@test.com')
+            ->fill('phone', '0811')
+            ->click('#gender')
+            ->click('[data-value="male"]');
+
+        $page->assertNotPresent('#level');
+    });
+
+    it('expands teammate name to col-span-2 when email is hidden', function () {
+        $div = browserTeamDivision();
+        setBrowserPfrConfig($div, ['email' => false]);
+
+        $page = visit(route('tournaments.register', $div->tournament->slug));
+
+        $page->fill('team_name', 'No Email')
+            ->click('Next');
+
+        $page->fill('name', 'Captain')
+            ->fill('email', 'cap@test.com')
+            ->fill('phone', '0811')
+            ->click('#gender')
+            ->click('[data-value="male"]');
+
+        $page->click('Add player');
+
+        $page->assertScript(
+            "document.querySelector('#player-1-name').parentElement.classList.contains('col-span-2')",
+            true
+        );
     });
 });

@@ -16,7 +16,6 @@ class TournamentRegistration extends Model
         'tournament_id', 'user_id', 'division_id', 'team_id',
         'confirmation_code',
         'name', 'email', 'phone', 'date_of_birth',
-        'tshirt_size', 'dietary',
         'payment_status', 'payment_reference', 'payment_url',
         'amount_cents', 'currency',
         'paid_at',

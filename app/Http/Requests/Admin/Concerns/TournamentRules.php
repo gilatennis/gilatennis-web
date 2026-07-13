@@ -3,11 +3,14 @@
 namespace App\Http\Requests\Admin\Concerns;
 
 use App\Enums\TennisLevel;
+use App\Models\DivisionPlayerFieldRequirement;
 
 trait TournamentRules
 {
     protected function baseRules(): array
     {
+        $fieldKeys = array_keys(DivisionPlayerFieldRequirement::FIELDS);
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'tagline' => ['nullable', 'string', 'max:500'],
@@ -48,6 +51,9 @@ trait TournamentRules
             'divisions.*.min_male_players' => ['nullable', 'integer', 'min:0'],
             'divisions.*.level_requirements' => ['nullable', 'array'],
             'divisions.*.level_requirements.*' => ['nullable', 'integer', 'min:0'],
+            'divisions.*.player_field_requirements' => ['nullable', 'array'],
+            'divisions.*.player_field_requirements.*.field_key' => ['required', 'string', 'in:'.implode(',', $fieldKeys)],
+            'divisions.*.player_field_requirements.*.required' => ['required', 'boolean'],
             'divisions.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'divisions.*.prizes' => ['nullable', 'array'],
             'divisions.*.prizes.*.place' => ['required', 'string', 'max:255'],
@@ -92,5 +98,44 @@ trait TournamentRules
                 }
             }
         }
+    }
+
+    protected function validatePlayerFieldRequirements($validator): void
+    {
+        $validator->after(function ($validator) {
+            foreach ($this->input('divisions', []) as $i => $division) {
+                $pfr = $division['player_field_requirements'] ?? null;
+
+                if (! is_array($pfr)) {
+                    continue;
+                }
+
+                $seen = [];
+
+                foreach ($pfr as $j => $row) {
+                    $key = $row['field_key'] ?? null;
+
+                    if ($key === null) {
+                        continue;
+                    }
+
+                    if (isset($seen[$key])) {
+                        $validator->errors()->add(
+                            "divisions.{$i}.player_field_requirements.{$j}.field_key",
+                            "Duplicate field '{$key}'.",
+                        );
+                    }
+
+                    $seen[$key] = true;
+
+                    if ($key === 'name' && array_key_exists('required', $row) && ! $row['required']) {
+                        $validator->errors()->add(
+                            "divisions.{$i}.player_field_requirements.{$j}.required",
+                            'The name field is always required.',
+                        );
+                    }
+                }
+            }
+        });
     }
 }

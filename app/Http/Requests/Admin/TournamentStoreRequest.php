@@ -24,5 +24,6 @@ class TournamentStoreRequest extends FormRequest
     public function withValidator($validator): void
     {
         $this->validateLevelRequirementKeys($validator);
+        $this->validatePlayerFieldRequirements($validator);
     }
 }
