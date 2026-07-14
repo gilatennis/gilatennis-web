@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Form, usePage } from '@inertiajs/svelte';
-    import ArrowLeft from 'lucide-svelte/icons/arrow-left';
     import ShieldCheck from 'lucide-svelte/icons/shield-check';
+    import AdminPage from '@/components/admin/AdminPage.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import InputError from '@/components/InputError.svelte';
     import PasswordInput from '@/components/PasswordInput.svelte';
@@ -58,10 +58,8 @@
 
 <AppHead title={`Edit ${user.name}`} />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div
-        class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2"
-    >
+<AdminPage>
+    {#snippet breadcrumb()}
         <a
             href={index.url()}
             class="text-[12px] text-neutral-400 font-medium hover:text-neutral-700 transition-colors"
@@ -79,38 +77,27 @@
         <span class="text-[12px] font-semibold text-neutral-800 truncate"
             >{user.name}</span
         >
-    </div>
+    {/snippet}
 
-    <div class="flex-1 overflow-y-auto px-8 py-8">
-        <a
-            href={index.url()}
-            class="inline-flex items-center gap-1.5 text-[12px] text-neutral-500 hover:text-neutral-900 transition-colors mb-4"
+    {#snippet heading()}
+        <h1
+            class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
         >
-            <ArrowLeft class="size-3" />
-            Back to users
-        </a>
-
-        <div class="flex items-start justify-between mb-7">
-            <div>
-                <h1
-                    class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+            {user.name}
+        </h1>
+        <p class="mt-1.5 text-[13px] text-neutral-500">
+            {user.email}
+            {#if user.is_super_admin}
+                <span class="mx-1.5 text-neutral-300">·</span>
+                <span
+                    class="inline-flex items-center gap-1 text-coral font-medium"
                 >
-                    {user.name}
-                </h1>
-                <p class="mt-1.5 text-[13px] text-neutral-500">
-                    {user.email}
-                    {#if user.is_super_admin}
-                        <span class="mx-1.5 text-neutral-300">·</span>
-                        <span
-                            class="inline-flex items-center gap-1 text-coral font-medium"
-                        >
-                            <ShieldCheck class="size-3" />
-                            Super admin
-                        </span>
-                    {/if}
-                </p>
-            </div>
-        </div>
+                    <ShieldCheck class="size-3" />
+                    Super admin
+                </span>
+            {/if}
+        </p>
+    {/snippet}
 
         <div class="max-w-xl">
             <Form
@@ -229,5 +216,4 @@
                 {/snippet}
             </Form>
         </div>
-    </div>
-</div>
+</AdminPage>

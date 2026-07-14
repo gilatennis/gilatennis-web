@@ -4,6 +4,7 @@
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import ChevronRight from 'lucide-svelte/icons/chevron-right';
     import Pencil from 'lucide-svelte/icons/pencil';
+    import AdminPage from '@/components/admin/AdminPage.svelte';
     import StatusBadge from '@/components/admin/StatusBadge.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import type { ByDivision, RegistrationStats } from '@/types';
@@ -62,10 +63,8 @@
 
 <AppHead title={`${tournament.name} — Admin`} />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div
-        class="h-14 bg-white border-b border-black/8 flex items-center px-8 gap-2 shrink-0"
-    >
+<AdminPage>
+    {#snippet breadcrumb()}
         <Link
             href="/admin/tournaments"
             class="text-[12px] text-neutral-400 font-medium hover:text-neutral-700 flex items-center gap-1 transition-colors"
@@ -78,39 +77,41 @@
             class="text-[12px] font-semibold text-neutral-800 truncate max-w-[240px]"
             >{tournament.name}</span
         >
-        <div class="ml-auto flex items-center gap-2">
-            <Link
-                href={`/admin/tournaments/${tournament.id}/edit`}
-                class="h-9 px-5 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] hover:opacity-90 transition-opacity"
-            >
-                <Pencil class="size-3" />
-                Edit Tournament
-            </Link>
-        </div>
-    </div>
+    {/snippet}
 
-    <div class="flex-1 overflow-y-auto px-8 py-8">
-        <div class="max-w-[900px]">
-            <div class="mb-7">
-                <div class="flex items-center gap-2.5 mb-2">
-                    <StatusBadge status={tournament.status} />
-                    {#if tournament.is_featured}
-                        <span
-                            class="px-2 py-0.5 bg-coral text-white text-[9px] font-bold uppercase tracking-[0.18em]"
-                            >Featured</span
-                        >
-                    {/if}
-                </div>
-                <h1
-                    class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+    {#snippet heading()}
+        <div class="flex items-center gap-2.5 mb-2">
+            <StatusBadge status={tournament.status} />
+            {#if tournament.is_featured}
+                <span
+                    class="px-2 py-0.5 bg-coral text-white text-[9px] font-bold uppercase tracking-[0.18em]"
+                    >Featured</span
                 >
-                    {tournament.name}
-                </h1>
-                {#if tournament.tagline}
-                    <p class="mt-1.5 text-[13px] text-neutral-500">
-                        {tournament.tagline}
-                    </p>
-                {/if}
+            {/if}
+        </div>
+        <h1
+            class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+        >
+            {tournament.name}
+        </h1>
+        {#if tournament.tagline}
+            <p class="mt-1.5 text-[13px] text-neutral-500">
+                {tournament.tagline}
+            </p>
+        {/if}
+    {/snippet}
+
+    {#snippet actions()}
+        <Link
+            href={`/admin/tournaments/${tournament.id}/edit`}
+            class="h-10 px-5 bg-coral text-white inline-flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity w-full sm:w-auto sm:justify-start"
+        >
+            <Pencil class="size-3" />
+            Edit Tournament
+        </Link>
+    {/snippet}
+
+    <div class="max-w-[900px]">
 
                 <div class="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
                     {#each [tournament.dates, tournament.city, tournament.venue, tournament.surface_label, tournament.venue_type_label, tournament.ball_type] as v, i}
@@ -138,12 +139,14 @@
                             class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
                             >Registrations</span
                         >
+                        <!--
                         <Link
                             href={`/admin/tournaments/${tournament.id}/registrations`}
                             class="h-8 px-4 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity"
                         >
                             View All <ArrowRight class="size-3" />
                         </Link>
+                        -->
                     </div>
 
                     <div class="p-6">
@@ -564,6 +567,4 @@
                     </div>
                 {/if}
             </div>
-        </div>
-    </div>
-</div>
+</AdminPage>

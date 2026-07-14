@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Form } from '@inertiajs/svelte';
+    import AdminPage from '@/components/admin/AdminPage.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import InputError from '@/components/InputError.svelte';
     import PasswordInput from '@/components/PasswordInput.svelte';
@@ -30,10 +31,8 @@
 
 <AppHead title="New user" />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div
-        class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2"
-    >
+<AdminPage>
+    {#snippet breadcrumb()}
         <a
             href={index.url()}
             class="text-[12px] text-neutral-400 font-medium hover:text-neutral-700 transition-colors"
@@ -49,18 +48,20 @@
         </a>
         <span class="text-neutral-300 text-[12px]">/</span>
         <span class="text-[12px] font-semibold text-neutral-800">New</span>
-    </div>
+    {/snippet}
 
-    <div class="flex-1 overflow-y-auto px-8 py-8">
-        <div class="max-w-xl">
-            <h1
-                class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
-            >
-                New user
-            </h1>
-            <p class="mt-1.5 text-[13px] text-neutral-500">
-                Create a new admin account. The user will be marked as verified.
-            </p>
+    {#snippet heading()}
+        <h1
+            class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+        >
+            New user
+        </h1>
+        <p class="mt-1.5 text-[13px] text-neutral-500">
+            Create a new admin account. The user will be marked as verified.
+        </p>
+    {/snippet}
+
+    <div class="max-w-xl">
 
             <Form
                 method="post"
@@ -156,5 +157,4 @@
                 {/snippet}
             </Form>
         </div>
-    </div>
-</div>
+</AdminPage>

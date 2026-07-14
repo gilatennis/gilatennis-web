@@ -348,7 +348,7 @@
                     {#if searchHandler.search}
                         <button
                             type="button"
-                            onclick={searchHandler.clearSearch}
+                            onclick={() => searchHandler.clearSearch()}
                             class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"
                             ><X class="size-3" /></button
                         >

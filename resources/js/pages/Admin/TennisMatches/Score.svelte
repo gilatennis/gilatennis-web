@@ -2,6 +2,7 @@
     import { router } from '@inertiajs/svelte';
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import Swords from 'lucide-svelte/icons/swords';
+    import AdminPage from '@/components/admin/AdminPage.svelte';
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
     import AppHead from '@/components/AppHead.svelte';
 
@@ -47,10 +48,8 @@
     title={`Match #${match.id} · ${match.side_a_name} vs ${match.side_b_name}`}
 />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div
-        class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2"
-    >
+<AdminPage>
+    {#snippet breadcrumb()}
         <button
             type="button"
             onclick={() => router.visit('/admin/tennis-matches')}
@@ -64,28 +63,26 @@
             >Match #{match.id}</span
         >
         <span class="ml-2"><MatchStatusBadge status={match.status} /></span>
-    </div>
+    {/snippet}
 
-    <div class="flex-1 overflow-y-auto px-8 py-8">
-        <div class="max-w-[960px]">
-            <div class="mb-8">
-                <h1
-                    class="font-display font-black text-[32px] tracking-[-0.025em] leading-none"
-                >
-                    {match.side_a_name}
-                    <span class="text-neutral-300 mx-3">vs</span>
-                    {match.side_b_name}
-                </h1>
-                <p class="mt-2 text-[13px] text-neutral-500">
-                    {match.format_label}
-                    <span class="mx-1.5 text-neutral-300">·</span>
-                    {#if match.started_at}
-                        Started {formatDate(match.started_at)}
-                    {:else}
-                        Not started yet
-                    {/if}
-                </p>
-            </div>
+    {#snippet heading()}
+        <h1
+            class="font-display font-black text-[32px] tracking-[-0.025em] leading-none"
+        >
+            {match.side_a_name}
+            <span class="text-neutral-300 mx-3">vs</span>
+            {match.side_b_name}
+        </h1>
+        <p class="mt-2 text-[13px] text-neutral-500">
+            {match.format_label}
+            <span class="mx-1.5 text-neutral-300">·</span>
+            {#if match.started_at}
+                Started {formatDate(match.started_at)}
+            {:else}
+                Not started yet
+            {/if}
+        </p>
+    {/snippet}
 
             <div
                 class="bg-white border border-black/10 p-10 flex flex-col items-center justify-center text-center"
@@ -144,6 +141,4 @@
                     </dd>
                 </div>
             </dl>
-        </div>
-    </div>
-</div>
+</AdminPage>

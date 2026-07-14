@@ -8,6 +8,7 @@
     import Trash from 'lucide-svelte/icons/trash';
     import Users from 'lucide-svelte/icons/users';
     import X from 'lucide-svelte/icons/x';
+    import AdminPage from '@/components/admin/AdminPage.svelte';
     import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -104,43 +105,40 @@
 
 <AppHead title="Users" />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div
-        class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2"
-    >
+<AdminPage>
+    {#snippet breadcrumb()}
         <span class="text-[12px] text-neutral-400 font-medium">Admin</span>
         <span class="text-neutral-300 text-[12px]">/</span>
         <span class="text-[12px] font-semibold text-neutral-800">Users</span>
-    </div>
+    {/snippet}
 
-    <div class="flex-1 overflow-y-auto px-8 py-8">
-        <div class="flex items-start justify-between mb-7">
-            <div>
-                <h1
-                    class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
-                >
-                    Users
-                </h1>
-                <p class="mt-1.5 text-[13px] text-neutral-500">
-                    {stats.total} total
-                    <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-coral font-medium"
-                        >{stats.admins} admin{stats.admins !== 1 ? 's' : ''}</span
-                    >
-                </p>
-            </div>
-
-            <Link
-                href="/admin/users/create"
-                class="h-10 px-5 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
+    {#snippet heading()}
+        <h1
+            class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+        >
+            Users
+        </h1>
+        <p class="mt-1.5 text-[13px] text-neutral-500">
+            {stats.total} total
+            <span class="mx-1.5 text-neutral-300">·</span>
+            <span class="text-coral font-medium"
+                >{stats.admins} admin{stats.admins !== 1 ? 's' : ''}</span
             >
-                <Plus class="size-3.5" />
-                New User
-            </Link>
-        </div>
+        </p>
+    {/snippet}
 
-        <div class="flex items-center gap-3 mb-4">
-            <div class="relative max-w-[280px] w-full">
+    {#snippet actions()}
+        <Link
+            href="/admin/users/create"
+            class="h-10 px-5 bg-coral text-white inline-flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity w-full sm:w-auto sm:justify-start"
+        >
+            <Plus class="size-3.5" />
+            New User
+        </Link>
+    {/snippet}
+
+        <div class="flex flex-wrap items-center gap-3 mb-1">
+            <div class="relative md:max-w-70 w-full">
                 <Search
                     class="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
                 />
@@ -155,7 +153,7 @@
                 {#if searchHandler.search}
                     <button
                         type="button"
-                        onclick={searchHandler.clearSearch}
+                        onclick={() => searchHandler.clearSearch()}
                         class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors"
                     >
                         <X class="size-3.5" />
@@ -187,13 +185,13 @@
                     </button>
                 {/if}
             </div>
-
-                {#if searchHandler.search || filters.role.length > 0}
-                <span class="text-[12px] text-neutral-400">
-                    {users.total} result{users.total !== 1 ? 's' : ''}
-                </span>
-            {/if}
         </div>
+
+        <span class="block text-[12px] h-3 text-neutral-400 ml-1 mt-1 mb-4">
+            {#if searchHandler.search || filters.role.length > 0}
+                {users.total} result{users.total !== 1 ? 's' : ''}
+            {/if}
+        </span>
 
         {#if users.data.length === 0}
             <div
@@ -336,8 +334,7 @@
                 />
             </div>
         {/if}
-    </div>
-</div>
+</AdminPage>
 
 {#if deleteTarget}
     <ConfirmModal

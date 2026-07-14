@@ -12,6 +12,7 @@
     import Trash from 'lucide-svelte/icons/trash';
     import Upload from 'lucide-svelte/icons/upload';
     import X from 'lucide-svelte/icons/x';
+    import AdminPage from '@/components/admin/AdminPage.svelte';
     import StatusBadge from '@/components/admin/StatusBadge.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { Input } from '@/components/ui/input';
@@ -469,10 +470,8 @@
 
 <AppHead title={isCreate ? 'Create Tournament' : `Edit ${tournament!.name}`} />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div
-        class="h-14 bg-white border-b border-black/8 flex items-center px-8 gap-2 shrink-0"
-    >
+<AdminPage>
+    {#snippet breadcrumb()}
         <button
             type="button"
             onclick={() => router.visit('/admin/tournaments')}
@@ -490,17 +489,17 @@
         {#if !isCreate}
             <StatusBadge status={form.status as any} />
         {/if}
-    </div>
+    {/snippet}
 
-    <div class="flex-1 overflow-y-auto px-8 py-8">
-        <div class="max-w-[1024px]">
-            <div class="mb-7">
-                <h1
-                    class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
-                >
-                    {isCreate ? 'Create Tournament' : 'Edit Tournament'}
-                </h1>
-            </div>
+    {#snippet heading()}
+        <h1
+            class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+        >
+            {isCreate ? 'Create Tournament' : 'Edit Tournament'}
+        </h1>
+    {/snippet}
+
+    <div class="max-w-[1024px]">
 
             <!-- Section: Cover Image -->
             <div class="border border-black/10 bg-white mb-4">
@@ -1649,44 +1648,45 @@
                 </div>
             {/if}
         </div>
-    </div>
 
-    <!-- Sticky save bar -->
-    <div
-        class="bg-white border-t border-black/10 px-8 h-16 flex items-center justify-between shrink-0"
-    >
-        <div class="flex items-center gap-3 h-full">
-            {#if form.isDirty}
-                <span
-                    class="flex items-center gap-2 text-[12px] text-amber-600 font-medium"
-                >
+    {#snippet footer()}
+        <!-- Sticky save bar -->
+        <div
+            class="bg-white border-t border-black/10 px-4 sm:px-8 h-16 flex items-center justify-between shrink-0"
+        >
+            <div class="flex items-center gap-3 h-full">
+                {#if form.isDirty}
                     <span
-                        class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"
-                    ></span>
-                    Unsaved changes
-                </span>
-            {/if}
+                        class="flex items-center gap-2 text-[12px] text-amber-600 font-medium"
+                    >
+                        <span
+                            class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"
+                        ></span>
+                        Unsaved changes
+                    </span>
+                {/if}
+            </div>
+            <div class="flex items-center gap-2.5">
+                <button
+                    type="button"
+                    onclick={handleCancel}
+                    class="h-10 px-5 border border-black/15 text-[12px] font-semibold text-neutral-700 hover:border-black/30 transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    onclick={submit}
+                    disabled={form.processing}
+                    class="h-10 px-6 bg-coral text-white text-[11px] font-bold uppercase tracking-[0.16em] inline-flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all"
+                >
+                    <Save class="size-3.5" />
+                    {isCreate ? 'Create Tournament' : 'Save Changes'}
+                </button>
+            </div>
         </div>
-        <div class="flex items-center gap-2.5">
-            <button
-                type="button"
-                onclick={handleCancel}
-                class="h-10 px-5 border border-black/15 text-[12px] font-semibold text-neutral-700 hover:border-black/30 transition-colors"
-            >
-                Cancel
-            </button>
-            <button
-                type="button"
-                onclick={submit}
-                disabled={form.processing}
-                class="h-10 px-6 bg-coral text-white text-[11px] font-bold uppercase tracking-[0.16em] inline-flex items-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all"
-            >
-                <Save class="size-3.5" />
-                {isCreate ? 'Create Tournament' : 'Save Changes'}
-            </button>
-        </div>
-    </div>
-</div>
+    {/snippet}
+</AdminPage>
 
 <!-- Division slide-over -->
 {#if editingDivision}

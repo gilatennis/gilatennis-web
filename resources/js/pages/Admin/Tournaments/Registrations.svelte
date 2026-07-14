@@ -4,6 +4,7 @@
     import Download from 'lucide-svelte/icons/download';
     import Search from 'lucide-svelte/icons/search';
     import X from 'lucide-svelte/icons/x';
+    import AdminPage from '@/components/admin/AdminPage.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import RegistrantsTable from '@/components/admin/RegistrantsTable.svelte';
     import RegistrationSlideOver from '@/components/admin/RegistrationSlideOver.svelte';
@@ -90,10 +91,8 @@
 
 <AppHead title={`${tournament.name} — Registrations`} />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div
-        class="h-14 bg-white border-b border-black/8 flex items-center px-8 gap-2 shrink-0"
-    >
+<AdminPage>
+    {#snippet breadcrumb()}
         <Link
             href={`/admin/tournaments/${tournament.id}`}
             class="text-[12px] text-neutral-400 font-medium hover:text-neutral-700 flex items-center gap-1 transition-colors"
@@ -105,42 +104,42 @@
         <span class="text-[12px] font-semibold text-neutral-800"
             >Registrations</span
         >
-    </div>
+    {/snippet}
 
-    <div class="flex-1 overflow-y-auto px-8 py-8">
-        <div class="flex items-start justify-between mb-6">
-            <div>
-                <h1
-                    class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
-                >
-                    {tournament.name}
-                </h1>
-                <p class="mt-1 text-[13px] text-neutral-500">
-                    <span class="font-medium text-neutral-800"
-                        >{stats.total}</span
-                    >
-                    total
-                    <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-emerald-700 font-medium"
-                        >{stats.paid} paid</span
-                    >
-                    <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-amber-600 font-medium"
-                        >{stats.pending} pending</span
-                    >
-                    <span class="mx-1.5 text-neutral-300">·</span>
-                    <span class="text-red-600 font-medium"
-                        >{stats.failed} failed</span
-                    >
-                </p>
-            </div>
-            <button
-                type="button"
-                class="h-10 px-4 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] inline-flex items-center gap-2 text-neutral-700 hover:border-black/30 transition-colors"
+    {#snippet heading()}
+        <h1
+            class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+        >
+            {tournament.name}
+        </h1>
+        <p class="mt-1 text-[13px] text-neutral-500">
+            <span class="font-medium text-neutral-800"
+                >{stats.total}</span
             >
-                <Download class="size-3.5" /> Export CSV
-            </button>
-        </div>
+            total
+            <span class="mx-1.5 text-neutral-300">·</span>
+            <span class="text-emerald-700 font-medium"
+                >{stats.paid} paid</span
+            >
+            <span class="mx-1.5 text-neutral-300">·</span>
+            <span class="text-amber-600 font-medium"
+                >{stats.pending} pending</span
+            >
+            <span class="mx-1.5 text-neutral-300">·</span>
+            <span class="text-red-600 font-medium"
+                >{stats.failed} failed</span
+            >
+        </p>
+    {/snippet}
+
+    {#snippet actions()}
+        <button
+            type="button"
+            class="h-10 px-4 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] inline-flex items-center justify-center gap-2 text-neutral-700 hover:border-black/30 transition-colors w-full sm:w-auto sm:justify-start"
+        >
+            <Download class="size-3.5" /> Export CSV
+        </button>
+    {/snippet}
 
         <div class="flex flex-wrap items-center gap-3 mb-5">
             <div class="flex items-center gap-1">
@@ -199,7 +198,7 @@
                 {#if searchHandler.search}
                     <button
                         type="button"
-                        onclick={searchHandler.clearSearch}
+                        onclick={() => searchHandler.clearSearch()}
                         class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"
                     >
                         <X class="size-3" />
@@ -233,8 +232,7 @@
                 onPage={changePage}
             />
         {/if}
-    </div>
-</div>
+</AdminPage>
 
 <RegistrationSlideOver
     open={!!selectedReg}

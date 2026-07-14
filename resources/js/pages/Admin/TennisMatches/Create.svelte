@@ -3,6 +3,7 @@
     import { Form } from '@inertiajs/svelte';
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import Save from 'lucide-svelte/icons/save';
+    import AdminPage from '@/components/admin/AdminPage.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import InputError from '@/components/InputError.svelte';
     import { Button } from '@/components/ui/button';
@@ -20,10 +21,8 @@
 
 <AppHead title="New Match" />
 
-<div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
-    <div
-        class="h-14 bg-white border-b border-black/8 flex items-center px-8 shrink-0 gap-2"
-    >
+<AdminPage>
+    {#snippet breadcrumb()}
         <button
             type="button"
             onclick={() => router.visit('/admin/tennis-matches')}
@@ -35,15 +34,17 @@
         <span class="text-neutral-300 text-[12px]">/</span>
         <span class="text-[12px] font-semibold text-neutral-800">New Match</span
         >
-    </div>
+    {/snippet}
 
-    <div class="flex-1 overflow-y-auto px-8 py-8">
-        <div class="max-w-[768px]">
-            <h1
-                class="font-display font-black text-[28px] tracking-[-0.025em] leading-none mb-7"
-            >
-                New Match
-            </h1>
+    {#snippet heading()}
+        <h1
+            class="font-display font-black text-[28px] tracking-[-0.025em] leading-none"
+        >
+            New Match
+        </h1>
+    {/snippet}
+
+    <div class="max-w-[768px]">
 
             <Form
                 action={storeMatch.url()}
@@ -205,5 +206,4 @@
                 {/snippet}
             </Form>
         </div>
-    </div>
-</div>
+</AdminPage>
