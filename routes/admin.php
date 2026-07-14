@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\Admin\TennisMatchController;
 use App\Http\Controllers\Admin\TournamentController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -42,4 +43,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::resource('tennis-matches', TennisMatchController::class)
         ->only(['index', 'create', 'store', 'show'])
         ->parameters(['tennis-matches' => 'match']);
+
+    Route::resource('users', UserController::class)
+        ->only(['index', 'create', 'store', 'edit', 'update', 'destroy'])
+        ->middleware('manage-users');
 });

@@ -8,7 +8,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([SuperAdminSeeder::class]);
+        $this->call([
+            RoleSeeder::class,
+            SuperAdminSeeder::class,
+        ]);
 
         if (app()->environment('production')) {
             return;

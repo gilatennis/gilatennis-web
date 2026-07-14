@@ -46,7 +46,7 @@
 
     let deleteTarget = $state<Tournament | null>(null);
 
-    const { search, doSearch, clearSearch } = useSearch(
+    const searchHandler = useSearch(
         () => filters.search ?? '',
         (value) => {
             router.visit(window.location.pathname, {
@@ -59,7 +59,7 @@
 
     function changePage(page: number) {
         router.visit(window.location.pathname, {
-            data: { search: search || undefined, page },
+            data: { search: searchHandler.search || undefined, page },
             preserveState: true,
         });
     }
@@ -111,16 +111,16 @@
                 />
                 <input
                     type="text"
-                    value={search}
+                    value={searchHandler.search}
                     oninput={(e: Event) =>
-                        doSearch((e.target as HTMLInputElement).value)}
+                        searchHandler.doSearch((e.target as HTMLInputElement).value)}
                     placeholder="Search name or city..."
                     class="w-full h-9 pl-9 pr-8 border border-black/12 bg-white text-sm placeholder:text-neutral-400 outline-none focus:border-black/35 transition-colors"
                 />
-                {#if search}
+                {#if searchHandler.search}
                     <button
                         type="button"
-                        onclick={clearSearch}
+                        onclick={searchHandler.clearSearch}
                         class="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors"
                     >
                         <X class="size-3.5" />
@@ -128,7 +128,7 @@
                 {/if}
             </div>
 
-            {#if search}
+            {#if searchHandler.search}
                 <span class="text-[12px] text-neutral-400">
                     {tournaments.total} result{tournaments.total !== 1
                         ? 's'
@@ -142,7 +142,7 @@
                 class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
             >
                 <Trophy class="size-14 mb-5 text-neutral-200" />
-                {#if search}
+                {#if searchHandler.search}
                     <p
                         class="font-display font-bold text-[17px] text-neutral-700"
                     >
@@ -153,7 +153,7 @@
                     </p>
                     <button
                         type="button"
-                        onclick={clearSearch}
+                        onclick={searchHandler.clearSearch}
                         class="mt-6 h-9 px-5 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-600 hover:border-black/30 transition-colors"
                     >
                         Clear search

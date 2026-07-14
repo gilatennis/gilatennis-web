@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -56,5 +57,28 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
         ]);
+    }
+
+    /**
+     * Attach the super-admin role to the user.
+     */
+    public function admin(): static
+    {
+        return $this->withRole(User::ROLE_SUPER_ADMIN, 'Super Admin');
+    }
+
+    /**
+     * Attach an arbitrary role by slug to the user.
+     */
+    public function withRole(string $slug, ?string $name = null): static
+    {
+        return $this->afterCreating(function (User $user) use ($slug, $name) {
+            $role = Role::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name ?? ucfirst($slug)],
+            );
+
+            $user->roles()->syncWithoutDetaching([$role->id]);
+        });
     }
 }

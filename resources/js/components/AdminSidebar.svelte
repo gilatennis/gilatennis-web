@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
+    import { Link, page } from '@inertiajs/svelte';
     import LayoutGrid from 'lucide-svelte/icons/layout-grid';
     import Settings from 'lucide-svelte/icons/settings';
     import Swords from 'lucide-svelte/icons/swords';
     import Trophy from 'lucide-svelte/icons/trophy';
+    import Users from 'lucide-svelte/icons/users';
     import AppLogo from '@/components/AppLogo.svelte';
     import NavUser from '@/components/NavUser.svelte';
     import {
@@ -19,6 +20,7 @@
     import { toUrl } from '@/lib/utils';
 
     const url = currentUrlState();
+    const isSuperAdmin = $derived(page.props.auth.user?.is_super_admin === true);
 </script>
 
 <Sidebar collapsible="icon" variant="inset">
@@ -117,6 +119,26 @@
                     {/snippet}
                 </SidebarMenuButton>
             </SidebarMenuItem>
+            {#if isSuperAdmin}
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={url.currentUrl.includes('/admin/users')}
+                        tooltip="Users"
+                    >
+                        {#snippet children(props)}
+                            <Link
+                                {...props}
+                                href="/admin/users"
+                                class={props.class}
+                            >
+                                <Users class="size-4 shrink-0" />
+                                <span>Users</span>
+                            </Link>
+                        {/snippet}
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            {/if}
         </SidebarMenu>
     </SidebarContent>
 

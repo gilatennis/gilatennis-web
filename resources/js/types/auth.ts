@@ -7,6 +7,7 @@ export type User = {
     created_at: string;
     updated_at: string;
     is_admin?: boolean;
+    is_super_admin?: boolean;
     [key: string]: unknown;
 };
 

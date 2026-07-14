@@ -38,6 +38,19 @@ test('non-admin users are blocked from logging in', function () {
     $response->assertSessionHas('error');
 });
 
+test('admin role users can authenticate using the login screen', function () {
+    $user = User::factory()->create();
+    $user->roles()->attach(Role::firstOrCreate(['slug' => 'admin'], ['name' => 'Admin']));
+
+    $response = $this->post(route('admin.login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticated();
+    $response->assertRedirect(route('admin.dashboard', absolute: false));
+});
+
 test('admin login always redirects to /admin/dashboard', function () {
     $user = User::factory()->create();
     $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);

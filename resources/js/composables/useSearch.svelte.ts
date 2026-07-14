@@ -1,26 +1,31 @@
+class SearchController {
+    search = $state('');
+    #timeout: ReturnType<typeof setTimeout> | null = null;
+    #onNavigate: (value: string) => void;
+
+    constructor(
+        getInitial: () => string,
+        onNavigate: (value: string) => void,
+    ) {
+        this.search = getInitial();
+        this.#onNavigate = onNavigate;
+    }
+
+    doSearch(value: string): void {
+        this.search = value;
+        if (this.#timeout) clearTimeout(this.#timeout);
+        this.#timeout = setTimeout(() => this.#onNavigate(value), 300);
+    }
+
+    clearSearch(): void {
+        this.search = '';
+        this.#onNavigate('');
+    }
+}
+
 export function useSearch(
     getInitialValue: () => string,
     onNavigate: (value: string) => void,
-) {
-    let search = $state(getInitialValue());
-    let timeout: ReturnType<typeof setTimeout>;
-
-    function doSearch(value: string) {
-        search = value;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => onNavigate(value), 300);
-    }
-
-    function clearSearch() {
-        search = '';
-        onNavigate('');
-    }
-
-    return {
-        get search() {
-            return search;
-        },
-        doSearch,
-        clearSearch,
-    };
+): SearchController {
+    return new SearchController(getInitialValue, onNavigate);
 }

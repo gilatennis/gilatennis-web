@@ -14,7 +14,7 @@ class AdminLoginResponse implements LoginResponseContract
 
         $user = $request->user();
 
-        if (! $user?->isAdmin()) {
+        if (! $user?->isAdminRole()) {
             auth()->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

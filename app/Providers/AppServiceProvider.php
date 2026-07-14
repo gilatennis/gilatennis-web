@@ -54,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureGates(): void
     {
-        Gate::define('access-admin', fn (User $user) => $user->isAdmin());
+        Gate::define('access-admin', fn (User $user) => $user->isAdminRole());
+        Gate::define('manage-users', fn (User $user) => $user->isSuperAdmin());
     }
 }

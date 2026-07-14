@@ -10,6 +10,8 @@ class SuperAdminSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(RoleSeeder::class);
+
         $email = env('SUPERADMIN_EMAIL');
         $password = env('SUPERADMIN_PASSWORD');
 
@@ -17,10 +19,7 @@ class SuperAdminSeeder extends Seeder
             return;
         }
 
-        $adminRole = Role::firstOrCreate(
-            ['slug' => 'super-admin'],
-            ['name' => 'Super Admin'],
-        );
+        $adminRole = Role::where('slug', User::ROLE_SUPER_ADMIN)->firstOrFail();
 
         $user = User::updateOrCreate(
             ['email' => $email],
