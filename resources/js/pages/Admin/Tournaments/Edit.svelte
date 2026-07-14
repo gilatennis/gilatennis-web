@@ -425,7 +425,9 @@
     }
 
     function removeRule(i: number) {
-        form.rules = form.rules.filter((_: any, j: number) => j !== i);
+        form.rules = form.rules
+            .filter((_: any, j: number) => j !== i)
+            .map((r: any, idx: number) => ({ ...r, sort_order: idx }));
     }
 
     function updateRule(i: number, body: string) {
@@ -443,6 +445,8 @@
         }
 
         [rules[i], rules[j]] = [rules[j], rules[i]];
+        rules[i].sort_order = i;
+        rules[j].sort_order = j;
         form.rules = rules;
     }
 
