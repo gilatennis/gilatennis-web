@@ -17,7 +17,7 @@
 
     const { open, setOpen } = getContext<DropdownMenuContext>(DROPDOWN_MENU_CONTEXT);
 
-    const handleClick = () => setOpen(!open());
+    const handleClick = () => { setOpen(!open()) };
 </script>
 
 {#if asChild}

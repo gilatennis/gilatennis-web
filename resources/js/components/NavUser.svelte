@@ -29,6 +29,7 @@
                             size="lg"
                             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                             data-test="sidebar-menu-button"
+                            closeOnMobileClick={false}
                             onclick={props.onclick}
                             aria-expanded={props['aria-expanded']}
                             data-state={props['data-state']}
