@@ -35,7 +35,6 @@
     };
 
     const close = () => {
-        console.log("closing");
         onClose?.();
         setOpen(false);
     }

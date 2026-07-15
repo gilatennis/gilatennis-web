@@ -22,8 +22,6 @@ class DivisionController extends Controller
 
     public function show(Tournament $tournament, Division $division)
     {
-        abort_if($division->tournament_id !== $tournament->id, 404);
-
         $division->load(['prizes', 'playerFieldRequirements']);
 
         $query = $division->registrations()
@@ -37,7 +35,8 @@ class DivisionController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('confirmation_code', 'like', "%{$search}%");
+                    ->orWhere('confirmation_code', 'like', "%{$search}%")
+                    ->orWhereHas('team', fn ($t) => $t->where('name', 'like', "%{$search}%"));
             });
         }
 

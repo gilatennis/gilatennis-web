@@ -28,7 +28,6 @@
     } = $props();
 
     const handleClose = () => {
-        console.log('handleClose');
         onClose?.();
     };
 

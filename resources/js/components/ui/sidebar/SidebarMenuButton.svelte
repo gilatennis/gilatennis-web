@@ -29,7 +29,7 @@
         tooltip?: string;
         closeOnMobileClick?: boolean;
         children?: Snippet<[AsChildProps]>;
-        onclick?: Function;
+        onclick?: (e: MouseEvent) => void;
         [key: string]: unknown;
     } = $props();
 

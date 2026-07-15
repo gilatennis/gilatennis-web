@@ -10,6 +10,7 @@
     import X from 'lucide-svelte/icons/x';
     import AdminPage from '@/components/admin/AdminPage.svelte';
     import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
+    import DataTable from '@/components/admin/DataTable.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
@@ -194,145 +195,146 @@
         </span>
 
         {#if users.data.length === 0}
-            <div
-                class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
-            >
-                <Users class="size-14 mb-5 text-neutral-200" />
-            {#if searchHandler.search || filters.role.length > 0}
-                    <p
-                        class="font-display font-bold text-[17px] text-neutral-700"
+            <DataTable items={users.data} getKey={(u) => u.id} columns="2fr 2.2fr 1.1fr 110px 84px">
+                {#snippet empty()}
+                    <div
+                        class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
                     >
-                        No users match
-                    </p>
-                    <p class="mt-1 text-[13px] text-neutral-400">
-                        Try a different search or filter
-                    </p>
-                    <button
-                        type="button"
-                        onclick={() => {
-                            searchHandler.clearSearch();
-                            clearRoleFilter();
-                        }}
-                        class="mt-6 h-9 px-5 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-600 hover:border-black/30 transition-colors"
-                    >
-                        Clear filters
-                    </button>
-                {:else}
-                    <p
-                        class="font-display font-bold text-[17px] text-neutral-700"
-                    >
-                        No users yet
-                    </p>
-                    <p class="mt-1 text-[13px] text-neutral-400">
-                        Create the first admin user
-                    </p>
-                    <Link
-                        href="/admin/users/create"
-                        class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
-                    >
-                        <Plus class="size-3.5" />
-                        New User
-                    </Link>
-                {/if}
-            </div>
+                        <Users class="size-14 mb-5 text-neutral-200" />
+                        {#if searchHandler.search || filters.role.length > 0}
+                            <p
+                                class="font-display font-bold text-[17px] text-neutral-700"
+                            >
+                                No users match
+                            </p>
+                            <p class="mt-1 text-[13px] text-neutral-400">
+                                Try a different search or filter
+                            </p>
+                            <button
+                                type="button"
+                                onclick={() => {
+                                    searchHandler.clearSearch();
+                                    clearRoleFilter();
+                                }}
+                                class="mt-6 h-9 px-5 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-600 hover:border-black/30 transition-colors"
+                            >
+                                Clear filters
+                            </button>
+                        {:else}
+                            <p
+                                class="font-display font-bold text-[17px] text-neutral-700"
+                            >
+                                No users yet
+                            </p>
+                            <p class="mt-1 text-[13px] text-neutral-400">
+                                Create the first admin user
+                            </p>
+                            <Link
+                                href="/admin/users/create"
+                                class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
+                            >
+                                <Plus class="size-3.5" />
+                                New User
+                            </Link>
+                        {/if}
+                    </div>
+                {/snippet}
+            </DataTable>
         {:else}
-            <div class="bg-white border border-black/10">
-                <div
-                    class="grid border-b border-black/8 px-5 h-10 items-center text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 select-none"
-                    style="grid-template-columns: 2fr 2.2fr 1.1fr 110px 84px"
-                >
+            <DataTable
+                items={users.data}
+                getKey={(u) => u.id}
+                columns="2fr 2.2fr 1.1fr 110px 84px"
+                rowClass="group"
+            >
+                {#snippet header()}
                     <div>Name</div>
                     <div>Email</div>
                     <div>Role</div>
                     <div>Status</div>
                     <div></div>
-                </div>
+                {/snippet}
 
-                {#each users.data as u (u.id)}
-                    <div
-                        class="grid border-b border-black/5 last:border-0 px-5 h-[58px] items-center hover:bg-neutral-50 transition-colors group"
-                        style="grid-template-columns: 2fr 2.2fr 1.1fr 110px 84px"
-                    >
-                        <div class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4">
-                            {u.name}
-                            {#if u.id === currentUserId}
-                                <span
-                                    class="ml-2 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400"
-                                    >You</span
-                                >
-                            {/if}
-                        </div>
-                        <div class="text-[13px] text-neutral-500 truncate pr-3">
-                            {u.email}
-                        </div>
-                        <div>
-                            {#if u.role}
-                                {#if u.is_super_admin}
-                                    <span
-                                        class="inline-flex items-center gap-1 px-2 py-0.5 border border-coral/30 bg-coral/5 text-coral text-[10px] font-bold uppercase tracking-[0.2em]"
-                                    >
-                                        <ShieldCheck class="size-3" />
-                                        {u.role.name}
-                                    </span>
-                                {:else}
-                                    <span
-                                        class="inline-flex items-center px-2 py-0.5 border border-black/10 bg-neutral-50 text-neutral-700 text-[10px] font-bold uppercase tracking-[0.2em]"
-                                    >
-                                        {u.role.name}
-                                    </span>
-                                {/if}
-                            {:else}
-                                <span
-                                    class="text-[12px] text-neutral-400"
-                                >—</span>
-                            {/if}
-                        </div>
-                        <div>
-                            {#if u.email_verified_at}
-                                <span
-                                    class="inline-flex items-center px-2 py-0.5 border border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-[0.2em]"
-                                >
-                                    Verified
-                                </span>
-                            {:else}
-                                <span
-                                    class="inline-flex items-center px-2 py-0.5 border border-amber-200 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-[0.2em]"
-                                >
-                                    Unverified
-                                </span>
-                            {/if}
-                        </div>
-                        <div
-                            class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            <Link
-                                href={`/admin/users/${u.id}/edit`}
-                                class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-black/5 transition-colors"
+                {#snippet row(u)}
+                    <div class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4">
+                        {u.name}
+                        {#if u.id === currentUserId}
+                            <span
+                                class="ml-2 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-400"
+                                >You</span
                             >
-                                <Pencil class="size-3.5" />
-                            </Link>
-                            <button
-                                type="button"
-                                disabled={u.id === currentUserId}
-                                onclick={() => (deleteTarget = u)}
-                                class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                                <Trash class="size-3.5" />
-                            </button>
-                        </div>
+                        {/if}
                     </div>
-                {/each}
+                    <div class="text-[13px] text-neutral-500 truncate pr-3">
+                        {u.email}
+                    </div>
+                    <div>
+                        {#if u.role}
+                            {#if u.is_super_admin}
+                                <span
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 border border-coral/30 bg-coral/5 text-coral text-[10px] font-bold uppercase tracking-[0.2em]"
+                                >
+                                    <ShieldCheck class="size-3" />
+                                    {u.role.name}
+                                </span>
+                            {:else}
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 border border-black/10 bg-neutral-50 text-neutral-700 text-[10px] font-bold uppercase tracking-[0.2em]"
+                                >
+                                    {u.role.name}
+                                </span>
+                            {/if}
+                        {:else}
+                            <span class="text-[12px] text-neutral-400">—</span>
+                        {/if}
+                    </div>
+                    <div>
+                        {#if u.email_verified_at}
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 border border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-[0.2em]"
+                            >
+                                Verified
+                            </span>
+                        {:else}
+                            <span
+                                class="inline-flex items-center px-2 py-0.5 border border-amber-200 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-[0.2em]"
+                            >
+                                Unverified
+                            </span>
+                        {/if}
+                    </div>
+                    <div
+                        class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                        <Link
+                            href={`/admin/users/${u.id}/edit`}
+                            class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-black/5 transition-colors"
+                        >
+                            <Pencil class="size-3.5" />
+                        </Link>
+                        <button
+                            type="button"
+                            disabled={u.id === currentUserId}
+                            onclick={() => (deleteTarget = u)}
+                            class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            <Trash class="size-3.5" />
+                        </button>
+                    </div>
+                {/snippet}
 
-                <Pagination
-                    class="border-t border-black/8"
-                    from={users.from}
-                    to={users.to}
-                    total={users.total}
-                    currentPage={users.current_page}
-                    lastPage={users.last_page}
-                    onPage={changePage}
-                />
-            </div>
+                {#snippet pagination()}
+                    <Pagination
+                        class="border-t border-black/8"
+                        from={users.from}
+                        to={users.to}
+                        total={users.total}
+                        currentPage={users.current_page}
+                        lastPage={users.last_page}
+                        onPage={changePage}
+                    />
+                {/snippet}
+            </DataTable>
         {/if}
 </AdminPage>
 

@@ -3,6 +3,7 @@
     import Plus from 'lucide-svelte/icons/plus';
     import Swords from 'lucide-svelte/icons/swords';
     import AdminPage from '@/components/admin/AdminPage.svelte';
+    import DataTable from '@/components/admin/DataTable.svelte';
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -106,83 +107,73 @@
     {/snippet}
 
         {#if matches.data.length === 0}
-            <div
-                class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
-            >
-                <Swords class="size-14 mb-5 text-neutral-200" />
-                <p class="font-display font-bold text-[17px] text-neutral-700">
-                    No matches yet
-                </p>
-                <p class="mt-1 text-[13px] text-neutral-400">
-                    Create your first match to get started
-                </p>
-                <Link
-                    href="/admin/tennis-matches/create"
-                    class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
-                >
-                    <Plus class="size-3.5" />
-                    New Match
-                </Link>
-            </div>
+            <DataTable items={matches.data} getKey={(m) => m.id} columns="60px 2fr 1.6fr 110px 120px">
+                {#snippet empty()}
+                    <div
+                        class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
+                    >
+                        <Swords class="size-14 mb-5 text-neutral-200" />
+                        <p class="font-display font-bold text-[17px] text-neutral-700">
+                            No matches yet
+                        </p>
+                        <p class="mt-1 text-[13px] text-neutral-400">
+                            Create your first match to get started
+                        </p>
+                        <Link
+                            href="/admin/tennis-matches/create"
+                            class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
+                        >
+                            <Plus class="size-3.5" />
+                            New Match
+                        </Link>
+                    </div>
+                {/snippet}
+            </DataTable>
         {:else}
-            <div class="bg-white border border-black/10">
-                <div
-                    class="grid border-b border-black/8 px-5 h-10 items-center text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 select-none"
-                    style="grid-template-columns: 60px 2fr 1.6fr 110px 120px"
-                >
+            <DataTable
+                items={matches.data}
+                getKey={(m) => m.id}
+                columns="60px 2fr 1.6fr 110px 120px"
+            >
+                {#snippet header()}
                     <div>#</div>
                     <div>Matchup</div>
                     <div>Format</div>
                     <div>Status</div>
                     <div>Started</div>
-                </div>
+                {/snippet}
 
-                {#each matches.data as m (m.id)}
-                    <div
-                        class="grid border-b border-black/5 last:border-0 px-5 h-[58px] items-center hover:bg-neutral-50 transition-colors"
-                        style="grid-template-columns: 60px 2fr 1.6fr 110px 120px"
-                    >
-                        <Link
-                            href={showMatch({ match: m.id }).url}
-                            class="contents"
-                        >
-                            <div
-                                class="font-mono text-[13px] tabular-nums text-neutral-500"
-                            >
-                                #{m.id}
-                            </div>
-                            <div
-                                class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4"
-                            >
-                                {m.side_a_name}
-                                <span
-                                    class="text-neutral-300 font-normal mx-1.5"
-                                    >vs</span
-                                >
-                                {m.side_b_name}
-                            </div>
-                            <div
-                                class="text-[13px] text-neutral-500 truncate pr-3"
-                            >
-                                {m.format_label}
-                            </div>
-                            <div><MatchStatusBadge status={m.status} /></div>
-                            <div class="text-[13px] text-neutral-500">
-                                {formatDate(m.started_at)}
-                            </div>
-                        </Link>
-                    </div>
-                {/each}
+                {#snippet row(m)}
+                    <Link href={showMatch({ match: m.id }).url} class="contents">
+                        <div class="font-mono text-[13px] tabular-nums text-neutral-500">
+                            #{m.id}
+                        </div>
+                        <div class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4">
+                            {m.side_a_name}
+                            <span class="text-neutral-300 font-normal mx-1.5">vs</span>
+                            {m.side_b_name}
+                        </div>
+                        <div class="text-[13px] text-neutral-500 truncate pr-3">
+                            {m.format_label}
+                        </div>
+                        <div><MatchStatusBadge status={m.status} /></div>
+                        <div class="text-[13px] text-neutral-500">
+                            {formatDate(m.started_at)}
+                        </div>
+                    </Link>
+                {/snippet}
 
-                <Pagination
-                    class="border-t border-black/8"
-                    from={matches.from}
-                    to={matches.to}
-                    total={matches.total}
-                    currentPage={matches.current_page}
-                    lastPage={matches.last_page}
-                    onPage={changePage}
-                />
-            </div>
+                {#snippet pagination()}
+                    <Pagination
+                        class="border-t border-black/8"
+                        from={matches.from}
+                        to={matches.to}
+                        total={matches.total}
+                        currentPage={matches.current_page}
+                        lastPage={matches.last_page}
+                        onPage={changePage}
+                    />
+                {/snippet}
+            </DataTable>
         {/if}
 </AdminPage>

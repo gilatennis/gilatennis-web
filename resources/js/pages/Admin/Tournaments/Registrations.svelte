@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Link, router } from '@inertiajs/svelte';
     import ChevronDown from 'lucide-svelte/icons/chevron-down';
+    import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import Download from 'lucide-svelte/icons/download';
     import Search from 'lucide-svelte/icons/search';
     import X from 'lucide-svelte/icons/x';

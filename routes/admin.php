@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->name('tournaments.registrations.payment');
 
     Route::get('tournaments/{tournament}/divisions/{division}', [DivisionController::class, 'show'])
+        ->scopeBindings()
         ->name('tournaments.divisions.show');
 
     Route::post('divisions/validate', [DivisionController::class, 'validateDivision'])

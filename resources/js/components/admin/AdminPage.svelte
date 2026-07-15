@@ -3,13 +3,14 @@
 
     type Props = {
         breadcrumb?: Snippet;
+        subheader?: Snippet;
         heading?: Snippet;
         actions?: Snippet;
         footer?: Snippet;
         children: Snippet;
     };
 
-    let { breadcrumb, heading, actions, footer, children }: Props = $props();
+    let { breadcrumb, subheader, heading, actions, footer, children }: Props = $props();
 </script>
 
 <div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">
@@ -18,6 +19,11 @@
             class="h-14 bg-white border-b border-black/8 flex items-center px-4 sm:px-8 shrink-0 gap-2"
         >
             {@render breadcrumb()}
+        </div>
+    {/if}
+    {#if subheader}
+        <div class="shrink-0">
+            {@render subheader()}
         </div>
     {/if}
     <div class="flex-1 overflow-y-auto px-4 sm:px-8 py-8">

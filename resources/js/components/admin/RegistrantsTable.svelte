@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
     import type { Registration, PaymentStatus } from '@/types';
+    import DataTable from './DataTable.svelte';
     import PaymentBadge from './PaymentBadge.svelte';
 
     let {
@@ -36,13 +37,14 @@
     }
 </script>
 
-<div class="bg-white border border-black/10">
-    <div
-        class="grid border-b border-black/8 px-5 h-10 items-center text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 select-none"
-        style="grid-template-columns: 120px 2fr {showDivisionColumn
-            ? '1.3fr '
-            : ''}1fr 116px 90px 100px"
-    >
+<DataTable
+    items={registrations}
+    getKey={(r) => r.id}
+    columns="120px 2fr {showDivisionColumn ? '1.3fr ' : ''}1fr 116px 90px 100px"
+    rowHeight="h-12"
+    rowClass="cursor-pointer"
+>
+    {#snippet header()}
         <div>Code</div>
         <div>Name</div>
         {#if showDivisionColumn}
@@ -52,16 +54,13 @@
         <div>Status</div>
         <div class="text-right">Amount</div>
         <div class="text-right">Date</div>
-    </div>
+    {/snippet}
 
-    {#each registrations as reg (reg.id)}
+    {#snippet row(reg)}
         <button
             type="button"
             onclick={() => onRowClick?.(reg)}
-            class="grid border-b border-black/5 last:border-0 px-5 h-12 items-center hover:bg-neutral-50 transition-colors cursor-pointer text-left w-full"
-            style="grid-template-columns: 120px 2fr {showDivisionColumn
-                ? '1.3fr '
-                : ''}1fr 116px 90px 100px"
+            class="contents w-full text-left"
         >
             <span class="font-mono text-[11px] text-neutral-500 tracking-wide"
                 >{reg.confirmation_code}</span
@@ -91,5 +90,5 @@
                 >{formatDate(reg.created_at)}</span
             >
         </button>
-    {/each}
-</div>
+    {/snippet}
+</DataTable>

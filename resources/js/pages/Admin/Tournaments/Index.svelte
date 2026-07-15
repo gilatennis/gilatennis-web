@@ -8,6 +8,7 @@
     import X from 'lucide-svelte/icons/x';
     import AdminPage from '@/components/admin/AdminPage.svelte';
     import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
+    import DataTable from '@/components/admin/DataTable.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import StatusBadge from '@/components/admin/StatusBadge.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -136,50 +137,56 @@
     </span>
 
     {#if tournaments.data.length === 0}
-        <div
-            class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
-        >
-            <Trophy class="size-14 mb-5 text-neutral-200" />
-            {#if searchHandler.search}
-                <p
-                    class="font-display font-bold text-[17px] text-neutral-700"
+        <DataTable items={tournaments.data} getKey={(t) => t.id} columns="3fr 1.5fr 2fr 50px 60px 120px 60px">
+            {#snippet empty()}
+                <div
+                    class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"
                 >
-                    No results for "{filters.search}"
-                </p>
-                <p class="mt-1 text-[13px] text-neutral-400">
-                    Try a different name or city
-                </p>
-                <button
-                    type="button"
-                    onclick={() => searchHandler.clearSearch()}
-                    class="mt-6 h-9 px-5 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-600 hover:border-black/30 transition-colors"
-                >
-                    Clear search
-                </button>
-            {:else}
-                <p
-                    class="font-display font-bold text-[17px] text-neutral-700"
-                >
-                    No tournaments yet
-                </p>
-                <p class="mt-1 text-[13px] text-neutral-400">
-                    Create your first tournament to get started
-                </p>
-                <Link
-                    href="/admin/tournaments/create"
-                    class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
-                >
-                    <Plus class="size-3.5" />
-                    Create Tournament
-                </Link>
-            {/if}
-        </div>
+                    <Trophy class="size-14 mb-5 text-neutral-200" />
+                    {#if searchHandler.search}
+                        <p
+                            class="font-display font-bold text-[17px] text-neutral-700"
+                        >
+                            No results for "{filters.search}"
+                        </p>
+                        <p class="mt-1 text-[13px] text-neutral-400">
+                            Try a different name or city
+                        </p>
+                        <button
+                            type="button"
+                            onclick={() => searchHandler.clearSearch()}
+                            class="mt-6 h-9 px-5 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-600 hover:border-black/30 transition-colors"
+                        >
+                            Clear search
+                        </button>
+                    {:else}
+                        <p
+                            class="font-display font-bold text-[17px] text-neutral-700"
+                        >
+                            No tournaments yet
+                        </p>
+                        <p class="mt-1 text-[13px] text-neutral-400">
+                            Create your first tournament to get started
+                        </p>
+                        <Link
+                            href="/admin/tournaments/create"
+                            class="mt-6 h-10 px-6 bg-coral text-white inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity"
+                        >
+                            <Plus class="size-3.5" />
+                            Create Tournament
+                        </Link>
+                    {/if}
+                </div>
+            {/snippet}
+        </DataTable>
     {:else}
-        <div class="bg-white border border-black/10">
-            <div
-                class="grid border-b border-black/8 px-5 h-10 items-center text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 select-none"
-                style="grid-template-columns: 2fr 1.1fr 1.5fr 110px 84px 116px 70px"
-            >
+        <DataTable
+            items={tournaments.data}
+            getKey={(t) => t.id}
+            columns="3fr 1.5fr 2fr 50px 60px 120px 60px"
+            rowClass="group"
+        >
+            {#snippet header()}
                 <div>Name</div>
                 <div>City</div>
                 <div>Dates</div>
@@ -187,82 +194,74 @@
                 <div class="text-right">Spots</div>
                 <div class="text-right">Registrations</div>
                 <div></div>
-            </div>
+            {/snippet}
 
-            {#each tournaments.data as t (t.id)}
+            {#snippet row(t)}
+                <Link href={`/admin/tournaments/${t.id}`} class="contents">
+                    <div
+                        class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4"
+                    >
+                        {t.name}
+                    </div>
+                    <div class="text-[13px] text-neutral-500 truncate pr-3">
+                        {t.city}
+                    </div>
+                    <div class="text-[13px] text-neutral-500 pr-3">
+                        {t.dates}
+                    </div>
+                    <div>
+                        <StatusBadge
+                            status={t.status as
+                                | 'draft'
+                                | 'open'
+                                | 'closed'
+                                | 'completed'}
+                        />
+                    </div>
+                    <div
+                        class="text-right font-mono text-[13px] tabular-nums text-neutral-700"
+                    >
+                        {t.spots_used}<span class="text-neutral-300"
+                            >/{t.spots_total}</span
+                        >
+                    </div>
+                    <div
+                        class="text-right text-[13px] tabular-nums font-medium text-neutral-700 pr-3"
+                    >
+                        {t.registration_count}
+                    </div>
+                </Link>
                 <div
-                    class="grid border-b border-black/5 last:border-0 px-5 h-[58px] items-center hover:bg-neutral-50 transition-colors group"
-                    style="grid-template-columns: 2fr 1.1fr 1.5fr 110px 84px 116px 70px"
+                    class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                     <Link
-                        href={`/admin/tournaments/${t.id}`}
-                        class="contents"
+                        href={`/admin/tournaments/${t.id}/edit`}
+                        class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-black/5 transition-colors"
                     >
-                        <div
-                            class="font-semibold text-[13.5px] text-neutral-900 truncate pr-4"
-                        >
-                            {t.name}
-                        </div>
-                        <div
-                            class="text-[13px] text-neutral-500 truncate pr-3"
-                        >
-                            {t.city}
-                        </div>
-                        <div class="text-[13px] text-neutral-500 pr-3">
-                            {t.dates}
-                        </div>
-                        <div>
-                            <StatusBadge
-                                status={t.status as
-                                    | 'draft'
-                                    | 'open'
-                                    | 'closed'
-                                    | 'completed'}
-                            />
-                        </div>
-                        <div
-                            class="text-right font-mono text-[13px] tabular-nums text-neutral-700"
-                        >
-                            {t.spots_used}<span class="text-neutral-300"
-                                >/{t.spots_total}</span
-                            >
-                        </div>
-                        <div
-                            class="text-right text-[13px] tabular-nums font-medium text-neutral-700"
-                        >
-                            {t.registration_count}
-                        </div>
+                        <Pencil class="size-3.5" />
                     </Link>
-                    <div
-                        class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    <button
+                        type="button"
+                        onclick={() => (deleteTarget = t)}
+                        class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                     >
-                        <Link
-                            href={`/admin/tournaments/${t.id}/edit`}
-                            class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-black/5 transition-colors"
-                        >
-                            <Pencil class="size-3.5" />
-                        </Link>
-                        <button
-                            type="button"
-                            onclick={() => (deleteTarget = t)}
-                            class="h-8 w-8 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                            <Trash class="size-3.5" />
-                        </button>
-                    </div>
+                        <Trash class="size-3.5" />
+                    </button>
                 </div>
-            {/each}
+            {/snippet}
 
-            <Pagination
-                class="border-t border-black/8"
-                from={tournaments.from}
-                to={tournaments.to}
-                total={tournaments.total}
-                currentPage={tournaments.current_page}
-                lastPage={tournaments.last_page}
-                onPage={changePage}
-            />
-        </div>
+            {#snippet pagination()}
+                <Pagination
+                    class="border-t border-black/8"
+                    from={tournaments.from}
+                    to={tournaments.to}
+                    total={tournaments.total}
+                    currentPage={tournaments.current_page}
+                    lastPage={tournaments.last_page}
+                    onPage={changePage}
+                />
+            {/snippet}
+        </DataTable>
     {/if}
 </AdminPage>
 
