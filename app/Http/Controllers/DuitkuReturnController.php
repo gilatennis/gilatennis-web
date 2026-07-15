@@ -15,7 +15,7 @@ class DuitkuReturnController extends Controller
         // Duitku redirects with resultCode=00 on successful payment.
         // Handle immediately so user isn't stuck waiting for the async webhook.
         if ($registration->payment_status === 'processing' && $request->resultCode === '00') {
-            $registration->markAsPaid($request->payment_reference ?? '');
+            $registration->markAsPaid($request->reference);
         }
 
         if ($registration->payment_status === 'paid') {

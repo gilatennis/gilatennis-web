@@ -98,13 +98,43 @@ class DuitkuService
             );
         }
 
+        $reference = $data['reference'] ?? self::parseReferenceFromUrl($paymentUrl) ?? '';
+
+        if ($reference === '') {
+            \Log::error('Duitku invoice missing reference', [
+                'http_status' => $response->status(),
+                'response' => $data,
+            ]);
+
+            throw new \RuntimeException('Duitku invoice response missing reference');
+        }
+
         return new DuitkuInvoiceResponse(
             merchantCode: $data['merchantCode'] ?? '',
-            reference: $data['reference'] ?? '',
+            reference: $reference,
             paymentUrl: $paymentUrl,
             statusCode: $statusCode,
             statusMessage: $data['statusMessage'] ?? '',
         );
+    }
+
+    public static function parseReferenceFromUrl(string $url): ?string
+    {
+        $query = parse_url($url, PHP_URL_QUERY);
+
+        if (! is_string($query) || $query === '') {
+            return null;
+        }
+
+        foreach (explode('&', $query) as $pair) {
+            if (str_starts_with($pair, 'reference=')) {
+                $value = substr($pair, strlen('reference='));
+
+                return $value === '' ? null : $value;
+            }
+        }
+
+        return null;
     }
 
     private function http(): PendingRequest

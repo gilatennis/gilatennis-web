@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ErrorBanner from '@/components/registration/ErrorBanner.svelte';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
     import {
@@ -7,10 +8,9 @@
         SelectContent,
         SelectItem,
     } from '@/components/ui/select';
-    import ErrorBanner from '@/components/registration/ErrorBanner.svelte';
-    import TeamMemberFields from './TeamMemberFields.svelte';
     import type { FieldErrors, FormErrors } from '@/types/errors';
     import type { DivisionContext } from '@/types/registration';
+    import TeamMemberFields from './TeamMemberFields.svelte';
 
     let {
         name = $bindable(''),
@@ -44,9 +44,11 @@
 
     const cfg = $derived(division.playerFieldConfig);
     const effectiveGenderRequired = $derived(
-        cfg.gender || division.minMalePlayers > 0 || division.minFemalePlayers > 0,
+        cfg.gender ||
+            division.minMalePlayers > 0 ||
+            division.minFemalePlayers > 0,
     );
-    const showLevelField = $derived(levelOptions.length > 0 && cfg.level);
+    const showLevelField = $derived(cfg.level);
     const showTeamMembers = $derived(
         !!division.selected &&
             (division.isTeam || division.participationCategory === 'doubles'),
@@ -62,7 +64,8 @@
         !division.isTeam || computedPlayers.length >= division.minTeamSize,
     );
     const teamCompositionMet = $derived(
-        (!division.minMalePlayers || teamMaleCount >= division.minMalePlayers) &&
+        (!division.minMalePlayers ||
+            teamMaleCount >= division.minMalePlayers) &&
             (!division.minFemalePlayers ||
                 teamFemaleCount >= division.minFemalePlayers),
     );
@@ -71,14 +74,17 @@
     );
     const levelCounts = $derived.by(() => {
         const counts: Record<string, number> = {};
+
         for (const lvl of levelOptions) {
             counts[lvl] = 0;
         }
+
         for (const p of computedPlayers) {
             if (p.level && counts[p.level] !== undefined) {
                 counts[p.level] += 1;
             }
         }
+
         return counts;
     });
     const levelRequirementsMet = $derived.by(() => {
@@ -86,10 +92,12 @@
             if ((req ?? 0) <= 0) {
                 continue;
             }
+
             if ((levelCounts[lvl] ?? 0) < (req ?? 0)) {
                 return false;
             }
         }
+
         return true;
     });
 
@@ -140,12 +148,10 @@
             }
         }
 
-        if (
-            division.isTeam &&
-            hasLevelRequirements &&
-            !levelRequirementsMet
-        ) {
-            for (const [lvl, req] of Object.entries(division.levelRequirements)) {
+        if (division.isTeam && hasLevelRequirements && !levelRequirementsMet) {
+            for (const [lvl, req] of Object.entries(
+                division.levelRequirements,
+            )) {
                 if ((req ?? 0) <= 0) {
                     continue;
                 }
@@ -207,7 +213,9 @@
             class={fieldErrors.name ? 'border-coral ring-2 ring-coral/30' : ''}
         />
         {#if fieldErrors.name}
-            <p class="mt-1 text-xs text-coral font-medium">{fieldErrors.name}</p>
+            <p class="mt-1 text-xs text-coral font-medium">
+                {fieldErrors.name}
+            </p>
         {/if}
     </div>
 
@@ -228,7 +236,9 @@
             class={fieldErrors.email ? 'border-coral ring-2 ring-coral/30' : ''}
         />
         {#if fieldErrors.email}
-            <p class="mt-1 text-xs text-coral font-medium">{fieldErrors.email}</p>
+            <p class="mt-1 text-xs text-coral font-medium">
+                {fieldErrors.email}
+            </p>
         {/if}
     </div>
 
@@ -249,7 +259,9 @@
             class={fieldErrors.phone ? 'border-coral ring-2 ring-coral/30' : ''}
         />
         {#if fieldErrors.phone}
-            <p class="mt-1 text-xs text-coral font-medium">{fieldErrors.phone}</p>
+            <p class="mt-1 text-xs text-coral font-medium">
+                {fieldErrors.phone}
+            </p>
         {/if}
     </div>
 
@@ -280,7 +292,9 @@
             </SelectContent>
         </Select>
         {#if fieldErrors.gender}
-            <p class="mt-1 text-xs text-coral font-medium">{fieldErrors.gender}</p>
+            <p class="mt-1 text-xs text-coral font-medium">
+                {fieldErrors.gender}
+            </p>
         {/if}
     </div>
 
@@ -308,11 +322,12 @@
                 </SelectContent>
             </Select>
             {#if fieldErrors.level}
-                <p class="mt-1 text-xs text-coral font-medium">{fieldErrors.level}</p>
+                <p class="mt-1 text-xs text-coral font-medium">
+                    {fieldErrors.level}
+                </p>
             {/if}
         </div>
     {/if}
-
 </div>
 
 {#if showTeamMembers}

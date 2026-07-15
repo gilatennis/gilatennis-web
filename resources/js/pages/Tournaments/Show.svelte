@@ -1,6 +1,11 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
-    import { ArrowUpRight, ChevronDown, MessageCircleMore, Users } from 'lucide-svelte/icons';
+    import {
+        ArrowUpRight,
+        ChevronDown,
+        MessageCircleMore,
+        Users,
+    } from 'lucide-svelte/icons';
     import ImagePlaceholder from '@/components/public/ImagePlaceholder.svelte';
     import { Badge } from '@/components/ui/badge';
     import {
@@ -54,7 +59,10 @@
             return null;
         }
 
-        const cleanNumber = tournament.contact_person_phone.replace(/[^0-9]/g, '');
+        const cleanNumber = tournament.contact_person_phone.replace(
+            /[^0-9]/g,
+            '',
+        );
         const message = encodeURIComponent(
             `Hi, I need help with registration for ${tournament?.name ?? 'Tournament'}`,
         );
@@ -78,7 +86,6 @@
             day: 'numeric',
         });
     });
-
 </script>
 
 <div>
@@ -159,9 +166,7 @@
                             <div
                                 class="font-display font-black text-2xl tabular-nums"
                             >
-                                {isSoldOut
-                                    ? 'Closed'
-                                    : (closesLabel() || '—')}
+                                {isSoldOut ? 'Closed' : closesLabel() || '—'}
                             </div>
                         </div>
 
@@ -175,9 +180,7 @@
                                 >
                                     Dates
                                 </div>
-                                <div
-                                    class="font-display font-bold text-base"
-                                >
+                                <div class="font-display font-bold text-base">
                                     {tournament?.dates ?? '—'}
                                 </div>
                             </div>
@@ -187,9 +190,7 @@
                                 >
                                     Venue
                                 </div>
-                                <div
-                                    class="font-display font-bold text-base"
-                                >
+                                <div class="font-display font-bold text-base">
                                     {tournament?.venue ?? '—'}
                                 </div>
                             </div>
@@ -245,7 +246,9 @@
                                 <div
                                     class="font-display font-bold text-base tabular-nums flex items-center gap-2"
                                 >
-                                    <span>{tournament.contact_person_phone}</span>
+                                    <span
+                                        >{tournament.contact_person_phone}</span
+                                    >
                                     {#if waLink()}
                                         <a
                                             href={waLink()}
@@ -284,9 +287,9 @@
                 <ul class="space-y-3">
                     {#each tournament.rules as rule}
                         <li class="flex items-start gap-2 text-sm">
-                            <span class="mt-2 h-1 w-3 bg-coral shrink-0"
-                            ></span>
-                            <span class="opacity-75 leading-relaxed whitespace-pre-line"
+                            <span class="mt-2 h-1 w-3 bg-coral shrink-0"></span>
+                            <span
+                                class="opacity-75 leading-relaxed whitespace-pre-line"
                                 >{rule.body}</span
                             >
                         </li>
@@ -339,7 +342,9 @@
                         >
                             <div>
                                 <div class="flex items-center gap-4 mb-3">
-                                    <h4 class="font-display font-bold text-base">
+                                    <h4
+                                        class="font-display font-bold text-base"
+                                    >
                                         {div.name}
                                     </h4>
                                     <span
@@ -347,7 +352,9 @@
                                         >{div.participation_category}</span
                                     >
                                 </div>
-                                <div class="grid grid-cols-2 gap-x-4 gap-y-3 mb-3">
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-3 mb-3"
+                                >
                                     <div>
                                         <div
                                             class="text-[10px] uppercase tracking-[0.18em] opacity-50 mb-1"
@@ -357,7 +364,9 @@
                                         <div
                                             class="font-display font-bold text-sm tabular-nums"
                                         >
-                                            Rp {(div.fee ?? 0).toLocaleString('en-US')}
+                                            Rp {(div.fee ?? 0).toLocaleString(
+                                                'en-US',
+                                            )}
                                         </div>
                                     </div>
                                     <div>
@@ -369,7 +378,11 @@
                                         <div
                                             class="font-display font-bold text-sm tabular-nums"
                                         >
-                                            {Math.max(0, (div.draw_size ?? 0) - (div.spots_available ?? 0))}/{div.draw_size ?? 0}
+                                            {Math.max(
+                                                0,
+                                                (div.draw_size ?? 0) -
+                                                    (div.spots_available ?? 0),
+                                            )}/{div.draw_size ?? 0}
                                         </div>
                                     </div>
                                 </div>
@@ -380,7 +393,9 @@
                                     </div>
                                 {/if}
                                 {#if div.prizes?.length}
-                                    <div class="mt-3 pt-3 border-t border-black/10 dark:border-white/10">
+                                    <div
+                                        class="mt-3 pt-3 border-t border-black/10 dark:border-white/10"
+                                    >
                                         <div
                                             class="text-[10px] uppercase tracking-[0.18em] opacity-50 mb-1.5"
                                         >
@@ -388,11 +403,24 @@
                                         </div>
                                         <ul class="space-y-1">
                                             {#each div.prizes as prize, pi (prize.id ?? `${div.id}-${pi}`)}
-                                                <li class="flex items-baseline justify-between gap-2 text-xs">
-                                                    <span class="opacity-75">{prize.place}</span>
-                                                    <span class="font-display font-bold tabular-nums shrink-0">
-                                                        Rp. {prize.value && !isNaN(Number(prize.value))
-                                                            ? Number(prize.value).toLocaleString('en-US')
+                                                <li
+                                                    class="flex items-baseline justify-between gap-2 text-xs"
+                                                >
+                                                    <span class="opacity-75"
+                                                        >{prize.place}</span
+                                                    >
+                                                    <span
+                                                        class="font-display font-bold tabular-nums shrink-0"
+                                                    >
+                                                        Rp. {prize.value &&
+                                                        !isNaN(
+                                                            Number(prize.value),
+                                                        )
+                                                            ? Number(
+                                                                  prize.value,
+                                                              ).toLocaleString(
+                                                                  'en-US',
+                                                              )
                                                             : prize.value}
                                                     </span>
                                                 </li>
@@ -403,16 +431,23 @@
                             </div>
                             <div class="mt-3">
                                 {#if !registrationOpen}
-                                    <div class="block w-full h-10 bg-neutral-600 text-white font-display font-bold text-[10px] uppercase tracking-[0.18em] flex items-center justify-center opacity-60 cursor-not-allowed">
+                                    <div
+                                        class="block w-full h-10 bg-neutral-600 text-white font-display font-bold text-[10px] uppercase tracking-[0.18em] flex items-center justify-center opacity-60 cursor-not-allowed"
+                                    >
                                         Registration Closed
                                     </div>
                                 {:else if divSoldOut}
-                                    <div class="block w-full h-10 bg-neutral-600 text-white font-display font-bold text-[10px] uppercase tracking-[0.18em] flex items-center justify-center opacity-60 cursor-not-allowed">
+                                    <div
+                                        class="block w-full h-10 bg-neutral-600 text-white font-display font-bold text-[10px] uppercase tracking-[0.18em] flex items-center justify-center opacity-60 cursor-not-allowed"
+                                    >
                                         Sold Out
                                     </div>
                                 {:else}
                                     <Link
-                                        href={tournamentRegister.url({ tournament: tournament.slug }, { query: { division: div.id } })}
+                                        href={tournamentRegister.url(
+                                            { tournament: tournament.slug },
+                                            { query: { division: div.id } },
+                                        )}
                                         class="block w-full h-10 bg-coral text-white font-display font-bold text-[10px] uppercase tracking-[0.18em] flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-[0.98] transition-all"
                                     >
                                         Register Now <ArrowUpRight size={14} />

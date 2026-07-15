@@ -23,10 +23,7 @@
         SelectContent,
         SelectItem,
     } from '@/components/ui/select';
-    import {
-        PLAYER_FIELDS,
-        PLAYER_FIELD_KEYS,
-    } from '@/types/registration';
+    import { PLAYER_FIELDS, PLAYER_FIELD_KEYS } from '@/types/registration';
 
     let { tournament }: { tournament: Record<string, any> | null } = $props();
 
@@ -196,6 +193,10 @@
             return true;
         }
 
+        if (key === 'level' && hasLevelRequirementValues) {
+            return true;
+        }
+
         if (!div) {
             return PLAYER_FIELDS[key]?.default ?? true;
         }
@@ -205,7 +206,9 @@
         );
 
         if (!row) {
-            return key === 'name' ? true : PLAYER_FIELDS[key]?.default ?? true;
+            return key === 'name'
+                ? true
+                : (PLAYER_FIELDS[key]?.default ?? true);
         }
 
         return !!row.required;
@@ -216,12 +219,8 @@
             return;
         }
 
-        const list = [
-            ...(editingDivision.player_field_requirements ?? []),
-        ];
-        const idx = list.findIndex(
-            (r: any) => r.field_key === key,
-        );
+        const list = [...(editingDivision.player_field_requirements ?? [])];
+        const idx = list.findIndex((r: any) => r.field_key === key);
 
         if (idx >= 0) {
             list[idx] = { ...list[idx], required: value };
@@ -253,31 +252,31 @@
         );
     });
 
-    $effect(() => {
-        if (!editingDivision || !hasGenderMinConstraints) {
+    function syncRequiredField(key: string, required: boolean) {
+        if (!editingDivision) {
             return;
         }
 
-        const list = [...(editingDivision.player_field_requirements ?? [])];
-        const idx = list.findIndex((r: any) => r.field_key === 'gender');
-        const current = idx >= 0 ? list[idx].required : null;
+        const list = editingDivision.player_field_requirements ?? [];
+        const idx = list.findIndex((r: any) => r.field_key === key);
 
-        if (current === true) {
+        if (idx >= 0 && list[idx].required === required) {
             return;
         }
 
         const next =
             idx >= 0
-                ? list.map((r, i) =>
-                      i === idx ? { ...r, required: true } : r,
-                  )
-                : [...list, { field_key: 'gender', required: true }];
+                ? list.map((r, i) => (i === idx ? { ...r, required } : r))
+                : [...list, { field_key: key, required }];
 
         editingDivision = {
             ...editingDivision,
             player_field_requirements: next,
         };
-    });
+    }
+
+    $effect(() => syncRequiredField('gender', hasGenderMinConstraints));
+    $effect(() => syncRequiredField('level', hasLevelRequirementValues));
     function getDivisionErrors(i: number): string[] {
         const prefix = `divisions.${i}.`;
 
@@ -421,7 +420,12 @@
     function addRule() {
         form.rules = [
             ...form.rules,
-            { id: null, _key: newKey(), body: '', sort_order: form.rules.length },
+            {
+                id: null,
+                _key: newKey(),
+                body: '',
+                sort_order: form.rules.length,
+            },
         ];
     }
 
@@ -500,959 +504,621 @@
     {/snippet}
 
     <div class="max-w-[1024px]">
-
-            <!-- Section: Cover Image -->
-            <div class="border border-black/10 bg-white mb-4">
-                <button
-                    type="button"
-                    class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
-                    onclick={() => toggle('cover')}
+        <!-- Section: Cover Image -->
+        <div class="border border-black/10 bg-white mb-4">
+            <button
+                type="button"
+                class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
+                onclick={() => toggle('cover')}
+            >
+                <span
+                    class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
+                    style="transform: rotate({openSection === 'cover'
+                        ? 90
+                        : 0}deg)"
                 >
+                    <ChevronRight class="size-3.5" />
+                </span>
+                <Image class="size-3.5 mr-2 text-neutral-400" />
+                <span
+                    class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
+                    >Cover Image</span
+                >
+                {#if existingCoverUrl && !form.cover_image_remove}
                     <span
-                        class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
-                        style="transform: rotate({openSection === 'cover'
-                            ? 90
-                            : 0}deg)"
+                        class="ml-2 px-1.5 h-4 inline-flex items-center bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-[0.15em]"
+                        >Uploaded</span
                     >
-                        <ChevronRight class="size-3.5" />
-                    </span>
-                    <Image class="size-3.5 mr-2 text-neutral-400" />
-                    <span
-                        class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
-                        >Cover Image</span
-                    >
-                    {#if existingCoverUrl && !form.cover_image_remove}
-                        <span
-                            class="ml-2 px-1.5 h-4 inline-flex items-center bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-[0.15em]"
-                            >Uploaded</span
-                        >
-                    {/if}
-                </button>
-                {#if openSection === 'cover'}
-                    <div class="border-t border-black/8 p-6">
-                        <div class="grid grid-cols-3 gap-6">
-                            <div class="col-span-1">
-                                {#if coverPreviewUrl}
-                                    <div
-                                        class="aspect-video bg-neutral-100 border border-black/10 overflow-hidden"
-                                    >
-                                        <img
-                                            src={coverPreviewUrl}
-                                            alt="Cover preview"
-                                            class="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                    <p
-                                        class="mt-2 text-[10px] text-neutral-500"
-                                    >
-                                        New file — will replace current cover
-                                        on save.
-                                    </p>
-                                {:else if showExistingCover}
-                                    <div
-                                        class="aspect-video bg-neutral-100 border border-black/10 overflow-hidden"
-                                    >
-                                        <img
-                                            src={existingCoverUrl}
-                                            alt={tournament?.name ?? 'Cover'}
-                                            class="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                {:else}
-                                    <div
-                                        class="aspect-video bg-neutral-50 border border-dashed border-black/15 flex flex-col items-center justify-center text-neutral-400"
-                                    >
-                                        <Image class="size-6 mb-2" />
-                                        <span
-                                            class="text-[11px] font-medium uppercase tracking-[0.18em]"
-                                            >No cover yet</span
-                                        >
-                                    </div>
-                                {/if}
-                            </div>
-
-                            <div class="col-span-2 flex flex-col gap-3">
-                                <p
-                                    class="text-[11px] text-neutral-500 leading-relaxed"
-                                >
-                                    A wide hero image shown at the top of the
-                                    public tournament page. Recommended
-                                    <span class="font-bold text-neutral-700"
-                                        >1600×900 px</span
-                                    >
-                                    (16:9), JPG / PNG / WebP, max 5 MB.
-                                </p>
-
-                                <div class="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onclick={() => coverInput?.click()}
-                                        class="h-9 px-4 border border-black/12 text-[11px] font-medium text-neutral-700 inline-flex items-center gap-1.5 hover:border-black/30 transition-colors"
-                                    >
-                                        <Upload class="size-3" />
-                                        {existingCoverUrl &&
-                                        !form.cover_image_remove
-                                            ? 'Replace'
-                                            : 'Upload cover'}
-                                    </button>
-                                    {#if existingCoverUrl && !form.cover_image_remove && !coverPreviewUrl}
-                                        <button
-                                            type="button"
-                                            onclick={() => {
-                                                form.cover_image = null;
-                                                form.cover_image_remove = true;
-                                            }}
-                                            class="h-9 px-3 text-[11px] font-medium text-neutral-500 inline-flex items-center gap-1.5 hover:text-red-600 transition-colors"
-                                        >
-                                            <X class="size-3" /> Remove
-                                        </button>
-                                    {/if}
-                                    {#if coverPreviewUrl || form.cover_image_remove}
-                                        <button
-                                            type="button"
-                                            onclick={() => {
-                                                form.cover_image = null;
-                                                form.cover_image_remove = false;
-                                                if (coverInput) {
-                                                    coverInput.value = '';
-                                                }
-                                            }}
-                                            class="h-9 px-3 text-[11px] font-medium text-neutral-500 inline-flex items-center gap-1.5 hover:text-neutral-800 transition-colors"
-                                        >
-                                            <X class="size-3" /> Clear
-                                        </button>
-                                    {/if}
-                                </div>
-
-                                <input
-                                    bind:this={coverInput}
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    class="hidden"
-                                    onchange={(e: Event) => {
-                                        const target = e.target as HTMLInputElement;
-                                        const file = target.files?.[0] ?? null;
-                                        form.cover_image = file;
-                                        form.cover_image_remove = false;
-                                    }}
-                                />
-
-                                {#if form.errors.cover_image}
-                                    <p class="text-red-600 text-[11px]">
-                                        {form.errors.cover_image}
-                                    </p>
-                                {/if}
-                            </div>
-                        </div>
-                    </div>
                 {/if}
-            </div>
-
-            <!-- Section: Details -->
-            <div class="border border-black/10 bg-white mb-4">
-                <button
-                    type="button"
-                    class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
-                    onclick={() => toggle('details')}
-                >
-                    <span
-                        class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
-                        style="transform: rotate({openSection === 'details'
-                            ? 90
-                            : 0}deg)"
-                    >
-                        <ChevronRight class="size-3.5" />
-                    </span>
-                    <span
-                        class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
-                        >Details</span
-                    >
-                </button>
-                {#if openSection === 'details'}
-                    <div class="border-t border-black/8 p-6">
-                        <div class="space-y-5">
-                            <div class="grid grid-cols-3 gap-4">
-                                <div class="col-span-2">
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Tournament Name</Label
-                                    >
-                                    <input
-                                        type="text"
-                                        bind:value={form.name}
-                                        oninput={(e: Event) =>
-                                            autoSlug(
-                                                (e.target as HTMLInputElement)
-                                                    .value,
-                                            )}
-                                        placeholder="NorCal Spring Open"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.name}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.name}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Status</Label
-                                    >
-                                    <Select bind:value={form.status}>
-                                        <SelectTrigger
-                                            class="w-full h-9 px-3 text-[13px]"
-                                        >
-                                            {statusLabels[form.status]}
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem
-                                                value="draft"
-                                                label="Draft"
-                                            />
-                                            <SelectItem
-                                                value="open"
-                                                label="Open"
-                                            />
-                                            <SelectItem
-                                                value="closed"
-                                                label="Closed"
-                                            />
-                                            <SelectItem
-                                                value="completed"
-                                                label="Completed"
-                                            />
-                                        </SelectContent>
-                                    </Select>
-                                    {#if form.errors.status}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.status}
-                                        </p>
-                                    {/if}
-                                </div>
-
-                                <div class="col-span-2">
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Slug</Label
-                                    >
-                                    <Input
-                                        type="text"
-                                        bind:value={form.slug}
-                                        placeholder="norcal-spring-open"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.slug}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.slug}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Featured</Label
-                                    >
-                                    <div class="h-9 flex items-center gap-3">
-                                        <button
-                                            type="button"
-                                            onclick={() =>
-                                                (form.is_featured =
-                                                    !form.is_featured)}
-                                            class={`relative flex items-center h-5 w-9 border-2 transition-colors ${form.is_featured ? 'bg-coral border-coral' : 'bg-neutral-100 border-black/15'}`}
-                                        >
-                                            <span
-                                                class={`absolute h-3 w-3 bg-white shadow-sm transition-all ${form.is_featured ? 'left-[18px]' : 'left-[2px]'}`}
-                                            ></span>
-                                        </button>
-                                        <span
-                                            class="text-[12px] text-neutral-500"
-                                            >{form.is_featured
-                                                ? 'Yes — shown on homepage'
-                                                : 'No'}</span
-                                        >
-                                    </div>
-                                </div>
-
-                                <div class="col-span-3">
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Tagline</Label
-                                    >
-                                    <Input
-                                        type="text"
-                                        bind:value={form.tagline}
-                                        placeholder="The premier event in the region"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.tagline}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.tagline}
-                                        </p>
-                                    {/if}
-                                </div>
-                            </div>
-
-                            <hr class="border-black/8" />
-
-                            <div class="grid grid-cols-3 gap-4">
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Dates (display)</Label
-                                    >
-                                    <Input
-                                        type="text"
-                                        bind:value={form.dates}
-                                        placeholder="May 3 – 5, 2026"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.dates}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.dates}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Starts</Label
-                                    >
-                                    <Input
-                                        type="date"
-                                        bind:value={form.start}
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors"
-                                    />
-                                    {#if form.errors.start}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.start}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Ends</Label
-                                    >
-                                    <Input
-                                        type="date"
-                                        bind:value={form.end}
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors"
-                                    />
-                                    {#if form.errors.end}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.end}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Registration Closes</Label
-                                    >
-                                    <Input
-                                        type="datetime-local"
-                                        bind:value={form.registration_closes}
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors"
-                                    />
-                                    {#if form.errors.registration_closes}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.registration_closes}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >City</Label
-                                    >
-                                    <Input
-                                        type="text"
-                                        bind:value={form.city}
-                                        placeholder="San Jose, CA"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.city}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.city}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Venue</Label
-                                    >
-                                    <Input
-                                        type="text"
-                                        bind:value={form.venue}
-                                        placeholder="San Jose Tennis Center"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.venue}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.venue}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Surface</Label
-                                    >
-                                    <Select bind:value={form.surface}>
-                                        <SelectTrigger
-                                            class="w-full h-9 px-3 text-[13px]"
-                                        >
-                                            {surfaceLabels[form.surface]}
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem
-                                                value="hard"
-                                                label="Hard"
-                                            />
-                                            <SelectItem
-                                                value="clay"
-                                                label="Clay"
-                                            />
-                                            <SelectItem
-                                                value="grass"
-                                                label="Grass"
-                                            />
-                                            <SelectItem
-                                                value="indoor_hard"
-                                                label="Indoor"
-                                            />
-                                        </SelectContent>
-                                    </Select>
-                                    {#if form.errors.surface}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.surface}
-                                        </p>
-                                    {/if}
-                                </div>
-                            </div>
-
-                            <hr class="border-black/8" />
-
-                            <div class="grid grid-cols-3 gap-4">
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Ball Type</Label
-                                    >
-                                    <Input
-                                        type="text"
-                                        bind:value={form.ball_type}
-                                        placeholder="Wilson US Open"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.ball_type}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.ball_type}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Venue Type</Label
-                                    >
-                                    <Select bind:value={form.venue_type}>
-                                        <SelectTrigger
-                                            class="w-full h-9 px-3 text-[13px]"
-                                        >
-                                            {venueTypeLabels[form.venue_type] ??
-                                                '—'}
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="" label="—" />
-                                            <SelectItem
-                                                value="indoor"
-                                                label="Indoor"
-                                            />
-                                            <SelectItem
-                                                value="outdoor"
-                                                label="Outdoor"
-                                            />
-                                            <SelectItem
-                                                value="both"
-                                                label="Indoor & Outdoor"
-                                            />
-                                        </SelectContent>
-                                    </Select>
-                                    {#if form.errors.venue_type}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.venue_type}
-                                        </p>
-                                    {/if}
-                                </div>
-                            </div>
-
-                            <hr class="border-black/8" />
-
-                            <div>
-                                <p
-                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-3"
+            </button>
+            {#if openSection === 'cover'}
+                <div class="border-t border-black/8 p-6">
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="col-span-1">
+                            {#if coverPreviewUrl}
+                                <div
+                                    class="aspect-video bg-neutral-100 border border-black/10 overflow-hidden"
                                 >
-                                    Perks
-                                </p>
-                                <div class="space-y-2">
-                                    {#each form.perks as perk, i (i)}
-                                        <div>
-                                            <div
-                                                class="flex items-center gap-2"
-                                            >
-                                                <input
-                                                    type="text"
-                                                    value={perk.key}
-                                                    oninput={(e: Event) =>
-                                                        updatePerk(
-                                                            i,
-                                                            'key',
-                                                            (
-                                                                e.target as HTMLInputElement
-                                                            ).value,
-                                                        )}
-                                                    placeholder="Perk name"
-                                                    class="w-[180px] shrink-0 h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={perk.value}
-                                                    oninput={(e: Event) =>
-                                                        updatePerk(
-                                                            i,
-                                                            'value',
-                                                            (
-                                                                e.target as HTMLInputElement
-                                                            ).value,
-                                                        )}
-                                                    placeholder="Description"
-                                                    class="flex-1 h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onclick={() =>
-                                                        removePerk(i)}
-                                                    class="h-9 w-9 shrink-0 flex items-center justify-center border border-black/10 text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                                >
-                                                    <Trash class="size-3.5" />
-                                                </button>
-                                            </div>
-                                            {#if form.errors[`perks.${i}.key`] || form.errors[`perks.${i}.value`]}
-                                                <p
-                                                    class="text-red-600 text-[10px] mt-0.5"
-                                                >
-                                                    {form.errors[
-                                                        `perks.${i}.key`
-                                                    ] ||
-                                                        form.errors[
-                                                            `perks.${i}.value`
-                                                        ]}
-                                                </p>
-                                            {/if}
-                                        </div>
-                                    {/each}
+                                    <img
+                                        src={coverPreviewUrl}
+                                        alt="Cover preview"
+                                        class="w-full h-full object-cover"
+                                    />
                                 </div>
-                                {#if form.errors.perks}
-                                    <p class="text-red-600 text-[11px] mt-1">
-                                        {form.errors.perks}
-                                    </p>
-                                {/if}
+                                <p class="mt-2 text-[10px] text-neutral-500">
+                                    New file — will replace current cover on
+                                    save.
+                                </p>
+                            {:else if showExistingCover}
+                                <div
+                                    class="aspect-video bg-neutral-100 border border-black/10 overflow-hidden"
+                                >
+                                    <img
+                                        src={existingCoverUrl}
+                                        alt={tournament?.name ?? 'Cover'}
+                                        class="w-full h-full object-cover"
+                                    />
+                                </div>
+                            {:else}
+                                <div
+                                    class="aspect-video bg-neutral-50 border border-dashed border-black/15 flex flex-col items-center justify-center text-neutral-400"
+                                >
+                                    <Image class="size-6 mb-2" />
+                                    <span
+                                        class="text-[11px] font-medium uppercase tracking-[0.18em]"
+                                        >No cover yet</span
+                                    >
+                                </div>
+                            {/if}
+                        </div>
+
+                        <div class="col-span-2 flex flex-col gap-3">
+                            <p
+                                class="text-[11px] text-neutral-500 leading-relaxed"
+                            >
+                                A wide hero image shown at the top of the public
+                                tournament page. Recommended
+                                <span class="font-bold text-neutral-700"
+                                    >1600×900 px</span
+                                >
+                                (16:9), JPG / PNG / WebP, max 5 MB.
+                            </p>
+
+                            <div class="flex items-center gap-2">
                                 <button
                                     type="button"
-                                    onclick={addPerk}
-                                    class="mt-3 h-8 px-3 border border-black/12 text-[11px] font-medium text-neutral-600 inline-flex items-center gap-1.5 hover:border-black/25 transition-colors"
+                                    onclick={() => coverInput?.click()}
+                                    class="h-9 px-4 border border-black/12 text-[11px] font-medium text-neutral-700 inline-flex items-center gap-1.5 hover:border-black/30 transition-colors"
                                 >
-                                    <Plus class="size-3" /> Add perk
+                                    <Upload class="size-3" />
+                                    {existingCoverUrl &&
+                                    !form.cover_image_remove
+                                        ? 'Replace'
+                                        : 'Upload cover'}
                                 </button>
+                                {#if existingCoverUrl && !form.cover_image_remove && !coverPreviewUrl}
+                                    <button
+                                        type="button"
+                                        onclick={() => {
+                                            form.cover_image = null;
+                                            form.cover_image_remove = true;
+                                        }}
+                                        class="h-9 px-3 text-[11px] font-medium text-neutral-500 inline-flex items-center gap-1.5 hover:text-red-600 transition-colors"
+                                    >
+                                        <X class="size-3" /> Remove
+                                    </button>
+                                {/if}
+                                {#if coverPreviewUrl || form.cover_image_remove}
+                                    <button
+                                        type="button"
+                                        onclick={() => {
+                                            form.cover_image = null;
+                                            form.cover_image_remove = false;
+
+                                            if (coverInput) {
+                                                coverInput.value = '';
+                                            }
+                                        }}
+                                        class="h-9 px-3 text-[11px] font-medium text-neutral-500 inline-flex items-center gap-1.5 hover:text-neutral-800 transition-colors"
+                                    >
+                                        <X class="size-3" /> Clear
+                                    </button>
+                                {/if}
                             </div>
 
-                            <hr class="border-black/8" />
+                            <input
+                                bind:this={coverInput}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="hidden"
+                                onchange={(e: Event) => {
+                                    const target = e.target as HTMLInputElement;
+                                    const file = target.files?.[0] ?? null;
+                                    form.cover_image = file;
+                                    form.cover_image_remove = false;
+                                }}
+                            />
 
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Contact Person Name</Label
-                                    >
-                                    <Input
-                                        type="text"
-                                        bind:value={form.contact_person_name}
-                                        placeholder="Budi Santoso"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.contact_person_name}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.contact_person_name}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <div>
-                                    <Label
-                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
-                                        >Contact Person Phone</Label
-                                    >
-                                    <Input
-                                        type="text"
-                                        bind:value={form.contact_person_phone}
-                                        placeholder="+628123456789"
-                                        class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
-                                    />
-                                    {#if form.errors.contact_person_phone}
-                                        <p
-                                            class="text-red-600 text-[11px] mt-1"
-                                        >
-                                            {form.errors.contact_person_phone}
-                                        </p>
-                                    {/if}
-                                </div>
-                                <p
-                                    class="col-span-2 text-[10px] text-neutral-500 leading-relaxed"
-                                >
-                                    Used for the floating WhatsApp help button on
-                                    the public tournament and registration pages.
-                                    If empty, the button is hidden.
+                            {#if form.errors.cover_image}
+                                <p class="text-red-600 text-[11px]">
+                                    {form.errors.cover_image}
                                 </p>
-                            </div>
+                            {/if}
                         </div>
                     </div>
-                {/if}
-            </div>
-
-            <!-- Section: Divisions -->
-            <div class="border border-black/10 bg-white mb-4">
-                <div class="flex items-center px-5 h-12 w-full select-none">
-                    <button
-                        type="button"
-                        class="flex items-center flex-1 min-w-0 cursor-pointer hover:bg-neutral-50 -ml-5 pl-5 h-full"
-                        onclick={() => toggle('divisions')}
-                    >
-                        <span
-                            class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
-                            style="transform: rotate({openSection ===
-                            'divisions'
-                                ? 90
-                                : 0}deg)"
-                        >
-                            <ChevronRight class="size-3.5" />
-                        </span>
-                        <span
-                            class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
-                            >Divisions</span
-                        >
-                        {#if form.divisions.length}
-                            <span
-                                class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold"
-                                >{form.divisions.length}</span
-                            >
-                        {/if}
-                    </button>
-                    <button
-                        type="button"
-                        onclick={() => {
-                            editingDivision = { ...emptyDivision };
-                            divisionErrors = {};
-                        }}
-                        class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0"
-                    >
-                        <Plus class="size-3" /> Add Division
-                    </button>
                 </div>
-                {#if openSection === 'divisions'}
-                    <div class="border-t border-black/8 p-6">
-                        {#if form.divisions.length === 0}
-                            <p
-                                class="py-8 text-center text-[13px] text-neutral-400"
-                            >
-                                No divisions yet — click "Add Division" above to
-                                create one.
-                            </p>
-                        {:else}
-                            <div class="overflow-x-auto">
-                                <div
-                                    class="grid px-3 h-8 items-center text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 select-none border-b border-black/6"
-                                    style="grid-template-columns: 2fr 1fr 90px 80px 70px 80px 80px"
-                                >
-                                    <div>Division</div>
-                                    <div>Category · Gender</div>
-                                    <div>Rating</div>
-                                    <div>Draw</div>
-                                    <div>Fee</div>
-                                    <div class="text-right">Order</div>
-                                    <div></div>
-                                </div>
-                                {#each form.divisions as d, i (d.id ?? d._key)}
-                                    <div
-                                        class="grid border-b border-black/5 last:border-0 px-3 h-12 items-center hover:bg-neutral-50 group"
-                                        style="grid-template-columns: 2fr 1fr 90px 80px 70px 80px 80px"
-                                    >
-                                        <div
-                                            class="font-medium text-[13px] text-neutral-900 truncate pr-3"
-                                        >
-                                            {d.name}
-                                        </div>
-                                        <div
-                                            class="text-[12px] text-neutral-500"
-                                        >
-                                            {d.participation_category ||
-                                                'singles'} · {d.gender ||
-                                                'open'}
-                                        </div>
-                                        <div
-                                            class="text-[12px] font-mono text-neutral-500"
-                                        >
-                                            {d.rating_min && d.rating_max
-                                                ? `${d.rating_min}–${d.rating_max}`
-                                                : 'Open'}
-                                        </div>
-                                        <div
-                                            class="text-[12px] text-neutral-500"
-                                        >
-                                            {d.draw_size}
-                                        </div>
-                                        <div
-                                            class="text-[12px] text-neutral-500"
-                                        >
-                                            {d.fee}
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-end gap-0.5"
-                                        >
-                                            <button
-                                                type="button"
-                                                onclick={() =>
-                                                    moveDivision(i, -1)}
-                                                disabled={i === 0}
-                                                class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800 disabled:opacity-20 disabled:cursor-not-allowed"
-                                                ><MoveUp
-                                                    class="size-3.5"
-                                                /></button
-                                            >
-                                            <button
-                                                type="button"
-                                                onclick={() =>
-                                                    moveDivision(i, 1)}
-                                                disabled={i ===
-                                                    form.divisions.length - 1}
-                                                class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800 disabled:opacity-20 disabled:cursor-not-allowed"
-                                                ><MoveDown
-                                                    class="size-3.5"
-                                                /></button
-                                            >
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <button
-                                                type="button"
-                                                onclick={() => {
-                                                    editingDivision = { ...d };
-                                                    divisionErrors = {};
-                                                }}
-                                                class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800"
-                                                ><Pencil
-                                                    class="size-3.5"
-                                                /></button
-                                            >
-                                            <button
-                                                type="button"
-                                                onclick={() =>
-                                                    removeDivision(i)}
-                                                class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50"
-                                                ><Trash
-                                                    class="size-3.5"
-                                                /></button
-                                            >
-                                        </div>
-                                    </div>
-                                {/each}
-                            </div>
-                        {/if}
-                    </div>
-                {/if}
-            </div>
+            {/if}
+        </div>
 
-            <!-- Section: Schedule -->
-            <div class="border border-black/10 bg-white mb-4">
-                <button
-                    type="button"
-                    class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
-                    onclick={() => toggle('schedule')}
+        <!-- Section: Details -->
+        <div class="border border-black/10 bg-white mb-4">
+            <button
+                type="button"
+                class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
+                onclick={() => toggle('details')}
+            >
+                <span
+                    class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
+                    style="transform: rotate({openSection === 'details'
+                        ? 90
+                        : 0}deg)"
                 >
-                    <span
-                        class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
-                        style="transform: rotate({openSection === 'schedule'
-                            ? 90
-                            : 0}deg)"
-                    >
-                        <ChevronRight class="size-3.5" />
-                    </span>
-                    <span
-                        class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
-                        >Schedule</span
-                    >
-                    {#if form.schedule.length}
-                        <span
-                            class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold"
-                            >{form.schedule.length}</span
-                        >
-                    {/if}
-                </button>
-                {#if openSection === 'schedule'}
-                    <div class="border-t border-black/8 p-6">
-                        {#if form.schedule.length === 0}
-                            <p class="py-4 text-[13px] text-neutral-400">
-                                No schedule days added yet.
+                    <ChevronRight class="size-3.5" />
+                </span>
+                <span
+                    class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
+                    >Details</span
+                >
+            </button>
+            {#if openSection === 'details'}
+                <div class="border-t border-black/8 p-6">
+                    <div class="space-y-5">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="col-span-2">
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Tournament Name</Label
+                                >
+                                <input
+                                    type="text"
+                                    bind:value={form.name}
+                                    oninput={(e: Event) =>
+                                        autoSlug(
+                                            (e.target as HTMLInputElement)
+                                                .value,
+                                        )}
+                                    placeholder="NorCal Spring Open"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.name}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.name}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Status</Label
+                                >
+                                <Select bind:value={form.status}>
+                                    <SelectTrigger
+                                        class="w-full h-9 px-3 text-[13px]"
+                                    >
+                                        {statusLabels[form.status]}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            value="draft"
+                                            label="Draft"
+                                        />
+                                        <SelectItem value="open" label="Open" />
+                                        <SelectItem
+                                            value="closed"
+                                            label="Closed"
+                                        />
+                                        <SelectItem
+                                            value="completed"
+                                            label="Completed"
+                                        />
+                                    </SelectContent>
+                                </Select>
+                                {#if form.errors.status}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.status}
+                                    </p>
+                                {/if}
+                            </div>
+
+                            <div class="col-span-2">
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Slug</Label
+                                >
+                                <Input
+                                    type="text"
+                                    bind:value={form.slug}
+                                    placeholder="norcal-spring-open"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.slug}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.slug}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Featured</Label
+                                >
+                                <div class="h-9 flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onclick={() =>
+                                            (form.is_featured =
+                                                !form.is_featured)}
+                                        class={`relative flex items-center h-5 w-9 border-2 transition-colors ${form.is_featured ? 'bg-coral border-coral' : 'bg-neutral-100 border-black/15'}`}
+                                    >
+                                        <span
+                                            class={`absolute h-3 w-3 bg-white shadow-sm transition-all ${form.is_featured ? 'left-[18px]' : 'left-[2px]'}`}
+                                        ></span>
+                                    </button>
+                                    <span class="text-[12px] text-neutral-500"
+                                        >{form.is_featured
+                                            ? 'Yes — shown on homepage'
+                                            : 'No'}</span
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="col-span-3">
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Tagline</Label
+                                >
+                                <Input
+                                    type="text"
+                                    bind:value={form.tagline}
+                                    placeholder="The premier event in the region"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.tagline}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.tagline}
+                                    </p>
+                                {/if}
+                            </div>
+                        </div>
+
+                        <hr class="border-black/8" />
+
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Dates (display)</Label
+                                >
+                                <Input
+                                    type="text"
+                                    bind:value={form.dates}
+                                    placeholder="May 3 – 5, 2026"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.dates}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.dates}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Starts</Label
+                                >
+                                <Input
+                                    type="date"
+                                    bind:value={form.start}
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors"
+                                />
+                                {#if form.errors.start}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.start}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Ends</Label
+                                >
+                                <Input
+                                    type="date"
+                                    bind:value={form.end}
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors"
+                                />
+                                {#if form.errors.end}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.end}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Registration Closes</Label
+                                >
+                                <Input
+                                    type="datetime-local"
+                                    bind:value={form.registration_closes}
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors"
+                                />
+                                {#if form.errors.registration_closes}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.registration_closes}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >City</Label
+                                >
+                                <Input
+                                    type="text"
+                                    bind:value={form.city}
+                                    placeholder="San Jose, CA"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.city}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.city}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Venue</Label
+                                >
+                                <Input
+                                    type="text"
+                                    bind:value={form.venue}
+                                    placeholder="San Jose Tennis Center"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.venue}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.venue}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Surface</Label
+                                >
+                                <Select bind:value={form.surface}>
+                                    <SelectTrigger
+                                        class="w-full h-9 px-3 text-[13px]"
+                                    >
+                                        {surfaceLabels[form.surface]}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="hard" label="Hard" />
+                                        <SelectItem value="clay" label="Clay" />
+                                        <SelectItem
+                                            value="grass"
+                                            label="Grass"
+                                        />
+                                        <SelectItem
+                                            value="indoor_hard"
+                                            label="Indoor"
+                                        />
+                                    </SelectContent>
+                                </Select>
+                                {#if form.errors.surface}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.surface}
+                                    </p>
+                                {/if}
+                            </div>
+                        </div>
+
+                        <hr class="border-black/8" />
+
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Ball Type</Label
+                                >
+                                <Input
+                                    type="text"
+                                    bind:value={form.ball_type}
+                                    placeholder="Wilson US Open"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.ball_type}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.ball_type}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Venue Type</Label
+                                >
+                                <Select bind:value={form.venue_type}>
+                                    <SelectTrigger
+                                        class="w-full h-9 px-3 text-[13px]"
+                                    >
+                                        {venueTypeLabels[form.venue_type] ??
+                                            '—'}
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="" label="—" />
+                                        <SelectItem
+                                            value="indoor"
+                                            label="Indoor"
+                                        />
+                                        <SelectItem
+                                            value="outdoor"
+                                            label="Outdoor"
+                                        />
+                                        <SelectItem
+                                            value="both"
+                                            label="Indoor & Outdoor"
+                                        />
+                                    </SelectContent>
+                                </Select>
+                                {#if form.errors.venue_type}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.venue_type}
+                                    </p>
+                                {/if}
+                            </div>
+                        </div>
+
+                        <hr class="border-black/8" />
+
+                        <div>
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-3"
+                            >
+                                Perks
                             </p>
-                        {:else}
-                            <div class="space-y-4">
-                                {#each form.schedule as day, di (day.id ?? day._key)}
-                                    <div class="border border-black/8">
-                                        <div
-                                            class="flex items-center gap-2 px-4 py-2.5 bg-neutral-50 border-b border-black/6"
-                                        >
-                                            <span
-                                                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 shrink-0 w-8"
-                                                >Day {di + 1}</span
-                                            >
+                            <div class="space-y-2">
+                                {#each form.perks as perk, i (i)}
+                                    <div>
+                                        <div class="flex items-center gap-2">
                                             <input
                                                 type="text"
-                                                value={day.day_label}
+                                                value={perk.key}
                                                 oninput={(e: Event) =>
-                                                    updateScheduleDay(
-                                                        di,
+                                                    updatePerk(
+                                                        i,
+                                                        'key',
                                                         (
                                                             e.target as HTMLInputElement
                                                         ).value,
                                                     )}
-                                                placeholder="Saturday, May 3"
-                                                class="flex-1 h-9 px-3 border border-black/12 bg-white text-[13px] outline-none focus:border-black/35 placeholder:text-neutral-300"
+                                                placeholder="Perk name"
+                                                class="w-[180px] shrink-0 h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300"
                                             />
-                                            {#if form.errors[`schedule.${di}.day_label`]}
-                                                <span
-                                                    class="text-red-600 text-[10px]"
-                                                    >{form.errors[
-                                                        `schedule.${di}.day_label`
-                                                    ]}</span
-                                                >
-                                            {/if}
+                                            <input
+                                                type="text"
+                                                value={perk.value}
+                                                oninput={(e: Event) =>
+                                                    updatePerk(
+                                                        i,
+                                                        'value',
+                                                        (
+                                                            e.target as HTMLInputElement
+                                                        ).value,
+                                                    )}
+                                                placeholder="Description"
+                                                class="flex-1 h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300"
+                                            />
                                             <button
                                                 type="button"
-                                                onclick={() =>
-                                                    removeScheduleDay(di)}
-                                                class="h-9 w-9 shrink-0 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50"
-                                                ><Trash
-                                                    class="size-3.5"
-                                                /></button
+                                                onclick={() => removePerk(i)}
+                                                class="h-9 w-9 shrink-0 flex items-center justify-center border border-black/10 text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                                             >
+                                                <Trash class="size-3.5" />
+                                            </button>
                                         </div>
-                                        <div class="p-4 space-y-2">
-                                            {#each day.items as item, ii (item.id ?? item._key)}
-                                                <div
-                                                    class="flex items-center gap-2"
-                                                >
-                                                    <span
-                                                        class="text-[11px] font-mono text-neutral-300 w-5 text-right shrink-0"
-                                                        >{ii + 1}</span
-                                                    >
-                                                    <input
-                                                        type="text"
-                                                        value={item.label}
-                                                        oninput={(e: Event) =>
-                                                            updateScheduleItem(
-                                                                di,
-                                                                ii,
-                                                                (
-                                                                    e.target as HTMLInputElement
-                                                                ).value,
-                                                            )}
-                                                        placeholder="8:00 AM — Check-in"
-                                                        class="flex-1 h-9 px-3 border border-black/12 bg-white text-[13px] outline-none focus:border-black/35 placeholder:text-neutral-300"
-                                                    />
-                                                    {#if form.errors[`schedule.${di}.items.${ii}.label`]}
-                                                        <span
-                                                            class="text-red-600 text-[10px]"
-                                                            >{form.errors[
-                                                                `schedule.${di}.items.${ii}.label`
-                                                            ]}</span
-                                                        >
-                                                    {/if}
-                                                    <button
-                                                        type="button"
-                                                        onclick={() =>
-                                                            removeScheduleItem(
-                                                                di,
-                                                                ii,
-                                                            )}
-                                                        class="h-9 w-9 shrink-0 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50"
-                                                        ><Trash
-                                                            class="size-3"
-                                                        /></button
-                                                    >
-                                                </div>
-                                            {/each}
-                                            <button
-                                                type="button"
-                                                onclick={() =>
-                                                    addScheduleItem(di)}
-                                                class="mt-1 h-7 px-3 border border-black/10 text-[10px] font-medium text-neutral-500 inline-flex items-center gap-1.5 hover:border-black/25"
-                                                ><Plus class="size-3" /> Add item</button
+                                        {#if form.errors[`perks.${i}.key`] || form.errors[`perks.${i}.value`]}
+                                            <p
+                                                class="text-red-600 text-[10px] mt-0.5"
                                             >
-                                        </div>
+                                                {form.errors[
+                                                    `perks.${i}.key`
+                                                ] ||
+                                                    form.errors[
+                                                        `perks.${i}.value`
+                                                    ]}
+                                            </p>
+                                        {/if}
                                     </div>
                                 {/each}
                             </div>
-                        {/if}
-                        <button
-                            type="button"
-                            onclick={addScheduleDay}
-                            class="mt-4 h-8 px-3 border border-black/12 text-[11px] font-medium text-neutral-600 inline-flex items-center gap-1.5 hover:border-black/25"
-                            ><Plus class="size-3" /> Add day</button
-                        >
-                    </div>
-                {/if}
-            </div>
+                            {#if form.errors.perks}
+                                <p class="text-red-600 text-[11px] mt-1">
+                                    {form.errors.perks}
+                                </p>
+                            {/if}
+                            <button
+                                type="button"
+                                onclick={addPerk}
+                                class="mt-3 h-8 px-3 border border-black/12 text-[11px] font-medium text-neutral-600 inline-flex items-center gap-1.5 hover:border-black/25 transition-colors"
+                            >
+                                <Plus class="size-3" /> Add perk
+                            </button>
+                        </div>
 
-            <!-- Section: Rules -->
-            <div class="border border-black/10 bg-white mb-4">
+                        <hr class="border-black/8" />
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Contact Person Name</Label
+                                >
+                                <Input
+                                    type="text"
+                                    bind:value={form.contact_person_name}
+                                    placeholder="Budi Santoso"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.contact_person_name}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.contact_person_name}
+                                    </p>
+                                {/if}
+                            </div>
+                            <div>
+                                <Label
+                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                    >Contact Person Phone</Label
+                                >
+                                <Input
+                                    type="text"
+                                    bind:value={form.contact_person_phone}
+                                    placeholder="+628123456789"
+                                    class="w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300"
+                                />
+                                {#if form.errors.contact_person_phone}
+                                    <p class="text-red-600 text-[11px] mt-1">
+                                        {form.errors.contact_person_phone}
+                                    </p>
+                                {/if}
+                            </div>
+                            <p
+                                class="col-span-2 text-[10px] text-neutral-500 leading-relaxed"
+                            >
+                                Used for the floating WhatsApp help button on
+                                the public tournament and registration pages. If
+                                empty, the button is hidden.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {/if}
+        </div>
+
+        <!-- Section: Divisions -->
+        <div class="border border-black/10 bg-white mb-4">
+            <div class="flex items-center px-5 h-12 w-full select-none">
                 <button
                     type="button"
-                    class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
-                    onclick={() => toggle('rules')}
+                    class="flex items-center flex-1 min-w-0 cursor-pointer hover:bg-neutral-50 -ml-5 pl-5 h-full"
+                    onclick={() => toggle('divisions')}
                 >
                     <span
                         class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
-                        style="transform: rotate({openSection === 'rules'
+                        style="transform: rotate({openSection === 'divisions'
                             ? 90
                             : 0}deg)"
                     >
@@ -1460,194 +1126,462 @@
                     </span>
                     <span
                         class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
-                        >Rules</span
+                        >Divisions</span
                     >
-                    {#if form.rules.length}
+                    {#if form.divisions.length}
                         <span
                             class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold"
-                            >{form.rules.length}</span
+                            >{form.divisions.length}</span
                         >
                     {/if}
                 </button>
-                {#if openSection === 'rules'}
-                    <div class="border-t border-black/8 p-6">
-                        {#if form.rules.length === 0}
-                            <p class="py-4 text-[13px] text-neutral-400">
-                                No rules added yet.
-                            </p>
-                        {:else}
-                            <div class="space-y-2">
-                                {#each form.rules as rule, i (rule.id ?? rule._key)}
-                                    <div class="flex items-start gap-2">
-                                        <div
-                                            class="flex flex-col gap-0.5 pt-2 shrink-0"
-                                        >
-                                            <button
-                                                type="button"
-                                                onclick={() => moveRule(i, -1)}
-                                                disabled={i === 0}
-                                                class="h-4 w-6 flex items-center justify-center text-neutral-300 hover:text-neutral-600 disabled:opacity-30"
-                                                ><MoveUp
-                                                    class="size-3"
-                                                /></button
-                                            >
-                                            <button
-                                                type="button"
-                                                onclick={() => moveRule(i, 1)}
-                                                disabled={i ===
-                                                    form.rules.length - 1}
-                                                class="h-4 w-6 flex items-center justify-center text-neutral-300 hover:text-neutral-600 disabled:opacity-30"
-                                                ><MoveDown
-                                                    class="size-3"
-                                                /></button
-                                            >
-                                        </div>
-                                        <span
-                                            class="text-[11px] font-bold text-neutral-300 pt-2.5 w-4 text-center shrink-0 font-mono"
-                                            >{i + 1}</span
-                                        >
-                                        <textarea
-                                            value={rule.body}
-                                            oninput={(e: Event) =>
-                                                updateRule(
-                                                    i,
-                                                    (
-                                                        e.target as HTMLTextAreaElement
-                                                    ).value,
-                                                )}
-                                            placeholder="Rule text..."
-                                            rows={2}
-                                            class="flex-1 px-3 py-2 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300 resize-none"
-                                        ></textarea>
-                                        {#if form.errors[`rules.${i}.body`]}
-                                            <span
-                                                class="text-red-600 text-[10px]"
-                                                >{form.errors[
-                                                    `rules.${i}.body`
-                                                ]}</span
-                                            >
-                                        {/if}
+                <button
+                    type="button"
+                    onclick={() => {
+                        editingDivision = { ...emptyDivision };
+                        divisionErrors = {};
+                    }}
+                    class="h-8 px-3 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.15em] inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0"
+                >
+                    <Plus class="size-3" /> Add Division
+                </button>
+            </div>
+            {#if openSection === 'divisions'}
+                <div class="border-t border-black/8 p-6">
+                    {#if form.divisions.length === 0}
+                        <p
+                            class="py-8 text-center text-[13px] text-neutral-400"
+                        >
+                            No divisions yet — click "Add Division" above to
+                            create one.
+                        </p>
+                    {:else}
+                        <div class="overflow-x-auto">
+                            <div
+                                class="grid px-3 h-8 items-center text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 select-none border-b border-black/6"
+                                style="grid-template-columns: 2fr 1fr 90px 80px 70px 80px 80px"
+                            >
+                                <div>Division</div>
+                                <div>Category · Gender</div>
+                                <div>Rating</div>
+                                <div>Draw</div>
+                                <div>Fee</div>
+                                <div class="text-right">Order</div>
+                                <div></div>
+                            </div>
+                            {#each form.divisions as d, i (d.id ?? d._key)}
+                                <div
+                                    class="grid border-b border-black/5 last:border-0 px-3 h-12 items-center hover:bg-neutral-50 group"
+                                    style="grid-template-columns: 2fr 1fr 90px 80px 70px 80px 80px"
+                                >
+                                    <div
+                                        class="font-medium text-[13px] text-neutral-900 truncate pr-3"
+                                    >
+                                        {d.name}
+                                    </div>
+                                    <div class="text-[12px] text-neutral-500">
+                                        {d.participation_category || 'singles'} ·
+                                        {d.gender || 'open'}
+                                    </div>
+                                    <div
+                                        class="text-[12px] font-mono text-neutral-500"
+                                    >
+                                        {d.rating_min && d.rating_max
+                                            ? `${d.rating_min}–${d.rating_max}`
+                                            : 'Open'}
+                                    </div>
+                                    <div class="text-[12px] text-neutral-500">
+                                        {d.draw_size}
+                                    </div>
+                                    <div class="text-[12px] text-neutral-500">
+                                        {d.fee}
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-end gap-0.5"
+                                    >
                                         <button
                                             type="button"
-                                            onclick={() => removeRule(i)}
-                                            class="h-9 w-9 mt-0 shrink-0 flex items-center justify-center border border-black/10 text-neutral-400 hover:text-red-600 hover:bg-red-50"
+                                            onclick={() => moveDivision(i, -1)}
+                                            disabled={i === 0}
+                                            class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800 disabled:opacity-20 disabled:cursor-not-allowed"
+                                            ><MoveUp class="size-3.5" /></button
+                                        >
+                                        <button
+                                            type="button"
+                                            onclick={() => moveDivision(i, 1)}
+                                            disabled={i ===
+                                                form.divisions.length - 1}
+                                            class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800 disabled:opacity-20 disabled:cursor-not-allowed"
+                                            ><MoveDown
+                                                class="size-3.5"
+                                            /></button
+                                        >
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <button
+                                            type="button"
+                                            onclick={() => {
+                                                editingDivision = { ...d };
+                                                divisionErrors = {};
+                                            }}
+                                            class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-neutral-800"
+                                            ><Pencil class="size-3.5" /></button
+                                        >
+                                        <button
+                                            type="button"
+                                            onclick={() => removeDivision(i)}
+                                            class="h-7 w-7 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50"
                                             ><Trash class="size-3.5" /></button
                                         >
                                     </div>
-                                {/each}
-                            </div>
-                        {/if}
-                        <button
-                            type="button"
-                            onclick={addRule}
-                            class="mt-3 h-8 px-3 border border-black/12 text-[11px] font-medium text-neutral-600 inline-flex items-center gap-1.5 hover:border-black/25"
-                            ><Plus class="size-3" /> Add rule</button
-                        >
-                    </div>
-                {/if}
-            </div>
-
-            <!-- Registration stats (edit mode only) -->
-            {#if !isCreate && tournament?.registrationStats}
-                <div class="border border-black/10 bg-white mb-4">
-                    <button
-                        type="button"
-                        class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
-                        onclick={() => toggle('registrations')}
-                    >
-                        <span
-                            class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
-                            style="transform: rotate({openSection ===
-                            'registrations'
-                                ? 90
-                                : 0}deg)"
-                        >
-                            <ChevronRight class="size-3.5" />
-                        </span>
-                        <span
-                            class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
-                            >Registrations</span
-                        >
-                    </button>
-                    {#if openSection === 'registrations'}
-                        <div class="border-t border-black/8 p-6">
-                            {#if tournament.registrationStats.total === 0}
-                                <p class="py-4 text-[13px] text-neutral-400">
-                                    No registrations yet.
-                                </p>
-                            {:else}
-                                <div class="space-y-5">
-                                    <div class="grid grid-cols-4 gap-3">
-                                        {#each [{ label: 'Total', value: tournament.registrationStats.total, cls: '' }, { label: 'Paid', value: tournament.registrationStats.paid, cls: 'text-emerald-700' }, { label: 'Pending', value: tournament.registrationStats.pending, cls: 'text-amber-600' }, { label: 'Failed', value: tournament.registrationStats.failed, cls: 'text-red-600' }] as stat}
-                                            <div
-                                                class="border border-black/8 p-4 bg-neutral-50/50"
-                                            >
-                                                <div
-                                                    class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1"
-                                                >
-                                                    {stat.label}
-                                                </div>
-                                                <div
-                                                    class="font-display font-black text-[30px] tracking-[-0.03em] leading-none {stat.cls}"
-                                                >
-                                                    {stat.value}
-                                                </div>
-                                            </div>
-                                        {/each}
-                                    </div>
-                                    <div>
-                                        <p
-                                            class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2"
-                                        >
-                                            By Division
-                                        </p>
-                                        <div class="space-y-1">
-                                            {#each tournament.registrationStats.by_division as d, i}
-                                                <Link
-                                                    href={`/admin/tournaments/${tournament.id}/divisions/${d.division_id}`}
-                                                    class="w-full flex items-center justify-between px-4 h-11 border border-black/8 bg-neutral-50/50 hover:bg-neutral-100 group transition-colors"
-                                                >
-                                                    <span
-                                                        class="text-[13px] font-medium text-neutral-800"
-                                                        >{d.name}</span
-                                                    >
-                                                    <div
-                                                        class="flex items-center gap-3"
-                                                    >
-                                                        <span
-                                                            class="text-[13px] font-mono tabular-nums text-neutral-500"
-                                                            >{d.count} registered</span
-                                                        >
-                                                        <ChevronRight
-                                                            class="size-3.5 text-neutral-400 group-hover:text-neutral-700"
-                                                        />
-                                                    </div>
-                                                    {#each getDivisionErrors(i) as divErr}
-                                                        <div
-                                                            class="px-3 py-1.5 text-red-600 text-[10px] border-b border-red-100 bg-red-50/50"
-                                                        >
-                                                            {divErr}
-                                                        </div>
-                                                    {/each}
-                                                </Link>
-                                            {/each}
-                                        </div>
-                                    </div>
-                                    <Link
-                                        href={`/admin/tournaments/${tournament.id}/registrations`}
-                                        class="h-10 px-5 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-700 inline-flex items-center gap-2 hover:border-black/30 hover:bg-neutral-50 transition-colors"
-                                    >
-                                        View All Registrations <ArrowRight
-                                            class="size-3.5"
-                                        />
-                                    </Link>
                                 </div>
-                            {/if}
+                            {/each}
                         </div>
                     {/if}
                 </div>
             {/if}
         </div>
+
+        <!-- Section: Schedule -->
+        <div class="border border-black/10 bg-white mb-4">
+            <button
+                type="button"
+                class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
+                onclick={() => toggle('schedule')}
+            >
+                <span
+                    class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
+                    style="transform: rotate({openSection === 'schedule'
+                        ? 90
+                        : 0}deg)"
+                >
+                    <ChevronRight class="size-3.5" />
+                </span>
+                <span
+                    class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
+                    >Schedule</span
+                >
+                {#if form.schedule.length}
+                    <span
+                        class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold"
+                        >{form.schedule.length}</span
+                    >
+                {/if}
+            </button>
+            {#if openSection === 'schedule'}
+                <div class="border-t border-black/8 p-6">
+                    {#if form.schedule.length === 0}
+                        <p class="py-4 text-[13px] text-neutral-400">
+                            No schedule days added yet.
+                        </p>
+                    {:else}
+                        <div class="space-y-4">
+                            {#each form.schedule as day, di (day.id ?? day._key)}
+                                <div class="border border-black/8">
+                                    <div
+                                        class="flex items-center gap-2 px-4 py-2.5 bg-neutral-50 border-b border-black/6"
+                                    >
+                                        <span
+                                            class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 shrink-0 w-8"
+                                            >Day {di + 1}</span
+                                        >
+                                        <input
+                                            type="text"
+                                            value={day.day_label}
+                                            oninput={(e: Event) =>
+                                                updateScheduleDay(
+                                                    di,
+                                                    (
+                                                        e.target as HTMLInputElement
+                                                    ).value,
+                                                )}
+                                            placeholder="Saturday, May 3"
+                                            class="flex-1 h-9 px-3 border border-black/12 bg-white text-[13px] outline-none focus:border-black/35 placeholder:text-neutral-300"
+                                        />
+                                        {#if form.errors[`schedule.${di}.day_label`]}
+                                            <span
+                                                class="text-red-600 text-[10px]"
+                                                >{form.errors[
+                                                    `schedule.${di}.day_label`
+                                                ]}</span
+                                            >
+                                        {/if}
+                                        <button
+                                            type="button"
+                                            onclick={() =>
+                                                removeScheduleDay(di)}
+                                            class="h-9 w-9 shrink-0 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50"
+                                            ><Trash class="size-3.5" /></button
+                                        >
+                                    </div>
+                                    <div class="p-4 space-y-2">
+                                        {#each day.items as item, ii (item.id ?? item._key)}
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="text-[11px] font-mono text-neutral-300 w-5 text-right shrink-0"
+                                                    >{ii + 1}</span
+                                                >
+                                                <input
+                                                    type="text"
+                                                    value={item.label}
+                                                    oninput={(e: Event) =>
+                                                        updateScheduleItem(
+                                                            di,
+                                                            ii,
+                                                            (
+                                                                e.target as HTMLInputElement
+                                                            ).value,
+                                                        )}
+                                                    placeholder="8:00 AM — Check-in"
+                                                    class="flex-1 h-9 px-3 border border-black/12 bg-white text-[13px] outline-none focus:border-black/35 placeholder:text-neutral-300"
+                                                />
+                                                {#if form.errors[`schedule.${di}.items.${ii}.label`]}
+                                                    <span
+                                                        class="text-red-600 text-[10px]"
+                                                        >{form.errors[
+                                                            `schedule.${di}.items.${ii}.label`
+                                                        ]}</span
+                                                    >
+                                                {/if}
+                                                <button
+                                                    type="button"
+                                                    onclick={() =>
+                                                        removeScheduleItem(
+                                                            di,
+                                                            ii,
+                                                        )}
+                                                    class="h-9 w-9 shrink-0 flex items-center justify-center text-neutral-400 hover:text-red-600 hover:bg-red-50"
+                                                    ><Trash
+                                                        class="size-3"
+                                                    /></button
+                                                >
+                                            </div>
+                                        {/each}
+                                        <button
+                                            type="button"
+                                            onclick={() => addScheduleItem(di)}
+                                            class="mt-1 h-7 px-3 border border-black/10 text-[10px] font-medium text-neutral-500 inline-flex items-center gap-1.5 hover:border-black/25"
+                                            ><Plus class="size-3" /> Add item</button
+                                        >
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                    <button
+                        type="button"
+                        onclick={addScheduleDay}
+                        class="mt-4 h-8 px-3 border border-black/12 text-[11px] font-medium text-neutral-600 inline-flex items-center gap-1.5 hover:border-black/25"
+                        ><Plus class="size-3" /> Add day</button
+                    >
+                </div>
+            {/if}
+        </div>
+
+        <!-- Section: Rules -->
+        <div class="border border-black/10 bg-white mb-4">
+            <button
+                type="button"
+                class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
+                onclick={() => toggle('rules')}
+            >
+                <span
+                    class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
+                    style="transform: rotate({openSection === 'rules'
+                        ? 90
+                        : 0}deg)"
+                >
+                    <ChevronRight class="size-3.5" />
+                </span>
+                <span
+                    class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
+                    >Rules</span
+                >
+                {#if form.rules.length}
+                    <span
+                        class="ml-2 px-1.5 h-4 inline-flex items-center bg-neutral-100 text-neutral-500 text-[10px] font-bold"
+                        >{form.rules.length}</span
+                    >
+                {/if}
+            </button>
+            {#if openSection === 'rules'}
+                <div class="border-t border-black/8 p-6">
+                    {#if form.rules.length === 0}
+                        <p class="py-4 text-[13px] text-neutral-400">
+                            No rules added yet.
+                        </p>
+                    {:else}
+                        <div class="space-y-2">
+                            {#each form.rules as rule, i (rule.id ?? rule._key)}
+                                <div class="flex items-start gap-2">
+                                    <div
+                                        class="flex flex-col gap-0.5 pt-2 shrink-0"
+                                    >
+                                        <button
+                                            type="button"
+                                            onclick={() => moveRule(i, -1)}
+                                            disabled={i === 0}
+                                            class="h-4 w-6 flex items-center justify-center text-neutral-300 hover:text-neutral-600 disabled:opacity-30"
+                                            ><MoveUp class="size-3" /></button
+                                        >
+                                        <button
+                                            type="button"
+                                            onclick={() => moveRule(i, 1)}
+                                            disabled={i ===
+                                                form.rules.length - 1}
+                                            class="h-4 w-6 flex items-center justify-center text-neutral-300 hover:text-neutral-600 disabled:opacity-30"
+                                            ><MoveDown class="size-3" /></button
+                                        >
+                                    </div>
+                                    <span
+                                        class="text-[11px] font-bold text-neutral-300 pt-2.5 w-4 text-center shrink-0 font-mono"
+                                        >{i + 1}</span
+                                    >
+                                    <textarea
+                                        value={rule.body}
+                                        oninput={(e: Event) =>
+                                            updateRule(
+                                                i,
+                                                (
+                                                    e.target as HTMLTextAreaElement
+                                                ).value,
+                                            )}
+                                        placeholder="Rule text..."
+                                        rows={2}
+                                        class="flex-1 px-3 py-2 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 placeholder:text-neutral-300 resize-none"
+                                    ></textarea>
+                                    {#if form.errors[`rules.${i}.body`]}
+                                        <span class="text-red-600 text-[10px]"
+                                            >{form.errors[
+                                                `rules.${i}.body`
+                                            ]}</span
+                                        >
+                                    {/if}
+                                    <button
+                                        type="button"
+                                        onclick={() => removeRule(i)}
+                                        class="h-9 w-9 mt-0 shrink-0 flex items-center justify-center border border-black/10 text-neutral-400 hover:text-red-600 hover:bg-red-50"
+                                        ><Trash class="size-3.5" /></button
+                                    >
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                    <button
+                        type="button"
+                        onclick={addRule}
+                        class="mt-3 h-8 px-3 border border-black/12 text-[11px] font-medium text-neutral-600 inline-flex items-center gap-1.5 hover:border-black/25"
+                        ><Plus class="size-3" /> Add rule</button
+                    >
+                </div>
+            {/if}
+        </div>
+
+        <!-- Registration stats (edit mode only) -->
+        {#if !isCreate && tournament?.registrationStats}
+            <div class="border border-black/10 bg-white mb-4">
+                <button
+                    type="button"
+                    class="flex items-center px-5 h-12 w-full cursor-pointer hover:bg-neutral-50 select-none"
+                    onclick={() => toggle('registrations')}
+                >
+                    <span
+                        class="mr-3 text-neutral-400 transition-transform duration-150 inline-flex"
+                        style="transform: rotate({openSection ===
+                        'registrations'
+                            ? 90
+                            : 0}deg)"
+                    >
+                        <ChevronRight class="size-3.5" />
+                    </span>
+                    <span
+                        class="text-[11px] font-bold uppercase tracking-[0.25em] text-neutral-800"
+                        >Registrations</span
+                    >
+                </button>
+                {#if openSection === 'registrations'}
+                    <div class="border-t border-black/8 p-6">
+                        {#if tournament.registrationStats.total === 0}
+                            <p class="py-4 text-[13px] text-neutral-400">
+                                No registrations yet.
+                            </p>
+                        {:else}
+                            <div class="space-y-5">
+                                <div class="grid grid-cols-4 gap-3">
+                                    {#each [{ label: 'Total', value: tournament.registrationStats.total, cls: '' }, { label: 'Paid', value: tournament.registrationStats.paid, cls: 'text-emerald-700' }, { label: 'Pending', value: tournament.registrationStats.pending, cls: 'text-amber-600' }, { label: 'Failed', value: tournament.registrationStats.failed, cls: 'text-red-600' }] as stat}
+                                        <div
+                                            class="border border-black/8 p-4 bg-neutral-50/50"
+                                        >
+                                            <div
+                                                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1"
+                                            >
+                                                {stat.label}
+                                            </div>
+                                            <div
+                                                class="font-display font-black text-[30px] tracking-[-0.03em] leading-none {stat.cls}"
+                                            >
+                                                {stat.value}
+                                            </div>
+                                        </div>
+                                    {/each}
+                                </div>
+                                <div>
+                                    <p
+                                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2"
+                                    >
+                                        By Division
+                                    </p>
+                                    <div class="space-y-1">
+                                        {#each tournament.registrationStats.by_division as d, i}
+                                            <Link
+                                                href={`/admin/tournaments/${tournament.id}/divisions/${d.division_id}`}
+                                                class="w-full flex items-center justify-between px-4 h-11 border border-black/8 bg-neutral-50/50 hover:bg-neutral-100 group transition-colors"
+                                            >
+                                                <span
+                                                    class="text-[13px] font-medium text-neutral-800"
+                                                    >{d.name}</span
+                                                >
+                                                <div
+                                                    class="flex items-center gap-3"
+                                                >
+                                                    <span
+                                                        class="text-[13px] font-mono tabular-nums text-neutral-500"
+                                                        >{d.count} registered</span
+                                                    >
+                                                    <ChevronRight
+                                                        class="size-3.5 text-neutral-400 group-hover:text-neutral-700"
+                                                    />
+                                                </div>
+                                                {#each getDivisionErrors(i) as divErr}
+                                                    <div
+                                                        class="px-3 py-1.5 text-red-600 text-[10px] border-b border-red-100 bg-red-50/50"
+                                                    >
+                                                        {divErr}
+                                                    </div>
+                                                {/each}
+                                            </Link>
+                                        {/each}
+                                    </div>
+                                </div>
+                                <Link
+                                    href={`/admin/tournaments/${tournament.id}/registrations`}
+                                    class="h-10 px-5 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-700 inline-flex items-center gap-2 hover:border-black/30 hover:bg-neutral-50 transition-colors"
+                                >
+                                    View All Registrations <ArrowRight
+                                        class="size-3.5"
+                                    />
+                                </Link>
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
+            </div>
+        {/if}
+    </div>
 
     {#snippet footer()}
         <!-- Sticky save bar -->
@@ -2058,9 +1992,7 @@
                             >
                                 Level Requirements (optional)
                             </p>
-                            <p
-                                class="text-[10px] text-neutral-400 mb-2"
-                            >
+                            <p class="text-[10px] text-neutral-400 mb-2">
                                 Set minimum number of players per level. Leave
                                 blank to skip.
                             </p>
@@ -2085,7 +2017,10 @@
                                                     {
                                                         ...(editingDivision.level_requirements ??
                                                             {}),
-                                                        [lvl]: v === '' ? '' : Number(v),
+                                                        [lvl]:
+                                                            v === ''
+                                                                ? ''
+                                                                : Number(v),
                                                     };
                                             }}
                                             placeholder="0"
@@ -2111,11 +2046,10 @@
                             >
                                 Required Player Information
                             </p>
-                            <p
-                                class="text-[10px] text-neutral-400 mb-3"
-                            >
-                                Choose which information the captain must collect
-                                from each teammate. Name is always required.
+                            <p class="text-[10px] text-neutral-400 mb-3">
+                                Choose which information the captain must
+                                collect from each teammate. Name is always
+                                required.
                             </p>
                             <div class="grid grid-cols-2 gap-2">
                                 {#each PLAYER_FIELD_KEYS as key (key)}
@@ -2139,18 +2073,20 @@
                                             )}
                                             disabled={locked}
                                             onchange={(e: Event) => {
-                                                if (locked) return;
+                                                if (locked) {
+                                                    return;
+                                                }
+
                                                 setPfrValue(
                                                     key,
-                                                    (e.target as HTMLInputElement)
-                                                        .checked,
+                                                    (
+                                                        e.target as HTMLInputElement
+                                                    ).checked,
                                                 );
                                             }}
                                             class="h-3.5 w-3.5 accent-coral"
                                         />
-                                        <span class="flex-1"
-                                            >{meta.label}</span
-                                        >
+                                        <span class="flex-1">{meta.label}</span>
                                         {#if locked}
                                             <span
                                                 class="text-[9px] uppercase tracking-[0.15em] text-neutral-400"

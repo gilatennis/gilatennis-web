@@ -173,7 +173,7 @@
                 </div>
             </div>
     -->
-            <!-- Article grid -->
+    <!-- Article grid -->
     <!--
             {#if filteredArticles.length > 0}
                 <div

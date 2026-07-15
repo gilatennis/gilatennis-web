@@ -39,7 +39,7 @@ class DuitkuWebhookController extends Controller
         }
 
         if ($request->resultCode === '00') {
-            $registration->markAsPaid($request->reference ?? '');
+            $registration->markAsPaid($request->reference);
             PaymentCompleted::dispatch($registration);
         } else {
             $registration->markAsFailed();

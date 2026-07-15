@@ -87,9 +87,7 @@
         <p class="mt-1.5 text-[13px] text-neutral-500">
             {stats.total} total
             <span class="mx-1.5 text-neutral-300">·</span>
-            <span class="text-emerald-600 font-medium"
-                >{stats.open} open</span
-            >
+            <span class="text-emerald-600 font-medium">{stats.open} open</span>
         </p>
     {/snippet}
 
@@ -112,7 +110,9 @@
                 type="text"
                 value={searchHandler.search}
                 oninput={(e: Event) =>
-                    searchHandler.doSearch((e.target as HTMLInputElement).value)}
+                    searchHandler.doSearch(
+                        (e.target as HTMLInputElement).value,
+                    )}
                 placeholder="Search name or city..."
                 class="w-full h-9 pl-9 pr-8 border border-black/12 bg-white text-sm placeholder:text-neutral-400 outline-none focus:border-black/35 transition-colors"
             />
@@ -130,14 +130,16 @@
 
     <span class="block text-[12px] h-3 text-neutral-400 ml-1 mt-1 mb-4">
         {#if searchHandler.search}
-            {tournaments.total} result{tournaments.total !== 1
-                ? 's'
-                : ''}
+            {tournaments.total} result{tournaments.total !== 1 ? 's' : ''}
         {/if}
     </span>
 
     {#if tournaments.data.length === 0}
-        <DataTable items={tournaments.data} getKey={(t) => t.id} columns="3fr 1.5fr 2fr 50px 60px 120px 60px">
+        <DataTable
+            items={tournaments.data}
+            getKey={(t) => t.id}
+            columns="3fr 1.5fr 2fr 50px 60px 120px 60px"
+        >
             {#snippet empty()}
                 <div
                     class="bg-white border border-black/10 flex flex-col items-center justify-center py-20 text-center px-8"

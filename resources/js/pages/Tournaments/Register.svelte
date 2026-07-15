@@ -7,26 +7,19 @@
     import { Button } from '@/components/ui/button';
     import { show as tournamentShow } from '@/routes/tournaments';
     import { store as tournamentStore } from '@/routes/tournaments/register';
-    import Step1DivisionSelection from './registration/Step1DivisionSelection.svelte';
-    import Step2PlayerInfo from './registration/Step2PlayerInfo.svelte';
-    import Step3ReviewAndPay from './registration/Step3ReviewAndPay.svelte';
     import type { FieldErrors, FormErrors } from '@/types/errors';
     import {
         PLAYER_FIELDS,
         PLAYER_FIELD_KEYS,
+        type ComputedPlayer,
         type DivisionContext,
         type PlayerFieldRequirementMap,
     } from '@/types/registration';
+    import Step1DivisionSelection from './registration/Step1DivisionSelection.svelte';
+    import Step2PlayerInfo from './registration/Step2PlayerInfo.svelte';
+    import Step3ReviewAndPay from './registration/Step3ReviewAndPay.svelte';
 
-    interface PlayerData {
-        name: string;
-        email: string;
-        phone: string;
-        gender: string;
-        rating_type: string;
-        rating_value: string;
-        level: string;
-    }
+    interface PlayerData extends ComputedPlayer {}
 
     function emptyPlayer(): PlayerData {
         return {
@@ -102,9 +95,7 @@
         divisions.find((d: any) => d.id === selectedDivisionId) ?? null,
     );
 
-    function buildPlayerFieldConfig(
-        d: any,
-    ): PlayerFieldRequirementMap {
+    function buildPlayerFieldConfig(d: any): PlayerFieldRequirementMap {
         const config = {} as PlayerFieldRequirementMap;
 
         for (const key of PLAYER_FIELD_KEYS) {
@@ -141,8 +132,10 @@
             maxTeamSize: d?.max_team_size ?? 0,
             minFemalePlayers: d?.min_female_players ?? 0,
             minMalePlayers: d?.min_male_players ?? 0,
-            levelRequirements: (d?.level_requirements ??
-                {}) as Record<string, number>,
+            levelRequirements: (d?.level_requirements ?? {}) as Record<
+                string,
+                number
+            >,
             playerFieldConfig: buildPlayerFieldConfig(d),
         };
     });
@@ -249,16 +242,27 @@
         division: DivisionContext,
     ): boolean {
         const cfg = division.playerFieldConfig;
-        const forceLevel =
-            Object.values(division.levelRequirements).some(
-                (v) => (v ?? 0) > 0,
-            );
+        const forceLevel = Object.values(division.levelRequirements).some(
+            (v) => (v ?? 0) > 0,
+        );
 
         return additionalPlayers.every((p) => {
-            if (!p.name?.trim()) return false;
-            if (cfg.email && !p.email?.trim()) return false;
-            if (cfg.phone && !p.phone?.trim()) return false;
-            if (cfg.gender && !p.gender) return false;
+            if (!p.name?.trim()) {
+                return false;
+            }
+
+            if (cfg.email && !p.email?.trim()) {
+                return false;
+            }
+
+            if (cfg.phone && !p.phone?.trim()) {
+                return false;
+            }
+
+            if (cfg.gender && !p.gender) {
+                return false;
+            }
+
             if (division.isTeam && (forceLevel || cfg.level) && !p.level) {
                 return false;
             }
@@ -295,17 +299,21 @@
             division.levelRequirements,
         ).some((v) => (v ?? 0) > 0);
         const levelCounts: Record<string, number> = {};
+
         for (const lvl of LEVEL_OPTIONS) {
             levelCounts[lvl] = 0;
         }
+
         if (level && levelCounts[level] !== undefined) {
             levelCounts[level] += 1;
         }
+
         for (const p of additionalPlayers) {
             if (p.level && levelCounts[p.level] !== undefined) {
                 levelCounts[p.level] += 1;
             }
         }
+
         const levelRequirementsMet = Object.entries(
             division.levelRequirements,
         ).every(
@@ -525,7 +533,11 @@
                         <div class="flex justify-between text-sm mb-2">
                             <span class="opacity-50">Registered</span>
                             <span class="font-mono"
-                                >{Math.max(0, (selectedDivision.draw_size ?? 0) - (selectedDivision.spots_available ?? 0))}/{selectedDivision.draw_size}</span
+                                >{Math.max(
+                                    0,
+                                    (selectedDivision.draw_size ?? 0) -
+                                        (selectedDivision.spots_available ?? 0),
+                                )}/{selectedDivision.draw_size}</span
                             >
                         </div>
                     {/if}
@@ -585,8 +597,8 @@
                             bind:selectedDivisionId
                             bind:teamName
                             {division}
-                            fieldErrors={fieldErrors}
-                            bannerErrors={bannerErrors}
+                            {fieldErrors}
+                            {bannerErrors}
                         />
                     </div>
                     <div class={currentStep === 1 ? '' : 'hidden'}>
@@ -598,8 +610,8 @@
                             bind:gender
                             bind:level
                             levelOptions={division.isTeam ? LEVEL_OPTIONS : []}
-                            fieldErrors={fieldErrors}
-                            bannerErrors={bannerErrors}
+                            {fieldErrors}
+                            {bannerErrors}
                             {division}
                             {computedPlayers}
                             memberStartIndex={1}
@@ -613,6 +625,7 @@
                             {email}
                             {phone}
                             {gender}
+                            {level}
                             {division}
                             {computedPlayers}
                             {teamName}
@@ -620,8 +633,8 @@
                             bind:waiverAccepted
                             bind:emailOptIn
                             {processing}
-                            fieldErrors={fieldErrors}
-                            bannerErrors={bannerErrors}
+                            {fieldErrors}
+                            {bannerErrors}
                             onEdit={(step) => {
                                 clearErrors();
                                 clientErrors = {};

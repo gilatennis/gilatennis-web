@@ -25,13 +25,16 @@ class DivisionController extends Controller
         $division->load(['prizes', 'playerFieldRequirements']);
 
         $query = $division->registrations()
-            ->with(['team', 'players']);
+            ->with(['division', 'team', 'players']);
 
-        if ($status = request('status')) {
+        $status = request('status');
+        $search = request('search');
+
+        if ($status) {
             $query->where('payment_status', $status);
         }
 
-        if ($search = request('search')) {
+        if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
@@ -41,14 +44,19 @@ class DivisionController extends Controller
         }
 
         $registrations = $query->orderByDesc('created_at')->paginate(10)
-            ->through(fn (TournamentRegistration $r) => self::shapeRegistration($r));
+            ->through(fn (TournamentRegistration $r) => self::shapeRegistration($r, includeDivision: true));
+
+        $statusCounts = $division->registrations()
+            ->selectRaw('payment_status, count(*) as count')
+            ->groupBy('payment_status')
+            ->pluck('count', 'payment_status');
 
         $stats = [
-            'total' => $division->registrations()->count(),
-            'paid' => $division->registrations()->where('payment_status', 'paid')->count(),
-            'pending' => $division->registrations()->where('payment_status', 'pending')->count(),
-            'failed' => $division->registrations()->where('payment_status', 'failed')->count(),
-            'refunded' => $division->registrations()->where('payment_status', 'refunded')->count(),
+            'total' => (int) $statusCounts->sum(),
+            'paid' => (int) ($statusCounts['paid'] ?? 0),
+            'pending' => (int) ($statusCounts['pending'] ?? 0),
+            'failed' => (int) ($statusCounts['failed'] ?? 0),
+            'refunded' => (int) ($statusCounts['refunded'] ?? 0),
             'filled' => $division->entry_count,
             'draw' => $division->draw_size,
         ];

@@ -10,7 +10,8 @@
         children: Snippet;
     };
 
-    let { breadcrumb, subheader, heading, actions, footer, children }: Props = $props();
+    let { breadcrumb, subheader, heading, actions, footer, children }: Props =
+        $props();
 </script>
 
 <div class="flex-1 flex flex-col overflow-hidden bg-neutral-50">

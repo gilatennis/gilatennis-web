@@ -1,7 +1,7 @@
 <script lang="ts">
+    import ErrorBanner from '@/components/registration/ErrorBanner.svelte';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
-    import ErrorBanner from '@/components/registration/ErrorBanner.svelte';
     import type { FieldErrors, FormErrors } from '@/types/errors';
     import type { DivisionContext } from '@/types/registration';
 
@@ -50,7 +50,9 @@
             }
         }
 
-        return parts.length > 0 ? 'Requires ' + parts.join(' and ') + ' player(s).' : '';
+        return parts.length > 0
+            ? 'Requires ' + parts.join(' and ') + ' player(s).'
+            : '';
     });
 
     const formatIDR = (amount: number) =>

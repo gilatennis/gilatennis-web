@@ -21,7 +21,9 @@
 
 {#if visibleErrors.length > 0}
     <div class="mt-6 p-4 border border-coral/30 bg-coral/5 text-sm">
-        <p class="font-bold text-coral mb-1">Some fields need your attention.</p>
+        <p class="font-bold text-coral mb-1">
+            Some fields need your attention.
+        </p>
         <ul class="mt-2 list-disc list-inside text-coral/70 space-y-0.5">
             {#each visibleErrors as [field, messages]}
                 {#each messages as msg}

@@ -156,8 +156,12 @@
     {/snippet}
 
     {#snippet subheader()}
-        <div class="bg-white border-b border-black/8 shrink-0 px-4 sm:px-8 py-5">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div
+            class="bg-white border-b border-black/8 shrink-0 px-4 sm:px-8 py-5"
+        >
+            <div
+                class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6"
+            >
                 <div>
                     <div class="flex items-center gap-2.5 mb-1">
                         <span
@@ -173,7 +177,9 @@
                     </h2>
                 </div>
 
-                <div class="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:items-center sm:gap-6 sm:shrink-0 sm:pt-1">
+                <div
+                    class="grid grid-cols-2 gap-x-6 gap-y-3 sm:flex sm:items-center sm:gap-6 sm:shrink-0 sm:pt-1"
+                >
                     <div>
                         <div
                             class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-0.5"
@@ -222,9 +228,7 @@
             </div>
         </div>
 
-        <div
-            class="bg-white border-b border-black/8 shrink-0 overflow-x-auto"
-        >
+        <div class="bg-white border-b border-black/8 shrink-0 overflow-x-auto">
             <div class="flex items-end gap-0 min-w-max px-4 sm:px-8">
                 {#each [{ id: 'registrants', label: 'Registrants', count: registrations.total }, { id: 'prizes', label: 'Prizes', count: null }, { id: 'matches', label: 'Matches', count: null, soon: true }, { id: 'schedule', label: 'Schedule', count: null, soon: true }] as t}
                     <button
@@ -235,7 +239,9 @@
                                 ? 'text-neutral-900'
                                 : 'text-neutral-500 hover:text-neutral-700'
                         }`}
-                        style={tab === t.id ? 'box-shadow: inset 0 -2px 0 #0a0a0a' : ''}
+                        style={tab === t.id
+                            ? 'box-shadow: inset 0 -2px 0 #0a0a0a'
+                            : ''}
                     >
                         {t.label}
                         {#if t.count !== null}
@@ -392,11 +398,9 @@
             >
                 Match Brackets
             </h3>
-            <p
-                class="text-[13px] text-neutral-500 max-w-sm leading-relaxed"
-            >
-                You'll be able to create brackets, seed players, record
-                scores, and track match progress for this division here.
+            <p class="text-[13px] text-neutral-500 max-w-sm leading-relaxed">
+                You'll be able to create brackets, seed players, record scores,
+                and track match progress for this division here.
             </p>
         </div>
     {:else if tab === 'schedule'}
@@ -417,11 +421,9 @@
             >
                 Division Schedule
             </h3>
-            <p
-                class="text-[13px] text-neutral-500 max-w-sm leading-relaxed"
-            >
-                You'll be able to set match times, assign courts, and
-                publish the schedule for players here.
+            <p class="text-[13px] text-neutral-500 max-w-sm leading-relaxed">
+                You'll be able to set match times, assign courts, and publish
+                the schedule for players here.
             </p>
         </div>
     {/if}

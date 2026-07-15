@@ -2,15 +2,16 @@
     import { CreditCard, Shield } from 'lucide-svelte/icons';
     import ErrorBanner from '@/components/registration/ErrorBanner.svelte';
     import type { FieldErrors } from '@/types/errors';
-    import type { DivisionContext } from '@/types/registration';
+    import type { ComputedPlayer, DivisionContext } from '@/types/registration';
 
     let {
         name,
         email,
         phone,
         gender,
+        level = '',
         division,
-        computedPlayers = [] as any[],
+        computedPlayers = [] as ComputedPlayer[],
         teamName = '',
         formatIDR,
         waiverAccepted = $bindable(false),
@@ -24,8 +25,9 @@
         email: string;
         phone: string;
         gender: string;
+        level?: string;
         division: DivisionContext;
-        computedPlayers?: any[];
+        computedPlayers?: ComputedPlayer[];
         teamName?: string;
         formatIDR: (amount: number) => string;
         waiverAccepted?: boolean;
@@ -39,6 +41,122 @@
     const divisionName = $derived(division.selected?.name ?? '—');
     const isTeam = $derived(division.isTeam);
     const participationCategory = $derived(division.participationCategory);
+    const cfg = $derived(division.playerFieldConfig);
+    const effectiveGenderRequired = $derived(
+        cfg.gender ||
+            division.minMalePlayers > 0 ||
+            division.minFemalePlayers > 0,
+    );
+
+    function formatGender(g: string | null | undefined): string {
+        if (g === 'male') {
+            return 'Male';
+        }
+
+        if (g === 'female') {
+            return 'Female';
+        }
+
+        return '—';
+    }
+
+    type CaptainField = {
+        key: string;
+        label: string;
+        value: string;
+        editStep: number;
+    };
+
+    const captainFields = $derived.by<CaptainField[]>(() => {
+        const fields: CaptainField[] = [
+            { key: 'name', label: 'Full name', value: name, editStep: 1 },
+        ];
+
+        if (cfg.email) {
+            fields.push({
+                key: 'email',
+                label: 'Email',
+                value: email,
+                editStep: 1,
+            });
+        }
+
+        if (cfg.phone) {
+            fields.push({
+                key: 'phone',
+                label: 'Phone',
+                value: phone,
+                editStep: 1,
+            });
+        }
+
+        if (effectiveGenderRequired) {
+            fields.push({
+                key: 'gender',
+                label: 'Gender',
+                value: formatGender(gender),
+                editStep: 1,
+            });
+        }
+
+        if (isTeam && cfg.level) {
+            fields.push({
+                key: 'level',
+                label: 'Level',
+                value: level,
+                editStep: 1,
+            });
+        }
+
+        fields.push({
+            key: 'division',
+            label: 'Division',
+            value: divisionName,
+            editStep: 0,
+        });
+
+        if (isTeam && teamName) {
+            fields.push({
+                key: 'teamName',
+                label: 'Team name',
+                value: teamName,
+                editStep: 0,
+            });
+        }
+
+        return fields;
+    });
+
+    type PlayerField = { key: string; value: string };
+
+    const playerFields = $derived.by<(p: ComputedPlayer) => PlayerField[]>(
+        () => {
+            return (p: ComputedPlayer): PlayerField[] => {
+                const fields: PlayerField[] = [{ key: 'name', value: p.name }];
+
+                if (cfg.email) {
+                    fields.push({ key: 'email', value: p.email });
+                }
+
+                if (cfg.phone) {
+                    fields.push({ key: 'phone', value: p.phone });
+                }
+
+                if (effectiveGenderRequired) {
+                    fields.push({
+                        key: 'gender',
+                        value: formatGender(p.gender),
+                    });
+                }
+
+                if (cfg.level) {
+                    fields.push({ key: 'level', value: p.level });
+                }
+
+                return fields;
+            };
+        },
+    );
 </script>
 
 <div>
@@ -47,19 +165,19 @@
     <ErrorBanner errors={bannerErrors} exclude={['waiver_accepted']} />
 
     <div class="border border-black/10 dark:border-white/10 mb-6">
-        {#each [['Full name', name, 1], ['Email', email, 1], ['Phone', phone, 1], ['Gender', gender ? (gender === 'male' ? 'Male' : 'Female') : '—', 1], ['Division', divisionName, 0]] as [label, value, step]}
+        {#each captainFields as field (field.key)}
             <div
                 class="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0 text-sm"
             >
                 <span
                     class="text-neutral-500 uppercase tracking-[0.15em] text-[10px]"
-                    >{label}</span
+                    >{field.label}</span
                 >
                 <div class="flex items-center gap-2">
-                    <span class="font-medium">{value || '—'}</span>
+                    <span class="font-medium">{field.value || '—'}</span>
                     <button
                         type="button"
-                        onclick={() => onEdit(step)}
+                        onclick={() => onEdit(field.editStep)}
                         class="text-[10px] uppercase tracking-[0.15em] text-coral hover:underline"
                     >
                         Edit
@@ -67,27 +185,6 @@
                 </div>
             </div>
         {/each}
-
-        {#if isTeam && teamName}
-            <div
-                class="flex items-center justify-between px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0 text-sm"
-            >
-                <span
-                    class="text-neutral-500 uppercase tracking-[0.15em] text-[10px]"
-                    >Team name</span
-                >
-                <div class="flex items-center gap-2">
-                    <span class="font-medium">{teamName}</span>
-                    <button
-                        type="button"
-                        onclick={() => onEdit(0)}
-                        class="text-[10px] uppercase tracking-[0.15em] text-coral hover:underline"
-                    >
-                        Edit
-                    </button>
-                </div>
-            </div>
-        {/if}
     </div>
 
     {#if computedPlayers.length > 0}
@@ -101,7 +198,7 @@
                       ? 'Players'
                       : 'Player'}
             </div>
-            {#each computedPlayers as player, i}
+            {#each computedPlayers as player, i (i)}
                 <div
                     class="px-4 py-3 border-b border-black/5 dark:border-white/5 last:border-0"
                 >
@@ -125,16 +222,9 @@
                     <div
                         class="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-neutral-500"
                     >
-                        <span>{player.name || '—'}</span>
-                        <span>{player.email || '—'}</span>
-                        <span>{player.phone || '—'}</span>
-                        <span
-                            >{player.gender
-                                ? player.gender === 'male'
-                                    ? 'Male'
-                                    : 'Female'
-                                : '—'}</span
-                        >
+                        {#each playerFields(player) as field (field.key)}
+                            <span>{field.value || '—'}</span>
+                        {/each}
                     </div>
                 </div>
             {/each}

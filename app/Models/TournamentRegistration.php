@@ -57,13 +57,18 @@ class TournamentRegistration extends Model
         return $this->hasMany(TournamentRegistrationPlayer::class, 'tournament_registration_id')->orderBy('sort_order');
     }
 
-    public function markAsPaid(string $reference): void
+    public function markAsPaid(?string $reference = null): void
     {
-        $this->update([
+        $attributes = [
             'payment_status' => 'paid',
-            'payment_reference' => $reference,
             'paid_at' => now(),
-        ]);
+        ];
+
+        if ($reference !== null && $reference !== '') {
+            $attributes['payment_reference'] = $reference;
+        }
+
+        $this->update($attributes);
     }
 
     public function markAsFailed(): void

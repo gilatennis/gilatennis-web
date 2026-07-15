@@ -69,7 +69,7 @@ class RegistrationController extends Controller
         $newStatus = request('status');
 
         if ($newStatus === 'paid') {
-            $registration->markAsPaid(request('reference', $registration->payment_reference ?? ''));
+            $registration->markAsPaid(request('reference') ?? $registration->payment_reference);
         } elseif ($newStatus === 'refunded') {
             $registration->update(['payment_status' => 'refunded']);
         }

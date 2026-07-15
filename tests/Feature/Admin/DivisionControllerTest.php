@@ -42,6 +42,33 @@ describe('Admin Division Detail', function () {
             );
     });
 
+    it('registrations payload includes division for slide-over', function () {
+        $tournament = Tournament::factory()->create();
+        $division = Division::factory()->create([
+            'tournament_id' => $tournament->id,
+            'name' => 'Mens Singles 4.0',
+            'slug' => 'mens-singles-4-0',
+            'draw_size' => 32,
+            'fee' => 45000,
+        ]);
+        $registration = TournamentRegistration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'division_id' => $division->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.divisions.show', [
+                'tournament' => $tournament,
+                'division' => $division,
+            ]))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->where('registrations.data.0.division.id', $division->id)
+                ->where('registrations.data.0.division.name', 'Mens Singles 4.0')
+                ->where('registrations.data.0.id', $registration->id)
+            );
+    });
+
     it('division detail shows prizes when configured', function () {
         $tournament = Tournament::factory()->create();
         $division = Division::factory()->create([

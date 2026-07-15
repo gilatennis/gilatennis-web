@@ -20,7 +20,9 @@
     import { toUrl } from '@/lib/utils';
 
     const url = currentUrlState();
-    const isSuperAdmin = $derived(page.props.auth.user?.is_super_admin === true);
+    const isSuperAdmin = $derived(
+        page.props.auth.user?.is_super_admin === true,
+    );
 </script>
 
 <Sidebar collapsible="icon" variant="inset">

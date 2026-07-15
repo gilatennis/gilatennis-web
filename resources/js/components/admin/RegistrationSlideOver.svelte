@@ -122,10 +122,12 @@
     <SheetContent
         side="right"
         onClose={handleClose}
-        class="w-[500px] sm:max-w-[500px] p-0"
+        class="w-full sm:w-[500px] sm:max-w-[500px] p-0"
     >
         <div class="flex flex-col h-full">
-            <SheetHeader class="px-6 py-4 border-b border-black/8 shrink-0">
+            <SheetHeader
+                class="px-4 sm:px-6 py-4 border-b border-black/8 shrink-0"
+            >
                 <SheetTitle class="font-display font-black text-base"
                     >{registration?.name}</SheetTitle
                 >
@@ -151,13 +153,15 @@
             </SheetHeader>
 
             <div class="flex-1 overflow-y-auto">
-                <div class="px-6 py-5 border-b border-black/6">
+                <div class="px-4 sm:px-6 py-5 border-b border-black/6">
                     <p
                         class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400 mb-3"
                     >
                         Registrant
                     </p>
-                    <div class="grid grid-cols-2 gap-x-6 gap-y-3">
+                    <div
+                        class="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-6 gap-y-3"
+                    >
                         <div>
                             <div
                                 class="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 mb-0.5"
@@ -214,7 +218,7 @@
                 </div>
 
                 {#if registration?.players && registration.players.length > 0}
-                    <div class="px-6 py-5 border-b border-black/6">
+                    <div class="px-4 sm:px-6 py-5 border-b border-black/6">
                         <p
                             class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400 mb-3"
                         >
@@ -223,7 +227,7 @@
                         <div class="space-y-3">
                             {#each registration.players as player (player.id)}
                                 <div
-                                    class="flex items-center gap-3 py-2.5 px-3 border border-black/8 bg-neutral-50/50"
+                                    class="flex flex-wrap items-center gap-3 py-2.5 px-3 border border-black/8 bg-neutral-50/50"
                                 >
                                     <div
                                         class="h-8 w-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-bold text-neutral-600 shrink-0"
@@ -243,7 +247,9 @@
                                         </div>
                                     </div>
                                     {#if player.rating_type && player.rating_value}
-                                        <div class="text-right shrink-0">
+                                        <div
+                                            class="text-right shrink-0 basis-full sm:basis-auto"
+                                        >
                                             <div
                                                 class="text-[10px] uppercase tracking-[0.15em] text-neutral-400 font-bold"
                                             >
@@ -257,7 +263,9 @@
                                         </div>
                                     {/if}
                                     {#if player.level}
-                                        <div class="text-right shrink-0">
+                                        <div
+                                            class="text-right shrink-0 basis-full sm:basis-auto"
+                                        >
                                             <div
                                                 class="text-[10px] uppercase tracking-[0.15em] text-neutral-400 font-bold"
                                             >
@@ -276,13 +284,15 @@
                     </div>
                 {/if}
 
-                <div class="px-6 py-5 border-b border-black/6">
+                <div class="px-4 sm:px-6 py-5 border-b border-black/6">
                     <p
                         class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400 mb-3"
                     >
                         Payment
                     </p>
-                    <div class="flex items-start justify-between mb-4">
+                    <div
+                        class="flex items-start justify-between gap-3 flex-wrap mb-4"
+                    >
                         <div>
                             <PaymentBadge
                                 status={registration?.payment_status as PaymentStatus}
@@ -333,7 +343,7 @@
                     </div>
                 </div>
 
-                <div class="px-6 py-5">
+                <div class="px-4 sm:px-6 py-5">
                     <p
                         class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400 mb-3"
                     >
@@ -342,7 +352,7 @@
 
                     {#if confirming}
                         <div
-                            class="flex items-center justify-between gap-3 rounded-md bg-amber-50 p-3 border border-amber-100"
+                            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-md bg-amber-50 p-3 border border-amber-100"
                         >
                             <div class="flex items-start gap-2">
                                 <AlertTriangle
@@ -374,7 +384,7 @@
                             </div>
                         </div>
                     {:else}
-                        <div class="flex gap-2">
+                        <div class="flex flex-wrap gap-2">
                             {#if registration?.payment_status !== 'paid'}
                                 <Button
                                     variant="coral"

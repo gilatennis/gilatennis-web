@@ -91,4 +91,26 @@ describe('Duitku Webhook', function () {
         ])->assertStatus(404)
             ->assertJson(['status' => 'registration not found']);
     });
+
+    it('preserves existing payment_reference when webhook omits reference', function () {
+        Event::fake([PaymentCompleted::class]);
+
+        $registration = TournamentRegistration::factory()->create([
+            'payment_status' => 'processing',
+            'amount_cents' => 50000,
+            'payment_reference' => 'DS18388265SG3TA627PUJKQ7',
+        ]);
+
+        $payload = webhookPayload($registration, '00');
+        unset($payload['reference']);
+
+        $this->postJson(route('webhooks.duitku'), $payload)
+            ->assertOk();
+
+        $registration->refresh();
+        expect($registration->payment_status)->toBe('paid');
+        expect($registration->payment_reference)->toBe('DS18388265SG3TA627PUJKQ7');
+
+        Event::assertDispatched(PaymentCompleted::class);
+    });
 });

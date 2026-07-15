@@ -1,4 +1,10 @@
-export type PlayerFieldKey = 'name' | 'gender' | 'email' | 'phone' | 'level' | 'dob';
+export type PlayerFieldKey =
+    | 'name'
+    | 'gender'
+    | 'email'
+    | 'phone'
+    | 'level'
+    | 'dob';
 
 export interface PlayerFieldConfigEntry {
     label: string;
@@ -43,6 +49,16 @@ export interface Player {
     rating_type?: string | null;
     rating_value?: number | null;
     level?: string | null;
+}
+
+export interface ComputedPlayer {
+    name: string;
+    email: string;
+    phone: string;
+    gender: string;
+    rating_type: string;
+    rating_value: string;
+    level: string;
 }
 
 export interface Registration {

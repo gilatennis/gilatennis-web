@@ -84,61 +84,61 @@
         </p>
     {/snippet}
 
-            <div
-                class="bg-white border border-black/10 p-10 flex flex-col items-center justify-center text-center"
-            >
-                <Swords class="size-12 mb-4 text-neutral-200" />
-                <p class="font-display font-bold text-[17px] text-neutral-700">
-                    Scoring UI coming next slice
-                </p>
-                <p class="mt-1.5 text-[13px] text-neutral-400 max-w-md">
-                    Point-by-point scoring, set scores, server rotation, and
-                    undo will live here.
-                </p>
-            </div>
+    <div
+        class="bg-white border border-black/10 p-10 flex flex-col items-center justify-center text-center"
+    >
+        <Swords class="size-12 mb-4 text-neutral-200" />
+        <p class="font-display font-bold text-[17px] text-neutral-700">
+            Scoring UI coming next slice
+        </p>
+        <p class="mt-1.5 text-[13px] text-neutral-400 max-w-md">
+            Point-by-point scoring, set scores, server rotation, and undo will
+            live here.
+        </p>
+    </div>
 
-            <dl class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px]">
-                <div>
-                    <dt
-                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400"
-                    >
-                        Sets to win
-                    </dt>
-                    <dd class="mt-1 font-mono tabular-nums text-neutral-700">
-                        {match.sets_to_win}
-                    </dd>
-                </div>
-                <div>
-                    <dt
-                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400"
-                    >
-                        Games per set
-                    </dt>
-                    <dd class="mt-1 font-mono tabular-nums text-neutral-700">
-                        {match.games_to_win}
-                    </dd>
-                </div>
-                <div>
-                    <dt
-                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400"
-                    >
-                        Tiebreak
-                    </dt>
-                    <dd class="mt-1 font-mono tabular-nums text-neutral-700">
-                        {match.extend_at_tie
-                            ? 'No (extend)'
-                            : `To ${match.tiebreak_to}`}
-                    </dd>
-                </div>
-                <div>
-                    <dt
-                        class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400"
-                    >
-                        Created
-                    </dt>
-                    <dd class="mt-1 text-neutral-700">
-                        {formatDate(match.created_at)}
-                    </dd>
-                </div>
-            </dl>
+    <dl class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px]">
+        <div>
+            <dt
+                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400"
+            >
+                Sets to win
+            </dt>
+            <dd class="mt-1 font-mono tabular-nums text-neutral-700">
+                {match.sets_to_win}
+            </dd>
+        </div>
+        <div>
+            <dt
+                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400"
+            >
+                Games per set
+            </dt>
+            <dd class="mt-1 font-mono tabular-nums text-neutral-700">
+                {match.games_to_win}
+            </dd>
+        </div>
+        <div>
+            <dt
+                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400"
+            >
+                Tiebreak
+            </dt>
+            <dd class="mt-1 font-mono tabular-nums text-neutral-700">
+                {match.extend_at_tie
+                    ? 'No (extend)'
+                    : `To ${match.tiebreak_to}`}
+            </dd>
+        </div>
+        <div>
+            <dt
+                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400"
+            >
+                Created
+            </dt>
+            <dd class="mt-1 text-neutral-700">
+                {formatDate(match.created_at)}
+            </dd>
+        </div>
+    </dl>
 </AdminPage>

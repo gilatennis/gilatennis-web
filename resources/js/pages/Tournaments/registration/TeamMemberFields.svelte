@@ -31,6 +31,11 @@
 
     const cfg = $derived(division.playerFieldConfig);
     const isTeam = $derived(division.isTeam);
+    const effectiveGenderRequired = $derived(
+        cfg.gender ||
+            division.minMalePlayers > 0 ||
+            division.minFemalePlayers > 0,
+    );
     const showLevel = $derived(isTeam && levelOptions.length > 0 && cfg.level);
     const showDob = $derived(isTeam && cfg.dob);
     const members = $derived(computedPlayers.slice(memberStartIndex));
@@ -75,7 +80,8 @@
                     Team members
                 </Label>
                 <span class="text-[10px] text-neutral-400">
-                    {computedPlayers.length} / {division.maxTeamSize} players (min {division.minTeamSize})
+                    {computedPlayers.length} / {division.maxTeamSize} players (min
+                    {division.minTeamSize})
                 </span>
             </div>
             {#if genderReqParts.length > 0}
@@ -112,7 +118,8 @@
                                 <Label
                                     for={`player-${actualIndex}-name`}
                                     class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                                    >Name<span class="text-coral">*</span></Label
+                                    >Name<span class="text-coral">*</span
+                                    ></Label
                                 >
                                 <Input
                                     id={`player-${actualIndex}-name`}
@@ -130,7 +137,9 @@
                                     <p
                                         class="mt-1 text-xs text-coral font-medium"
                                     >
-                                        {fieldErrors[`players.${actualIndex}.name`]}
+                                        {fieldErrors[
+                                            `players.${actualIndex}.name`
+                                        ]}
                                     </p>
                                 {/if}
                             </div>
@@ -139,7 +148,8 @@
                                     <Label
                                         for={`player-${actualIndex}-email`}
                                         class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                                        >Email<span class="text-coral">*</span></Label
+                                        >Email<span class="text-coral">*</span
+                                        ></Label
                                     >
                                     <Input
                                         id={`player-${actualIndex}-email`}
@@ -157,7 +167,9 @@
                                         <p
                                             class="mt-1 text-xs text-coral font-medium"
                                         >
-                                            {fieldErrors[`players.${actualIndex}.email`]}
+                                            {fieldErrors[
+                                                `players.${actualIndex}.email`
+                                            ]}
                                         </p>
                                     {/if}
                                 </div>
@@ -170,7 +182,9 @@
                                         <Label
                                             for={`player-${actualIndex}-phone`}
                                             class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                                            >Phone<span class="text-coral">*</span></Label
+                                            >Phone<span class="text-coral"
+                                                >*</span
+                                            ></Label
                                         >
                                         <Input
                                             id={`player-${actualIndex}-phone`}
@@ -188,7 +202,9 @@
                                             <p
                                                 class="mt-1 text-xs text-coral font-medium"
                                             >
-                                                {fieldErrors[`players.${actualIndex}.phone`]}
+                                                {fieldErrors[
+                                                    `players.${actualIndex}.phone`
+                                                ]}
                                             </p>
                                         {/if}
                                     </div>
@@ -198,7 +214,9 @@
                                         <Label
                                             for={`player-${actualIndex}-gender`}
                                             class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                                            >Gender<span class="text-coral">*</span></Label
+                                            >Gender<span class="text-coral"
+                                                >*</span
+                                            ></Label
                                         >
                                         <Select bind:value={player.gender}>
                                             <SelectTrigger
@@ -216,7 +234,10 @@
                                                     : 'Select gender'}
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="male" label="Male" />
+                                                <SelectItem
+                                                    value="male"
+                                                    label="Male"
+                                                />
                                                 <SelectItem
                                                     value="female"
                                                     label="Female"
@@ -241,7 +262,8 @@
                                 <Label
                                     for={`player-${actualIndex}-level`}
                                     class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                                    >Level<span class="text-coral">*</span></Label
+                                    >Level<span class="text-coral">*</span
+                                    ></Label
                                 >
                                 <Select bind:value={player.level}>
                                     <SelectTrigger
@@ -279,7 +301,9 @@
                                 <Label
                                     for={`player-${actualIndex}-dob`}
                                     class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                                    >Date of Birth<span class="text-coral">*</span></Label
+                                    >Date of Birth<span class="text-coral"
+                                        >*</span
+                                    ></Label
                                 >
                                 <Input
                                     id={`player-${actualIndex}-dob`}

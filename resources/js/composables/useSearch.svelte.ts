@@ -3,17 +3,18 @@ class SearchController {
     #timeout: ReturnType<typeof setTimeout> | null = null;
     #onNavigate: (value: string) => void;
 
-    constructor(
-        getInitial: () => string,
-        onNavigate: (value: string) => void,
-    ) {
+    constructor(getInitial: () => string, onNavigate: (value: string) => void) {
         this.search = getInitial();
         this.#onNavigate = onNavigate;
     }
 
     doSearch(value: string): void {
         this.search = value;
-        if (this.#timeout) clearTimeout(this.#timeout);
+
+        if (this.#timeout) {
+            clearTimeout(this.#timeout);
+        }
+
         this.#timeout = setTimeout(() => this.#onNavigate(value), 300);
     }
 

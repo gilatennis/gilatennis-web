@@ -99,121 +99,134 @@
         </p>
     {/snippet}
 
-        <div class="max-w-xl">
-            <Form
-                method="put"
-                action={updateUrl}
-                options={{ preserveScroll: true }}
-                class="space-y-5"
-            >
-                {#snippet children({ errors, processing })}
+    <div class="max-w-xl">
+        <Form
+            method="put"
+            action={updateUrl}
+            options={{ preserveScroll: true }}
+            class="space-y-5"
+        >
+            {#snippet children({ errors, processing })}
+                <div class="grid gap-2">
+                    <Label for="name">Name</Label>
+                    <Input
+                        id="name"
+                        name="name"
+                        type="text"
+                        class="mt-1 block w-full"
+                        value={user.name}
+                        required
+                        autocomplete="name"
+                    />
+                    <InputError class="mt-1" message={errors.name} />
+                </div>
 
-                    <div class="grid gap-2">
-                        <Label for="name">Name</Label>
-                        <Input
-                            id="name"
-                            name="name"
-                            type="text"
-                            class="mt-1 block w-full"
-                            value={user.name}
-                            required
-                            autocomplete="name"
-                        />
-                        <InputError class="mt-1" message={errors.name} />
-                    </div>
+                <div class="grid gap-2">
+                    <Label for="email">Email</Label>
+                    <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        class="mt-1 block w-full"
+                        value={user.email}
+                        required
+                        autocomplete="email"
+                    />
+                    <InputError class="mt-1" message={errors.email} />
+                </div>
 
-                    <div class="grid gap-2">
-                        <Label for="email">Email</Label>
-                        <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            class="mt-1 block w-full"
-                            value={user.email}
-                            required
-                            autocomplete="email"
-                        />
-                        <InputError class="mt-1" message={errors.email} />
-                    </div>
+                <div class="grid gap-2">
+                    <Label for="password">New password</Label>
+                    <PasswordInput
+                        id="password"
+                        name="password"
+                        autocomplete="new-password"
+                        placeholder="Leave blank to keep current password"
+                    />
+                    <InputError class="mt-1" message={errors.password} />
+                </div>
 
-                    <div class="grid gap-2">
-                        <Label for="password">New password</Label>
-                        <PasswordInput
-                            id="password"
-                            name="password"
-                            autocomplete="new-password"
-                            placeholder="Leave blank to keep current password"
-                        />
-                        <InputError class="mt-1" message={errors.password} />
-                    </div>
+                <div class="grid gap-2">
+                    <Label for="password_confirmation"
+                        >Confirm new password</Label
+                    >
+                    <PasswordInput
+                        id="password_confirmation"
+                        name="password_confirmation"
+                        autocomplete="new-password"
+                        placeholder="Repeat new password"
+                    />
+                    <InputError
+                        class="mt-1"
+                        message={errors.password_confirmation}
+                    />
+                </div>
 
-                    <div class="grid gap-2">
-                        <Label for="password_confirmation">Confirm new password</Label>
-                        <PasswordInput
-                            id="password_confirmation"
-                            name="password_confirmation"
-                            autocomplete="new-password"
-                            placeholder="Repeat new password"
-                        />
-                        <InputError
-                            class="mt-1"
-                            message={errors.password_confirmation}
-                        />
-                    </div>
-
-                    <div class="grid gap-2">
-                        <Label for="role">Role</Label>
-                        {#if roleLocked}
-                            <input type="hidden" name="role" value={role} />
-                            <Select type="single" name="role-select" value={role} disabled>
-                                <SelectTrigger
-                                    id="role"
-                                    class="mt-1 w-full h-9 opacity-60 cursor-not-allowed"
-                                >
-                                    {availableRoles.find((r) => r.slug === role)
-                                        ?.name ?? (user.role?.name ?? 'No role')}
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {#each availableRoles as r (r.slug)}
-                                        <SelectItem value={r.slug} label={r.name} />
-                                    {/each}
-                                </SelectContent>
-                            </Select>
-                            <p class="mt-1 text-[11px] text-neutral-400">
-                                You cannot change your own role.
-                            </p>
-                        {:else}
-                            <input type="hidden" name="role" value={role} />
-                            <Select type="single" name="role-select" bind:value={role}>
-                                <SelectTrigger id="role" class="mt-1 w-full h-9">
-                                    {role
-                                        ? availableRoles.find((r) => r.slug === role)
-                                              ?.name
-                                        : '— No role —'}
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="" label="— No role —" />
-                                    {#each availableRoles as r (r.slug)}
-                                        <SelectItem value={r.slug} label={r.name} />
-                                    {/each}
-                                </SelectContent>
-                            </Select>
-                        {/if}
-                        <InputError class="mt-1" message={errors.role} />
-                    </div>
-
-                    <div class="flex items-center gap-3 pt-2">
-                        <Button type="submit" disabled={processing}>
-                            Save changes
-                        </Button>
-                        <a
-                            href={index.url()}
-                            class="text-[12px] text-neutral-500 hover:text-neutral-900 transition-colors"
+                <div class="grid gap-2">
+                    <Label for="role">Role</Label>
+                    {#if roleLocked}
+                        <input type="hidden" name="role" value={role} />
+                        <Select
+                            type="single"
+                            name="role-select"
+                            value={role}
+                            disabled
                         >
-                            Cancel
-                        </a>
-                    </div>
-                {/snippet}
-            </Form>
-        </div>
+                            <SelectTrigger
+                                id="role"
+                                class="mt-1 w-full h-9 opacity-60 cursor-not-allowed"
+                            >
+                                {availableRoles.find((r) => r.slug === role)
+                                    ?.name ??
+                                    user.role?.name ??
+                                    'No role'}
+                            </SelectTrigger>
+                            <SelectContent>
+                                {#each availableRoles as r (r.slug)}
+                                    <SelectItem value={r.slug} label={r.name} />
+                                {/each}
+                            </SelectContent>
+                        </Select>
+                        <p class="mt-1 text-[11px] text-neutral-400">
+                            You cannot change your own role.
+                        </p>
+                    {:else}
+                        <input type="hidden" name="role" value={role} />
+                        <Select
+                            type="single"
+                            name="role-select"
+                            bind:value={role}
+                        >
+                            <SelectTrigger id="role" class="mt-1 w-full h-9">
+                                {role
+                                    ? availableRoles.find(
+                                          (r) => r.slug === role,
+                                      )?.name
+                                    : '— No role —'}
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="" label="— No role —" />
+                                {#each availableRoles as r (r.slug)}
+                                    <SelectItem value={r.slug} label={r.name} />
+                                {/each}
+                            </SelectContent>
+                        </Select>
+                    {/if}
+                    <InputError class="mt-1" message={errors.role} />
+                </div>
+
+                <div class="flex items-center gap-3 pt-2">
+                    <Button type="submit" disabled={processing}>
+                        Save changes
+                    </Button>
+                    <a
+                        href={index.url()}
+                        class="text-[12px] text-neutral-500 hover:text-neutral-900 transition-colors"
+                    >
+                        Cancel
+                    </a>
+                </div>
+            {/snippet}
+        </Form>
+    </div>
 </AdminPage>
