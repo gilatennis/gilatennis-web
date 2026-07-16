@@ -37,6 +37,19 @@ trait ShapesRegistration
                 'rating_type' => $p->rating_type,
                 'rating_value' => $p->rating_value,
                 'level' => $p->level,
+                'assessment' => $p->assessment ? [
+                    'status' => $p->assessment->status->value,
+                    'reason' => $p->assessment->reason,
+                    'video_url' => $p->assessment->video_url,
+                    'notes' => $p->assessment->notes,
+                    'assessed_at' => $p->assessment->assessed_at,
+                ] : [
+                    'status' => 'unreviewed',
+                    'reason' => null,
+                    'video_url' => null,
+                    'notes' => null,
+                    'assessed_at' => null,
+                ],
             ]),
         ];
 

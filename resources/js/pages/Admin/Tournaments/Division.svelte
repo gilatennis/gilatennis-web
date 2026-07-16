@@ -8,7 +8,6 @@
     import AdminPage from '@/components/admin/AdminPage.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import RegistrantsTable from '@/components/admin/RegistrantsTable.svelte';
-    import RegistrationSlideOver from '@/components/admin/RegistrationSlideOver.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
     import type { Registration } from '@/types';
@@ -70,8 +69,6 @@
 
     let tab = $state('registrants');
     let statusFilter = $state(filters.status ?? '');
-    let selectedReg = $state<Registration | null>(null);
-    let regSlideOverOpen = $state(false);
 
     const searchHandler = useSearch(
         () => filters.search ?? '',
@@ -319,8 +316,9 @@
                 registrations={registrations.data}
                 showDivisionColumn={false}
                 onRowClick={(reg: Registration) => {
-                    regSlideOverOpen = true;
-                    selectedReg = reg;
+                    router.visit(
+                        `/admin/tournaments/${tournament.id}/divisions/${division.id}/registrations/${reg.confirmation_code}`,
+                    );
                 }}
             />
 
@@ -428,14 +426,3 @@
         </div>
     {/if}
 </AdminPage>
-
-<RegistrationSlideOver
-    open={regSlideOverOpen}
-    onClose={() => {
-        regSlideOverOpen = false;
-        selectedReg = null;
-    }}
-    registration={selectedReg}
-    paymentUrl={`/admin/tournaments/${tournament.id}/registrations/${selectedReg?.id}/payment`}
-    onStatusOverride={handleStatusOverride}
-/>

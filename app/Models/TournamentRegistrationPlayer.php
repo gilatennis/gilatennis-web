@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TournamentRegistrationPlayer extends Model
 {
@@ -35,5 +36,10 @@ class TournamentRegistrationPlayer extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function assessment(): HasOne
+    {
+        return $this->hasOne(PlayerAssessment::class, 'player_id');
     }
 }

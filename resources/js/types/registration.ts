@@ -39,6 +39,19 @@ export type PlayerFieldRequirement = {
 
 export type PlayerFieldRequirementMap = Record<PlayerFieldKey, boolean>;
 
+export type PlayerAssessmentStatusValue =
+    | 'unreviewed'
+    | 'does_not_meet_level'
+    | 'cleared';
+
+export interface PlayerAssessment {
+    status: PlayerAssessmentStatusValue;
+    reason: string | null;
+    video_url: string | null;
+    notes: string | null;
+    assessed_at: string | null;
+}
+
 export interface Player {
     id: number;
     name: string;
@@ -49,6 +62,7 @@ export interface Player {
     rating_type?: string | null;
     rating_value?: number | null;
     level?: string | null;
+    assessment: PlayerAssessment;
 }
 
 export interface ComputedPlayer {
@@ -79,6 +93,22 @@ export interface Registration {
     division?: { id: number; name: string } | null;
     team?: { id: number; name: string } | null;
     players: Player[];
+}
+
+export interface AssessmentStatusOption {
+    value: PlayerAssessmentStatusValue;
+    label: string;
+    color: {
+        border: string;
+        headerBg: string;
+        wrapBg: string;
+        selectedBg: string;
+        selectedText: string;
+        unselectedText: string;
+        pillBg: string;
+        pillText: string;
+        pillBorder: string;
+    };
 }
 
 export type PaymentStatus =

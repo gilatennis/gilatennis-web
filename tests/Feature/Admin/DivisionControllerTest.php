@@ -1,11 +1,13 @@
 <?php
 
 use App\Models\Division;
+use App\Models\PlayerAssessment;
 use App\Models\Role;
 use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\TournamentPrize;
 use App\Models\TournamentRegistration;
+use App\Models\TournamentRegistrationPlayer;
 use App\Models\User;
 
 beforeEach(function () {
@@ -179,6 +181,36 @@ describe('Admin Division Detail', function () {
             ->assertInertia(fn ($page) => $page
                 ->has('registrations.data', 1)
                 ->where('registrations.data.0.id', $matching->id)
+            );
+    });
+
+    it('eager loads player assessments to avoid lazy-load violations', function () {
+        $tournament = Tournament::factory()->create();
+        $division = Division::factory()->create([
+            'tournament_id' => $tournament->id,
+        ]);
+        $registration = TournamentRegistration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'division_id' => $division->id,
+        ]);
+        $player = TournamentRegistrationPlayer::factory()->create([
+            'tournament_registration_id' => $registration->id,
+            'tournament_id' => $tournament->id,
+        ]);
+        PlayerAssessment::create([
+            'player_id' => $player->id,
+            'status' => 'cleared',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.divisions.show', [
+                'tournament' => $tournament,
+                'division' => $division,
+            ]))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->has('registrations.data', 1)
+                ->where('registrations.data.0.players.0.assessment.status', 'cleared')
             );
     });
 });

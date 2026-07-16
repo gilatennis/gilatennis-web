@@ -29,6 +29,14 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::patch('tournaments/{tournament}/registrations/{registration}/payment', [RegistrationController::class, 'updatePayment'])
         ->name('tournaments.registrations.payment');
 
+    Route::get('tournaments/{tournament}/divisions/{division}/registrations/{registration}', [RegistrationController::class, 'show'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.registrations.show');
+
+    Route::patch('tournaments/{tournament}/divisions/{division}/registrations/{registration}/assessments', [RegistrationController::class, 'updateAssessments'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.registrations.assessments.update');
+
     Route::get('tournaments/{tournament}/divisions/{division}', [DivisionController::class, 'show'])
         ->scopeBindings()
         ->name('tournaments.divisions.show');

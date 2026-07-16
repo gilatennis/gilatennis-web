@@ -25,7 +25,7 @@ class DivisionController extends Controller
         $division->load(['prizes', 'playerFieldRequirements']);
 
         $query = $division->registrations()
-            ->with(['division', 'team', 'players']);
+            ->with(['division', 'team', 'players.assessment']);
 
         $status = request('status');
         $search = request('search');
