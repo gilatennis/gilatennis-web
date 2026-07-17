@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MatchStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,27 +19,28 @@ class TennisMatch extends Model
         'extend_at_tie' => 'boolean',
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
+        'status' => MatchStatus::class,
     ];
 
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', MatchStatus::Pending->value);
     }
 
     public function scopeRunning($query)
     {
-        return $query->where('status', 'running');
+        return $query->where('status', MatchStatus::Running->value);
     }
 
     public function scopeCompleted($query)
     {
-        return $query->where('status', 'completed');
+        return $query->where('status', MatchStatus::Completed->value);
     }
 
     public function getFormatLabelAttribute(): string
     {
         $bestOf = ($this->sets_to_win * 2) - 1;
 
-        return "Best of {$bestOf}, {$this->games_to_win} games, TB to {$this->tiebreak_to}";
+        return "Best of {$bestOf} set(s), {$this->games_to_win} games, TB to {$this->tiebreak_to}";
     }
 }

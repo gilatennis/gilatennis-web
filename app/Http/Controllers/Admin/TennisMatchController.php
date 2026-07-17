@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\MatchStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TennisMatchStoreRequest;
+use App\Http\Requests\Admin\TennisMatchUpdateRequest;
 use App\Models\TennisMatch;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -69,5 +72,32 @@ class TennisMatchController extends Controller
                 'format_label' => $match->format_label,
             ],
         ]);
+    }
+
+    public function update(TennisMatchUpdateRequest $request, TennisMatch $match): RedirectResponse
+    {
+        $current = $match->status;
+        $next = MatchStatus::from($request->validated('status'));
+
+        if (! $current->canTransitionTo($next)) {
+            return back()->withErrors([
+                'status' => "Cannot transition from {$current->value} to {$next->value}.",
+            ]);
+        }
+
+        if ($next === MatchStatus::Running && $match->started_at === null) {
+            $match->started_at = $request->validated('started_at') ?? now();
+        }
+
+        if ($next === MatchStatus::Completed && $match->ended_at === null) {
+            $match->ended_at = $request->validated('ended_at') ?? now();
+        }
+
+        $match->status = $next;
+        $match->save();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Match status: {$next->value}."]);
+
+        return back();
     }
 }

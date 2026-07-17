@@ -50,7 +50,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::patch('settings', [SystemController::class, 'update'])->name('settings.update');
 
     Route::resource('tennis-matches', TennisMatchController::class)
-        ->only(['index', 'create', 'store', 'show'])
+        ->only(['index', 'create', 'store', 'show', 'update'])
         ->parameters(['tennis-matches' => 'match']);
 
     Route::resource('users', UserController::class)

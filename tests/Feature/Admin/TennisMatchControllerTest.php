@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\MatchStatus;
 use App\Models\Role;
 use App\Models\TennisMatch;
 use App\Models\User;
@@ -67,7 +68,7 @@ describe('Admin TennisMatch CRUD', function () {
 
         $match = TennisMatch::where('side_a_name', 'Roger Federer')->first();
         expect($match)->not->toBeNull();
-        expect($match->status)->toBe('pending');
+        expect($match->status)->toBe(MatchStatus::Pending);
         expect($match->started_at)->toBeNull();
         expect($match->ended_at)->toBeNull();
         expect($match->side_b_name)->toBe('Rafael Nadal');
@@ -195,7 +196,7 @@ describe('Admin TennisMatch CRUD', function () {
             ->assertInertia(fn ($page) => $page
                 ->where('match.side_a_name', 'Alcaraz')
                 ->where('match.side_b_name', 'Sinner')
-                ->where('match.format_label', 'Best of 3, 6 games, TB to 7')
+                ->where('match.format_label', 'Best of 3 set(s), 6 games, TB to 7')
             );
     });
 
@@ -226,5 +227,124 @@ describe('Admin TennisMatch CRUD', function () {
 
         $this->get(route('admin.tennis-matches.create'))
             ->assertRedirect('/admin/login');
+    });
+});
+
+describe('Admin TennisMatch status transitions', function () {
+    it('transitions pending to running and stamps started_at', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'running'])
+            ->assertRedirect();
+
+        $match->refresh();
+        expect($match->status)->toBe(MatchStatus::Running);
+        expect($match->started_at)->not->toBeNull();
+        expect($match->ended_at)->toBeNull();
+    });
+
+    it('transitions running to completed and stamps ended_at', function () {
+        $match = TennisMatch::factory()->running()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'completed'])
+            ->assertRedirect();
+
+        $match->refresh();
+        expect($match->status)->toBe(MatchStatus::Completed);
+        expect($match->ended_at)->not->toBeNull();
+    });
+
+    it('rejects invalid transition from pending to completed', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'completed'])
+            ->assertRedirect()
+            ->assertSessionHasErrors('status');
+
+        $match->refresh();
+        expect($match->status)->toBe(MatchStatus::Pending);
+    });
+
+    it('rejects invalid transition from completed to running', function () {
+        $match = TennisMatch::factory()->completed()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'running'])
+            ->assertRedirect()
+            ->assertSessionHasErrors('status');
+
+        $match->refresh();
+        expect($match->status)->toBe(MatchStatus::Completed);
+    });
+
+    it('preserves started_at if already set', function () {
+        $existing = now()->subHour();
+        $match = TennisMatch::factory()->create([
+            'status' => 'running',
+            'started_at' => $existing,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'completed'])
+            ->assertRedirect();
+
+        $match->refresh();
+        expect($match->started_at->toIso8601String())->toBe($existing->toIso8601String());
+        expect($match->ended_at)->not->toBeNull();
+    });
+
+    it('validates status enum', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'bogus'])
+            ->assertRedirect()
+            ->assertSessionHasErrors('status');
+    });
+
+    it('non-admin cannot transition match status', function () {
+        $user = User::factory()->create();
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($user)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'running'])
+            ->assertStatus(403);
+
+        $match->refresh();
+        expect($match->status)->toBe(MatchStatus::Pending);
+    });
+
+    it('rejects running to pending', function () {
+        $match = TennisMatch::factory()->running()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'pending'])
+            ->assertRedirect()
+            ->assertSessionHasErrors('status');
+    });
+
+    it('allows running to canceled', function () {
+        $match = TennisMatch::factory()->running()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'canceled'])
+            ->assertRedirect();
+
+        $match->refresh();
+        expect($match->status)->toBe(MatchStatus::Canceled);
+    });
+
+    it('allows pending to canceled', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'canceled'])
+            ->assertRedirect();
+
+        $match->refresh();
+        expect($match->status)->toBe(MatchStatus::Canceled);
     });
 });

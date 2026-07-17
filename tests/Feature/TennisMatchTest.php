@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\MatchStatus;
 use App\Models\TennisMatch;
 
 describe('TennisMatch Model', function () {
@@ -11,7 +12,7 @@ describe('TennisMatch Model', function () {
     it('defaults to pending status with no started_at', function () {
         $match = TennisMatch::factory()->create();
 
-        expect($match->status)->toBe('pending');
+        expect($match->status)->toBe(MatchStatus::Pending);
         expect($match->started_at)->toBeNull();
         expect($match->ended_at)->toBeNull();
     });
@@ -32,13 +33,13 @@ describe('TennisMatch format_label', function () {
             'tiebreak_to' => 7,
         ]);
 
-        expect($match->format_label)->toBe('Best of 1, 6 games, TB to 7');
+        expect($match->format_label)->toBe('Best of 1 set(s), 6 games, TB to 7');
     });
 
     it('formats best-of-3, 6 games, TB to 7 (default)', function () {
         $match = TennisMatch::factory()->create();
 
-        expect($match->format_label)->toBe('Best of 3, 6 games, TB to 7');
+        expect($match->format_label)->toBe('Best of 3 set(s), 6 games, TB to 7');
     });
 
     it('formats best-of-5, 6 games, TB to 10', function () {
@@ -49,19 +50,19 @@ describe('TennisMatch format_label', function () {
             'tiebreak_to' => 10,
         ]);
 
-        expect($match->format_label)->toBe('Best of 5, 6 games, TB to 10');
+        expect($match->format_label)->toBe('Best of 5 set(s), 6 games, TB to 10');
     });
 
     it('formats fast-4 with TB to 7', function () {
         $match = TennisMatch::factory()->fast4()->create();
 
-        expect($match->format_label)->toBe('Best of 3, 4 games, TB to 7');
+        expect($match->format_label)->toBe('Best of 3 set(s), 4 games, TB to 7');
     });
 
     it('formats short-set 5', function () {
         $match = TennisMatch::factory()->shortSet5()->create();
 
-        expect($match->format_label)->toBe('Best of 3, 5 games, TB to 7');
+        expect($match->format_label)->toBe('Best of 3 set(s), 5 games, TB to 7');
     });
 });
 
@@ -95,14 +96,14 @@ describe('TennisMatch Factory States', function () {
     it('running state sets status and started_at', function () {
         $match = TennisMatch::factory()->running()->create();
 
-        expect($match->status)->toBe('running');
+        expect($match->status)->toBe(MatchStatus::Running);
         expect($match->started_at)->not->toBeNull();
     });
 
     it('completed state sets status, started_at, and ended_at', function () {
         $match = TennisMatch::factory()->completed()->create();
 
-        expect($match->status)->toBe('completed');
+        expect($match->status)->toBe(MatchStatus::Completed);
         expect($match->started_at)->not->toBeNull();
         expect($match->ended_at)->not->toBeNull();
     });
@@ -110,7 +111,7 @@ describe('TennisMatch Factory States', function () {
     it('canceled state sets status and ended_at', function () {
         $match = TennisMatch::factory()->canceled()->create();
 
-        expect($match->status)->toBe('canceled');
+        expect($match->status)->toBe(MatchStatus::Canceled);
         expect($match->ended_at)->not->toBeNull();
     });
 });
