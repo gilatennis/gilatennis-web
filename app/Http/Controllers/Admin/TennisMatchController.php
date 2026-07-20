@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TennisMatchStoreRequest;
 use App\Http\Requests\Admin\TennisMatchUpdateRequest;
 use App\Models\TennisMatch;
-use Illuminate\Http\RedirectResponse;
+use App\Models\TennisMatchState;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -56,48 +58,89 @@ class TennisMatchController extends Controller
 
     public function show(TennisMatch $match): Response
     {
+        $match->loadMissing('state');
+
         return Inertia::render('Admin/TennisMatches/Score', [
-            'match' => [
-                'id' => $match->id,
-                'side_a_name' => $match->side_a_name,
-                'side_b_name' => $match->side_b_name,
-                'sets_to_win' => $match->sets_to_win,
-                'games_to_win' => $match->games_to_win,
-                'extend_at_tie' => $match->extend_at_tie,
-                'tiebreak_to' => $match->tiebreak_to,
-                'status' => $match->status,
-                'started_at' => $match->started_at?->toIso8601String(),
-                'ended_at' => $match->ended_at?->toIso8601String(),
-                'created_at' => $match->created_at?->toIso8601String(),
-                'format_label' => $match->format_label,
-            ],
+            'match' => $this->matchPayload($match),
         ]);
     }
 
-    public function update(TennisMatchUpdateRequest $request, TennisMatch $match): RedirectResponse
+    public function update(TennisMatchUpdateRequest $request, TennisMatch $match)
     {
-        $current = $match->status;
-        $next = MatchStatus::from($request->validated('status'));
+        DB::transaction(function () use ($request, $match) {
+            if ($request->has('status')) {
+                $current = $match->status;
+                $next = MatchStatus::from($request->validated('status'));
 
-        if (! $current->canTransitionTo($next)) {
-            return back()->withErrors([
-                'status' => "Cannot transition from {$current->value} to {$next->value}.",
-            ]);
-        }
+                if ($next !== $current && ! $current->canTransitionTo($next)) {
+                    throw ValidationException::withMessages([
+                        'status' => "Cannot transition from {$current->value} to {$next->value}.",
+                    ]);
+                }
 
-        if ($next === MatchStatus::Running && $match->started_at === null) {
-            $match->started_at = $request->validated('started_at') ?? now();
-        }
+                if ($next === MatchStatus::Running && $match->started_at === null) {
+                    $match->started_at = $request->validated('started_at') ?? now();
+                }
 
-        if ($next === MatchStatus::Completed && $match->ended_at === null) {
-            $match->ended_at = $request->validated('ended_at') ?? now();
-        }
+                if ($next === MatchStatus::Completed && $match->ended_at === null) {
+                    $match->ended_at = $request->validated('ended_at') ?? now();
+                }
 
-        $match->status = $next;
-        $match->save();
+                if ($next === MatchStatus::Pending) {
+                    $match->started_at = null;
+                    $match->ended_at = null;
+                }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "Match status: {$next->value}."]);
+                $match->status = $next;
+                $match->save();
+            }
 
-        return back();
+            if ($request->has('state')) {
+                TennisMatchState::updateOrCreate(
+                    ['tennis_match_id' => $match->id],
+                    $request->validated('state'),
+                );
+            }
+        });
+
+        $match->refresh();
+        $match->load('state');
+
+        return Inertia::render('Admin/TennisMatches/Score', [
+            'match' => $this->matchPayload($match),
+        ]);
+    }
+
+    private function matchPayload(TennisMatch $match): array
+    {
+        $state = $match->state;
+
+        return [
+            'id' => $match->id,
+            'side_a_name' => $match->side_a_name,
+            'side_b_name' => $match->side_b_name,
+            'sets_to_win' => $match->sets_to_win,
+            'games_to_win' => $match->games_to_win,
+            'extend_at_tie' => $match->extend_at_tie,
+            'tiebreak_to' => $match->tiebreak_to,
+            'status' => $match->status,
+            'started_at' => $match->started_at?->toIso8601String(),
+            'ended_at' => $match->ended_at?->toIso8601String(),
+            'created_at' => $match->created_at?->toIso8601String(),
+            'updated_at' => $match->updated_at?->toIso8601String(),
+            'format_label' => $match->format_label,
+            'server' => $state?->server,
+            'first_server' => $state?->first_server,
+            'set_a' => $state?->set_a ?? 0,
+            'set_b' => $state?->set_b ?? 0,
+            'game_a' => $state?->game_a ?? 0,
+            'game_b' => $state?->game_b ?? 0,
+            'tiebreak' => $state?->tiebreak ?? false,
+            'tb_a' => $state?->tb_a ?? 0,
+            'tb_b' => $state?->tb_b ?? 0,
+            'tb_first' => $state?->tb_first,
+            'sets' => $state?->sets ?? [],
+            'win' => $state?->win,
+        ];
     }
 }

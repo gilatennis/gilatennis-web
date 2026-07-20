@@ -1,5 +1,11 @@
 export type Side = 1 | 2;
 
+// TODO: add unit tests for the engine. Critical cases:
+//   - displayGameScore: deuce/Ad boundaries (regression for the "4 vs Ad" bug)
+//   - scorePoint: deuce reset at 4-4, advantage -> game, tiebreak transitions
+//   - statusLine: Deuce / Advantage / Set point / Match point / Tiebreak branches
+//   - undo: history pop, recursive reset to fresh state
+
 export type ShotTag =
     | 'Ace'
     | 'Winner'
@@ -8,51 +14,59 @@ export type ShotTag =
 
 export type EventTag = 'Fault' | 'Double fault' | 'Let';
 
-export interface MatchFormat {
-    setsToWin: number;
-    gamesToWin: number;
-    extendAtTie: boolean;
-    tiebreakTo: number;
-}
+export type MatchStatusValue = 'pending' | 'running' | 'completed' | 'canceled';
 
 export interface SetScore {
     a: number;
     b: number;
 }
 
-export interface MatchState {
-    format: MatchFormat;
-    p1: string;
-    p2: string;
-    server: Side;
-    firstServer: Side | null;
-    setA: number;
-    setB: number;
-    gameA: number;
-    gameB: number;
+export interface MatchScore {
+    server: Side | null;
+    first_server: Side | null;
+    set_a: number;
+    set_b: number;
+    game_a: number;
+    game_b: number;
     tiebreak: boolean;
-    tbA: number;
-    tbB: number;
-    tbFirst: Side | null;
+    tb_a: number;
+    tb_b: number;
+    tb_first: Side | null;
     sets: SetScore[];
     win: Side | null;
-    pendingShot: ShotTag | EventTag | null;
+}
+
+export interface MatchState extends MatchScore {
+    id: number;
+    side_a_name: string;
+    side_b_name: string;
+    sets_to_win: number;
+    games_to_win: number;
+    extend_at_tie: boolean;
+    tiebreak_to: number;
+    status: MatchStatusValue;
+    started_at: string | null;
+    ended_at: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    format_label: string;
+    pending_shot: ShotTag | EventTag | null;
     fault: boolean;
     history: Snapshot[];
 }
 
 export interface Snapshot {
-    server: Side;
-    setA: number;
-    setB: number;
-    gameA: number;
-    gameB: number;
+    server: Side | null;
+    set_a: number;
+    set_b: number;
+    game_a: number;
+    game_b: number;
     sets: SetScore[];
     tiebreak: boolean;
-    tbA: number;
-    tbB: number;
-    tbFirst: Side | null;
-    pendingShot: ShotTag | EventTag | null;
+    tb_a: number;
+    tb_b: number;
+    tb_first: Side | null;
+    pending_shot: ShotTag | EventTag | null;
     fault: boolean;
 }
 
@@ -93,14 +107,24 @@ export function gameOver(a: number, b: number, inTb: boolean): Side | null {
     return null;
 }
 
-export function setOver(a: number, b: number, format: MatchFormat): Side | null {
-    const target = format.gamesToWin;
+export function setOver(a: number, b: number, gamesToWin: number, extendAtTie: boolean): Side | null {
+    if (extendAtTie) {
+        if (a >= gamesToWin + 1 && a - b >= 2) {
+            return 1;
+        }
 
-    if (a >= target && a - b >= 2) {
+        if (b >= gamesToWin + 1 && b - a >= 2) {
+            return 2;
+        }
+
+        return null;
+    }
+
+    if (a >= gamesToWin && a - b >= 2) {
         return 1;
     }
 
-    if (b >= target && b - a >= 2) {
+    if (b >= gamesToWin && b - a >= 2) {
         return 2;
     }
 
@@ -119,47 +143,36 @@ export function tiebreakServer(total: number, firstSrv: Side): Side {
     return grp % 2 === 0 ? alt : firstSrv;
 }
 
-export function createInitialState(
-    format: MatchFormat,
-    p1: string,
-    p2: string,
-    firstServer: Side | null,
-): MatchState {
+export function createInitialScore(): MatchScore {
     return {
-        format,
-        p1,
-        p2,
-        server: firstServer ?? 1,
-        firstServer,
-        setA: 0,
-        setB: 0,
-        gameA: 0,
-        gameB: 0,
+        server: 1,
+        first_server: null,
+        set_a: 0,
+        set_b: 0,
+        game_a: 0,
+        game_b: 0,
         tiebreak: false,
-        tbA: 0,
-        tbB: 0,
-        tbFirst: null,
+        tb_a: 0,
+        tb_b: 0,
+        tb_first: null,
         sets: [],
         win: null,
-        pendingShot: null,
-        fault: false,
-        history: [],
     };
 }
 
 function snap(state: MatchState): Snapshot {
     return {
         server: state.server,
-        setA: state.setA,
-        setB: state.setB,
-        gameA: state.gameA,
-        gameB: state.gameB,
+        set_a: state.set_a,
+        set_b: state.set_b,
+        game_a: state.game_a,
+        game_b: state.game_b,
         sets: state.sets.map((s) => ({ a: s.a, b: s.b })),
         tiebreak: state.tiebreak,
-        tbA: state.tbA,
-        tbB: state.tbB,
-        tbFirst: state.tbFirst,
-        pendingShot: state.pendingShot,
+        tb_a: state.tb_a,
+        tb_b: state.tb_b,
+        tb_first: state.tb_first,
+        pending_shot: state.pending_shot,
         fault: state.fault,
     };
 }
@@ -168,16 +181,16 @@ function fromSnap(s: Snapshot, base: MatchState): MatchState {
     return {
         ...base,
         server: s.server,
-        setA: s.setA,
-        setB: s.setB,
-        gameA: s.gameA,
-        gameB: s.gameB,
+        set_a: s.set_a,
+        set_b: s.set_b,
+        game_a: s.game_a,
+        game_b: s.game_b,
         sets: s.sets.map((sc) => ({ a: sc.a, b: sc.b })),
         tiebreak: s.tiebreak,
-        tbA: s.tbA,
-        tbB: s.tbB,
-        tbFirst: s.tbFirst,
-        pendingShot: s.pendingShot,
+        tb_a: s.tb_a,
+        tb_b: s.tb_b,
+        tb_first: s.tb_first,
+        pending_shot: s.pending_shot,
         fault: s.fault,
         win: null,
     };
@@ -195,32 +208,32 @@ export function undo(state: MatchState): MatchState | null {
 }
 
 function finishGame(state: MatchState, gw: Side): MatchState {
-    const nextSetA = gw === 1 ? state.setA + 1 : state.setA;
-    const nextSetB = gw === 2 ? state.setB + 1 : state.setB;
+    const nextSetA = gw === 1 ? state.set_a + 1 : state.set_a;
+    const nextSetB = gw === 2 ? state.set_b + 1 : state.set_b;
     let next: MatchState = {
         ...state,
-        gameA: 0,
-        gameB: 0,
-        setA: nextSetA,
-        setB: nextSetB,
+        game_a: 0,
+        game_b: 0,
+        set_a: nextSetA,
+        set_b: nextSetB,
     };
 
-    const so = setOver(nextSetA, nextSetB, state.format);
+    const so = setOver(nextSetA, nextSetB, state.games_to_win, state.extend_at_tie);
 
     if (so !== null) {
         next = finishSet(next);
     } else if (
-        !state.format.extendAtTie &&
-        nextSetA === state.format.gamesToWin &&
-        nextSetB === state.format.gamesToWin
+        !state.extend_at_tie &&
+        nextSetA === state.games_to_win &&
+        nextSetB === state.games_to_win
     ) {
         const tbf: Side = state.server === 1 ? 2 : 1;
         next = {
             ...next,
             tiebreak: true,
-            tbA: 0,
-            tbB: 0,
-            tbFirst: tbf,
+            tb_a: 0,
+            tb_b: 0,
+            tb_first: tbf,
             server: tbf,
         };
     } else {
@@ -231,19 +244,19 @@ function finishGame(state: MatchState, gw: Side): MatchState {
 }
 
 function finishSet(state: MatchState): MatchState {
-    const newSets = [...state.sets, { a: state.setA, b: state.setB }];
+    const newSets = [...state.sets, { a: state.set_a, b: state.set_b }];
     const next: MatchState = {
         ...state,
         sets: newSets,
-        setA: 0,
-        setB: 0,
+        set_a: 0,
+        set_b: 0,
         tiebreak: false,
-        tbA: 0,
-        tbB: 0,
+        tb_a: 0,
+        tb_b: 0,
     };
 
-    const wonA = countSets(newSets, 1) >= state.format.setsToWin;
-    const wonB = countSets(newSets, 2) >= state.format.setsToWin;
+    const wonA = countSets(newSets, 1) >= state.sets_to_win;
+    const wonB = countSets(newSets, 2) >= state.sets_to_win;
 
     if (wonA) {
         return { ...next, win: 1 };
@@ -261,14 +274,14 @@ function countSets(sets: SetScore[], side: Side): number {
 }
 
 function finishTiebreakPoint(state: MatchState, who: Side): MatchState {
-    const nextTbA = who === 1 ? state.tbA + 1 : state.tbA;
-    const nextTbB = who === 2 ? state.tbB + 1 : state.tbB;
+    const nextTbA = who === 1 ? state.tb_a + 1 : state.tb_a;
+    const nextTbB = who === 2 ? state.tb_b + 1 : state.tb_b;
     const total = nextTbA + nextTbB;
-    const nextServer = tiebreakServer(total, state.tbFirst ?? state.server);
+    const nextServer = tiebreakServer(total, state.tb_first ?? state.server ?? 1);
     let next: MatchState = {
         ...state,
-        tbA: nextTbA,
-        tbB: nextTbB,
+        tb_a: nextTbA,
+        tb_b: nextTbB,
         server: nextServer,
     };
     const gw = gameOver(nextTbA, nextTbB, true);
@@ -276,8 +289,8 @@ function finishTiebreakPoint(state: MatchState, who: Side): MatchState {
     if (gw !== null) {
         next = {
             ...next,
-            setA: gw === 1 ? state.format.gamesToWin + 1 : state.setA,
-            setB: gw === 2 ? state.format.gamesToWin + 1 : state.setB,
+            set_a: gw === 1 ? state.games_to_win + 1 : state.set_a,
+            set_b: gw === 2 ? state.games_to_win + 1 : state.set_b,
         };
         next = finishSet(next);
     }
@@ -294,7 +307,7 @@ export function scorePoint(state: MatchState, who: Side): MatchState {
     const cleared: MatchState = {
         ...state,
         history,
-        pendingShot: null,
+        pending_shot: null,
         fault: false,
     };
 
@@ -302,8 +315,8 @@ export function scorePoint(state: MatchState, who: Side): MatchState {
         return finishTiebreakPoint(cleared, who);
     }
 
-    const nextA = who === 1 ? state.gameA + 1 : state.gameA;
-    const nextB = who === 2 ? state.gameB + 1 : state.gameB;
+    const nextA = who === 1 ? state.game_a + 1 : state.game_a;
+    const nextB = who === 2 ? state.game_b + 1 : state.game_b;
     const gw = gameOver(nextA, nextB, false);
 
     if (gw !== null) {
@@ -311,10 +324,10 @@ export function scorePoint(state: MatchState, who: Side): MatchState {
     }
 
     if (nextA === 4 && nextB === 4) {
-        return { ...cleared, gameA: 3, gameB: 3 };
+        return { ...cleared, game_a: 3, game_b: 3 };
     }
 
-    return { ...cleared, gameA: nextA, gameB: nextB };
+    return { ...cleared, game_a: nextA, game_b: nextB };
 }
 
 export function applyEvent(state: MatchState, event: EventTag): MatchState {
@@ -323,21 +336,22 @@ export function applyEvent(state: MatchState, event: EventTag): MatchState {
     }
 
     if (event === 'Fault') {
-        return { ...state, fault: !state.fault, pendingShot: null };
+        return { ...state, fault: !state.fault, pending_shot: null };
     }
 
     if (event === 'Double fault') {
-        const receiver: Side = state.server === 1 ? 2 : 1;
+        const server: Side = state.server ?? 1;
+        const receiver: Side = server === 1 ? 2 : 1;
 
         return scorePoint(
-            { ...state, fault: false, pendingShot: 'Double fault' },
+            { ...state, fault: false, pending_shot: 'Double fault' },
             receiver,
         );
     }
 
-    const next: MatchState = state.pendingShot === 'Let'
-        ? { ...state, pendingShot: null }
-        : { ...state, pendingShot: 'Let' };
+    const next: MatchState = state.pending_shot === 'Let'
+        ? { ...state, pending_shot: null }
+        : { ...state, pending_shot: 'Let' };
 
     return next;
 }
@@ -349,16 +363,16 @@ export function tagShot(state: MatchState, label: ShotTag): MatchState {
 
     return {
         ...state,
-        pendingShot: state.pendingShot === label ? null : label,
+        pending_shot: state.pending_shot === label ? null : label,
     };
 }
 
 export function setServer(state: MatchState, side: Side): MatchState {
-    if (state.history.length > 0 || state.gameA > 0 || state.gameB > 0) {
+    if (state.history.length > 0 || state.game_a > 0 || state.game_b > 0) {
         return state;
     }
 
-    return { ...state, server: side, firstServer: side };
+    return { ...state, server: side, first_server: side };
 }
 
 export function isComplete(state: MatchState): boolean {
@@ -370,77 +384,76 @@ export function statusLine(state: MatchState): StatusLine {
         return { text: 'Tiebreak', tone: 'blue' };
     }
 
-    if (state.gameA >= 4 && state.gameA - state.gameB === 1) {
-        return { text: `Advantage · ${state.p1}`, tone: 'emerald' };
+    if (state.game_a >= 4 && state.game_a - state.game_b === 1) {
+        return { text: `Advantage · ${state.side_a_name}`, tone: 'emerald' };
     }
 
-    if (state.gameB >= 4 && state.gameB - state.gameA === 1) {
-        return { text: `Advantage · ${state.p2}`, tone: 'emerald' };
+    if (state.game_b >= 4 && state.game_b - state.game_a === 1) {
+        return { text: `Advantage · ${state.side_b_name}`, tone: 'emerald' };
     }
 
-    const deuce = state.gameA >= 3 && state.gameB >= 3 && state.gameA === state.gameB;
+    const deuce = state.game_a >= 3 && state.game_b >= 3 && state.game_a === state.game_b;
 
     if (deuce) {
         return { text: 'Deuce', tone: 'blue' };
     }
 
-    const need = state.format.setsToWin;
-    const matchA = state.setA >= need - 1;
-    const matchB = state.setB >= need - 1;
+    const need = state.sets_to_win;
+    const matchA = state.set_a >= need - 1;
+    const matchB = state.set_b >= need - 1;
 
-    if (state.gameA >= 3) {
-        if (state.setA === state.format.gamesToWin - 1 && state.gameA > state.gameB) {
+    if (state.game_a >= 3) {
+        if (state.set_a === state.games_to_win - 1 && state.game_a > state.game_b) {
             return {
-                text: `${matchA ? 'Match' : 'Set'} point · ${state.p1}`,
+                text: `${matchA ? 'Match' : 'Set'} point · ${state.side_a_name}`,
                 tone: 'amber',
             };
         }
 
-        if (state.setA === state.format.gamesToWin && state.gameA > state.gameB) {
+        if (state.set_a === state.games_to_win && state.game_a > state.game_b) {
             return {
-                text: `${matchA ? 'Match' : 'Set'} point · ${state.p1}`,
+                text: `${matchA ? 'Match' : 'Set'} point · ${state.side_a_name}`,
                 tone: 'amber',
             };
         }
 
-        if (state.gameA > state.gameB) {
-            return { text: `Game point · ${state.p1}`, tone: 'amber' };
+        if (state.game_a > state.game_b) {
+            return { text: `Game point · ${state.side_a_name}`, tone: 'amber' };
         }
     }
 
-    if (state.gameB >= 3) {
-        if (state.setB === state.format.gamesToWin - 1 && state.gameB > state.gameA) {
+    if (state.game_b >= 3) {
+        if (state.set_b === state.games_to_win - 1 && state.game_b > state.game_a) {
             return {
-                text: `${matchB ? 'Match' : 'Set'} point · ${state.p2}`,
+                text: `${matchB ? 'Match' : 'Set'} point · ${state.side_b_name}`,
                 tone: 'amber',
             };
         }
 
-        if (state.setB === state.format.gamesToWin && state.gameB > state.gameA) {
+        if (state.set_b === state.games_to_win && state.game_b > state.game_a) {
             return {
-                text: `${matchB ? 'Match' : 'Set'} point · ${state.p2}`,
+                text: `${matchB ? 'Match' : 'Set'} point · ${state.side_b_name}`,
                 tone: 'amber',
             };
         }
 
-        if (state.gameB > state.gameA) {
-            return { text: `Game point · ${state.p2}`, tone: 'amber' };
+        if (state.game_b > state.game_a) {
+            return { text: `Game point · ${state.side_b_name}`, tone: 'amber' };
         }
     }
 
-    return {
-        text: state.server === 1 ? `${state.p1} serving` : `${state.p2} serving`,
-        tone: 'neutral',
-    };
+    const serverName = state.server === 1 ? state.side_a_name : state.side_b_name;
+
+    return { text: `${serverName} serving`, tone: 'neutral' };
 }
 
 export function displayGameScore(state: MatchState, side: Side): string {
     if (state.tiebreak) {
-        return String(side === 1 ? state.tbA : state.tbB);
+        return String(side === 1 ? state.tb_a : state.tb_b);
     }
 
-    const mine = side === 1 ? state.gameA : state.gameB;
-    const opp = side === 1 ? state.gameB : state.gameA;
+    const mine = side === 1 ? state.game_a : state.game_b;
+    const opp = side === 1 ? state.game_b : state.game_a;
 
     if (mine >= 4 && mine > opp) {
         return 'Ad';
@@ -450,5 +463,5 @@ export function displayGameScore(state: MatchState, side: Side): string {
 }
 
 export function canUndo(state: MatchState): boolean {
-    return state.history.length > 0 || state.firstServer !== null;
+    return state.history.length > 0 || state.first_server !== null;
 }

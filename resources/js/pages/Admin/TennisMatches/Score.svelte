@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { router } from '@inertiajs/svelte';
+    import { router, useForm } from '@inertiajs/svelte';
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import RotateCcw from 'lucide-svelte/icons/rotate-ccw';
     import Trophy from 'lucide-svelte/icons/trophy';
@@ -10,104 +10,104 @@
     import {
         applyEvent,
         canUndo,
-        createInitialState,
         displayGameScore,
         isComplete,
         scorePoint,
         setServer,
+        statusLine,
         tagShot,
         undo
     } from '@/lib/tennis-engine';
-    import type {EventTag, MatchState, ShotTag, Side} from '@/lib/tennis-engine';
+    import type {EventTag, MatchScore, MatchState, MatchStatusValue, ShotTag, Side} from '@/lib/tennis-engine';
     import { index as indexRoute, update as updateRoute } from '@/routes/admin/tennis-matches';
 
-    type MatchStatus = 'pending' | 'running' | 'completed' | 'canceled';
+    const { match }: { match: MatchState } = $props();
 
-    interface MatchProps {
-        id: number;
-        side_a_name: string;
-        side_b_name: string;
-        sets_to_win: number;
-        games_to_win: number;
-        extend_at_tie: boolean;
-        tiebreak_to: number;
-        status: MatchStatus;
-        started_at: string | null;
-        ended_at: string | null;
-        created_at: string | null;
-        format_label: string;
-    }
-
-    let { match }: { match: MatchProps } = $props();
-
-    let liveStatus: MatchStatus = $state(match.status);
-    let selectedSide: Side | null = $state(null);
-    let syncing = $state(false);
-    let syncError: string | null = $state(null);
-    let hasSyncedRunning = $state(match.status !== 'pending');
-    let hasSyncedCompleted = $state(
-        match.status === 'completed' || match.status === 'canceled',
-    );
-
-    let score: MatchState = $state(
-        createInitialState(
-            {
-                setsToWin: match.sets_to_win,
-                gamesToWin: match.games_to_win,
-                extendAtTie: match.extend_at_tie,
-                tiebreakTo: match.tiebreak_to,
-            },
-            match.side_a_name,
-            match.side_b_name,
-            null,
-        ),
-    );
+    let score: MatchState = $state({
+        ...match,
+        pending_shot: null,
+        fault: false,
+        history: [],
+    });
+    let selectedSide: Side | null = $state(score.first_server !== null ? score.server : null);
+    let pending: MatchState | null = $state(null);
+    let lastSavedAt: Date | null = $state(null);
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
     let complete = $derived(isComplete(score));
     let undoable = $derived(canUndo(score));
+    let statusBanner = $derived(statusLine(score));
     let showShotBar = $state(true);
     let showEventBar = $state(true);
 
+    const saveForm = useForm<{ status: MatchStatusValue; state: MatchScore }>({
+        status: match.status,
+        state: extractPersistedFields(match),
+    });
+
+    const SAVE_DEBOUNCE_MS = 1500;
     const shots: ShotTag[] = ['Ace', 'Winner', 'Unforced error', 'Forced error'];
     const events: EventTag[] = ['Fault', 'Double fault', 'Let'];
 
-    function syncStatus(next: 'running' | 'completed') {
-        if (syncing) {
-            return;
-        }
+    function extractPersistedFields(s: MatchState): MatchScore {
+        return {
+            server: s.server,
+            first_server: s.first_server,
+            set_a: s.set_a,
+            set_b: s.set_b,
+            game_a: s.game_a,
+            game_b: s.game_b,
+            tiebreak: s.tiebreak,
+            tb_a: s.tb_a,
+            tb_b: s.tb_b,
+            tb_first: s.tb_first,
+            sets: s.sets.map((sc) => ({ a: sc.a, b: sc.b })),
+            win: s.win,
+        };
+    }
 
-        if (next === 'running' && hasSyncedRunning) {
-            return;
-        }
+    function schedule(next: MatchState) {
+        score = next;
+        pending = next;
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(flush, SAVE_DEBOUNCE_MS);
+    }
 
-        if (next === 'completed' && hasSyncedCompleted) {
-            return;
-        }
+    function flush() {
+        if (pending === null) return;
+        if (saveForm.processing) return;
+        const snapshot = pending;
+        pending = null;
 
-        syncing = true;
-        syncError = null;
+        saveForm
+            .transform(() => ({
+                status: snapshot.status,
+                state: extractPersistedFields(snapshot),
+            }))
+            .put(updateRoute({ match: match.id }).url, {
+                preserveScroll: true,
+                showProgress: false,
+                onSuccess: () => {
+                    lastSavedAt = new Date();
+                },
+                onError: () => {},
+                onFinish: () => {
+                    if (pending !== null) {
+                        if (saveTimer) clearTimeout(saveTimer);
+                        saveTimer = setTimeout(flush, 0);
+                    }
+                },
+            });
+    }
+
+    function onBeforeUnload() {
+        if (pending === null) return;
         const url = updateRoute({ match: match.id }).url;
-        router.put(url, { status: next }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                liveStatus = next;
-
-                if (next === 'running') {
-                    hasSyncedRunning = true;
-                }
-
-                if (next === 'completed') {
-                    hasSyncedCompleted = true;
-                }
-            },
-            onError: (errors) => {
-                const msg = (errors as Record<string, string>).status ?? 'Sync failed.';
-                syncError = msg;
-            },
-            onFinish: () => {
-                syncing = false;
-            },
-        });
+        const body = new Blob(
+            [JSON.stringify({ status: pending.status, state: extractPersistedFields(pending) })],
+            { type: 'application/json' },
+        );
+        navigator.sendBeacon(url, body);
     }
 
     function pickServer(side: Side) {
@@ -119,7 +119,8 @@
             return;
         }
 
-        score = setServer(score, selectedSide);
+        const next = setServer(score, selectedSide);
+        schedule({ ...next, status: 'running' });
     }
 
     function awardPoint(side: Side) {
@@ -127,30 +128,40 @@
             return;
         }
 
-        const wasHistoryEmpty = score.history.length === 0;
-        score = scorePoint(score, side);
-
-        if (wasHistoryEmpty) {
-            syncStatus('running');
-        }
-
-        if (isComplete(score) && !hasSyncedCompleted) {
-            syncStatus('completed');
-        }
+        const next = scorePoint(score, side);
+        const status: MatchState['status'] = next.win !== null ? 'completed' : 'running';
+        schedule({ ...next, status });
     }
 
     function rollback() {
         const next = undo(score);
 
         if (next) {
-            score = next;
-
+            schedule({ ...next, status: next.history.length === 0 && next.first_server === null ? 'pending' : 'running' });
             return;
         }
 
-        if (score.firstServer !== null) {
-            score = createInitialState(score.format, score.p1, score.p2, null);
+        if (score.first_server !== null) {
+            const fresh: MatchState = {
+                ...score,
+                server: 1,
+                first_server: null,
+                set_a: 0,
+                set_b: 0,
+                game_a: 0,
+                game_b: 0,
+                tiebreak: false,
+                tb_a: 0,
+                tb_b: 0,
+                tb_first: null,
+                sets: [],
+                win: null,
+                pending_shot: null,
+                fault: false,
+                history: [],
+            };
             selectedSide = null;
+            schedule({ ...fresh, status: 'pending' });
         }
     }
 
@@ -163,16 +174,9 @@
             return;
         }
 
-        const wasHistoryEmpty = score.history.length === 0;
-        score = applyEvent(score, label);
-
-        if (wasHistoryEmpty && score.history.length > 0) {
-            syncStatus('running');
-        }
-
-        if (isComplete(score) && !hasSyncedCompleted) {
-            syncStatus('completed');
-        }
+        const next = applyEvent(score, label);
+        const status: MatchState['status'] = next.win !== null ? 'completed' : 'running';
+        schedule({ ...next, status });
     }
 
     function backToList() {
@@ -201,10 +205,31 @@
         });
     }
 
+    function formatTime(d: Date): string {
+        const pad = (n: number) => String(n).padStart(2, '0');
+
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    let saveError = $derived(saveForm.errors.status ?? saveForm.errors.state ?? null);
+    let isDirty = $derived(pending !== null);
+
+    const statusToneClass: Record<string, string> = {
+        neutral: 'text-neutral-500',
+        blue: 'text-sky-600',
+        emerald: 'text-emerald-700',
+        amber: 'text-amber-600',
+    };
+    let statusTone = $derived(statusToneClass[statusBanner.tone] ?? 'text-neutral-500');
+
     onMount(() => {
-        if (match.status === 'running' || match.status === 'completed') {
-            hasSyncedRunning = true;
-        }
+        window.addEventListener('beforeunload', onBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', onBeforeUnload);
+            if (saveTimer) clearTimeout(saveTimer);
+            if (pending !== null) flush();
+        };
     });
 </script>
 
@@ -236,25 +261,30 @@
             <span class="text-neutral-300 mx-3">vs</span>
             {match.side_b_name}
         </h1>
-        <div class="flex items-center space-x-2">
-            <span class=""><MatchStatusBadge status={liveStatus} /></span>
-            <p class="pt-1 text-[13px] text-neutral-500">
-                {#if match.started_at}
-                    Started {formatDate(match.started_at)}
-                {:else}
-                    Not started yet
-                {/if}
-            </p>
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class=""><MatchStatusBadge status={score.status} /></span>
+                <p class="pt-1 text-[13px] text-neutral-500">
+                    {#if match.started_at}
+                        Started {formatDate(match.started_at)}
+                    {:else}
+                        Not started yet
+                    {/if}
+                </p>
+            </div>
+            <div class="h-2">
+                <p class="pt-1 text-[11px] text-neutral-400">
+                    {#if saveError}
+                        <span class="text-red-600">{saveError}</span>
+                    {:else if isDirty}
+                        Saving…
+                    {:else if lastSavedAt}
+                        Autosaved at {formatTime(lastSavedAt)}
+                    {/if}
+                </p>
+            </div>
         </div>
     {/snippet}
-
-    {#if syncError}
-        <div
-            class="mb-4 border border-red-200 bg-red-50 text-red-800 text-[12px] px-3 py-2"
-        >
-            Status sync failed: {syncError}
-        </div>
-    {/if}
 
     {#if !complete}
         <p class="mt-2 mb-2 text-[13px] text-neutral-500">
@@ -266,7 +296,7 @@
                 <div class="bg-white border border-black/10">
                     {#each [{ side: 1 as Side, name: match.side_a_name }, { side: 2 as Side, name: match.side_b_name }] as row (row.side)}
                         {@const colors = playerColor(row.side)}
-                        {@const serving = score.firstServer !== null && score.server === row.side}
+                        {@const serving = score.first_server !== null && score.server === row.side}
                         <div
                             class="flex items-center gap-4 px-3 py-3 border-b border-black/10 last:border-b-0 {serving
                                 ? colors.soft
@@ -279,6 +309,7 @@
                                 {#if serving}
                                     <span
                                         class="size-2.5 rounded-full bg-yellow-400 ring-1 ring-yellow-600/20 shrink-0"
+                                        data-testid="serving-dot"
                                         aria-label="Serving"
                                     ></span>
                                 {/if}
@@ -294,7 +325,7 @@
                                 <span
                                     class="font-mono text-[12px] text-neutral-400 tabular-nums min-w-[18px] text-center"
                                 >
-                                    {score.tiebreak ? '' : row.side === 1 ? score.setA : score.setB}
+                                    {score.tiebreak ? '' : row.side === 1 ? score.set_a : score.set_b}
                                 </span>
                                 <span
                                     class="font-mono text-[20px] font-bold tabular-nums min-w-[28px] text-center {colors.text}"
@@ -306,7 +337,7 @@
                     {/each}
                 </div>
 
-                {#if score.firstServer === null}
+                {#if score.first_server === null}
                     <div
                         class="bg-white border border-black/10 px-5 py-4 flex flex-col gap-2"
                     >
@@ -316,30 +347,33 @@
                             Who serves first?
                         </span>
                         <div class="flex gap-2">
-                            <button
-                                type="button"
-                                onclick={() => pickServer(1)}
-                                class="flex-1 px-3 py-2 border text-[12px] font-bold uppercase tracking-[0.12em] transition-colors {selectedSide ===
-                                1
-                                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                                    : 'border-black/10 hover:border-neutral-400'}"
-                            >
-                                {match.side_a_name}
-                            </button>
-                            <button
-                                type="button"
-                                onclick={() => pickServer(2)}
-                                class="flex-1 px-3 py-2 border text-[12px] font-bold uppercase tracking-[0.12em] transition-colors {selectedSide ===
-                                2
-                                    ? 'border-sky-600 bg-sky-50 text-sky-700'
-                                    : 'border-black/10 hover:border-neutral-400'}"
-                            >
-                                {match.side_b_name}
-                            </button>
+                        <button
+                            type="button"
+                            data-testid="server-pick-a"
+                            onclick={() => pickServer(1)}
+                            class="flex-1 px-3 py-2 border text-[12px] font-bold uppercase tracking-[0.12em] transition-colors {selectedSide ===
+                            1
+                                ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                                : 'border-black/10 hover:border-neutral-400'}"
+                        >
+                            {match.side_a_name}
+                        </button>
+                        <button
+                            type="button"
+                            data-testid="server-pick-b"
+                            onclick={() => pickServer(2)}
+                            class="flex-1 px-3 py-2 border text-[12px] font-bold uppercase tracking-[0.12em] transition-colors {selectedSide ===
+                            2
+                                ? 'border-sky-600 bg-sky-50 text-sky-700'
+                                : 'border-black/10 hover:border-neutral-400'}"
+                        >
+                            {match.side_b_name}
+                        </button>
                         </div>
                         {#if selectedSide !== null}
                             <button
                                 type="button"
+                                data-testid="start-match"
                                 onclick={startMatch}
                                 class="w-full mt-1 px-3 py-2.5 bg-amber-600 text-white text-[12px] font-bold uppercase tracking-[0.12em] hover:bg-neutral-800 transition-colors"
                             >
@@ -349,15 +383,16 @@
                     </div>
                 {/if}
 
-                {#if score.firstServer !== null}
+                {#if score.first_server !== null}
                     <div class="flex items-center justify-between">
                         <span
-                            class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-500"
+                            class="text-[10px] font-bold uppercase tracking-[0.22em] {statusTone}"
                         >
-                            {score.server === 1 ? match.side_a_name : match.side_b_name} serving
+                            {statusBanner.text}
                         </span>
                         <button
                             type="button"
+                            data-testid="undo"
                             onclick={rollback}
                             disabled={!undoable}
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-black/10 bg-white text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-500 transition-colors hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-default"
@@ -369,7 +404,7 @@
                 {/if}
             </div>
 
-            {#if score.firstServer !== null}
+            {#if score.first_server !== null}
                 <div class="flex flex-col gap-3">
                 <div class="flex flex-col gap-2">
                     <span
@@ -379,6 +414,7 @@
                     </span>
                     <button
                         type="button"
+                        data-testid="point-a"
                         onclick={() => awardPoint(1)}
                         class="w-full px-2 py-3 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-display font-bold text-[12px] uppercase tracking-[0.12em] flex items-center justify-center gap-2 transition-colors"
                     >
@@ -387,6 +423,7 @@
                     </button>
                     <button
                         type="button"
+                        data-testid="point-b"
                         onclick={() => awardPoint(2)}
                         class="w-full px-2 py-3 border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 font-display font-bold text-[12px] uppercase tracking-[0.12em] flex items-center justify-center gap-2 transition-colors"
                     >
@@ -407,12 +444,13 @@
                     {#if showEventBar}
                         <div class="px-3 pb-3 flex flex-wrap gap-1.5 border-t border-black/10 pt-3">
                             {#each events as ev (ev)}
-                                {@const active = !score.fault && ev !== 'Fault' && !ev.includes('Double') && score.pendingShot === ev}
+                                {@const active = !score.fault && ev !== 'Fault' && !ev.includes('Double') && score.pending_shot === ev}
                                 {@const dfActive = ev === 'Double fault'}
                                 {@const faultActive = ev === 'Fault' && score.fault}
                                 {@const dfDisabled = dfActive && !score.fault}
                                 <button
                                     type="button"
+                                    data-testid="event-{ev.toLowerCase().replace(' ', '-')}"
                                     onclick={() => fireEvent(ev)}
                                     disabled={dfDisabled}
                                     class="px-2.5 py-1.5 border text-[10px] font-bold uppercase tracking-[0.12em] transition-colors {faultActive
@@ -441,11 +479,12 @@
                         <div class="px-3 pb-3 flex flex-col gap-2 border-t border-black/10 pt-3">
                             <div class="flex flex-wrap gap-1.5">
                                 {#each shots as shot (shot)}
-                                    {@const active = score.pendingShot === shot}
+                                    {@const active = score.pending_shot === shot}
                                     {@const isAce = shot === 'Ace'}
                                     {@const isWinner = shot === 'Winner'}
                                     <button
                                         type="button"
+                                        data-testid="shot-{shot.toLowerCase().replace(' ', '-')}"
                                         onclick={() => tag(shot)}
                                         class="px-2.5 py-1.5 border text-[10px] font-bold uppercase tracking-[0.12em] transition-colors {active
                                             ? 'border-emerald-600 bg-emerald-600 text-white'
@@ -459,11 +498,11 @@
                                     </button>
                                 {/each}
                             </div>
-                            {#if score.pendingShot}
+                            {#if score.pending_shot}
                                 <div
                                     class="text-[10px] font-bold uppercase tracking-[0.12em] text-neutral-700 text-center pt-1"
                                 >
-                                    Shot: {score.pendingShot} — now tap a player
+                                    Shot: {score.pending_shot} — now tap a player
                                 </div>
                             {:else}
                                 <div
@@ -503,6 +542,7 @@
                     Match Winner
                 </div>
                 <div
+                    data-testid="match-winner"
                     class="mt-2 font-display font-black text-[32px] tracking-[-0.03em] {score.win ===
                     1
                         ? 'text-emerald-700'

@@ -31,16 +31,8 @@ enum MatchStatus: string
     {
         return match ($this) {
             self::Pending => [self::Running, self::Canceled],
-            self::Running => [self::Completed, self::Canceled],
+            self::Running => [self::Pending, self::Completed, self::Canceled],
             self::Completed, self::Canceled => [],
         };
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function values(): array
-    {
-        return array_map(fn (self $c) => $c->value, self::cases());
     }
 }

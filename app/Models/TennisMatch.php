@@ -5,13 +5,24 @@ namespace App\Models;
 use App\Enums\MatchStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 // INFO: have to be named `TennisMatch` because `Match` is a reserved php keyword
 class TennisMatch extends Model
 {
     use HasFactory;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'side_a_name',
+        'side_b_name',
+        'sets_to_win',
+        'games_to_win',
+        'extend_at_tie',
+        'tiebreak_to',
+        'status',
+        'started_at',
+        'ended_at',
+    ];
 
     protected $appends = ['format_label'];
 
@@ -42,5 +53,19 @@ class TennisMatch extends Model
         $bestOf = ($this->sets_to_win * 2) - 1;
 
         return "Best of {$bestOf} set(s), {$this->games_to_win} games, TB to {$this->tiebreak_to}";
+    }
+
+    public function state(): HasOne
+    {
+        return $this->hasOne(TennisMatchState::class);
+    }
+
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        static::created(function (TennisMatch $match) {
+            $match->state()->create(TennisMatchState::defaults());
+        });
     }
 }
