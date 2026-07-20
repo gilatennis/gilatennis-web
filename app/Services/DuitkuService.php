@@ -19,6 +19,9 @@ class DuitkuService
     {
         $merchantOrderId = $registration->confirmation_code;
         $paymentAmount = (int) ($registration->amount_cents / 100);
+        $transactionFee = (int) (($registration->transaction_fee_cents ?? 0) / 100);
+        $registrationAmount = $paymentAmount - $transactionFee;
+        $divisionName = ($registration->relationLoaded('division') && $registration->division) ? $registration->division->name : 'Registration';
 
         $timestamp = (string) (int) (microtime(true) * 1000);
         $signature = hash('sha256', $this->merchantCode.$timestamp.$this->apiKey);
@@ -26,6 +29,22 @@ class DuitkuService
         $nameParts = explode(' ', $registration->name, 2);
         $firstName = $nameParts[0];
         $lastName = $nameParts[1] ?? '';
+
+        $itemDetails = [
+            [
+                'name' => $registration->tournament->name.' - '.$divisionName,
+                'price' => $registrationAmount,
+                'quantity' => 1,
+            ],
+        ];
+
+        if ($transactionFee > 0) {
+            $itemDetails[] = [
+                'name' => 'Transaction Fee',
+                'price' => $transactionFee,
+                'quantity' => 1,
+            ];
+        }
 
         $payload = [
             'paymentAmount' => $paymentAmount,
@@ -35,13 +54,7 @@ class DuitkuService
             'merchantUserInfo' => '',
             'customerVaName' => $registration->name,
             'phoneNumber' => $registration->phone,
-            'itemDetails' => [
-                [
-                    'name' => $registration->tournament->name.' - '.($registration->relationLoaded('division') ? $registration->division->name : 'Registration'),
-                    'price' => $paymentAmount,
-                    'quantity' => 1,
-                ],
-            ],
+            'itemDetails' => $itemDetails,
             'customerDetail' => [
                 'firstName' => $firstName,
                 'lastName' => $lastName,

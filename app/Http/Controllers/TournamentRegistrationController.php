@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\TournamentRegistrationRequest;
 use App\Models\Division;
+use App\Models\Settings;
 use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
@@ -11,6 +12,7 @@ use App\Models\TournamentRegistrationPlayer;
 use App\Models\User;
 use App\Services\DuitkuService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class TournamentRegistrationController extends Controller
@@ -42,6 +44,7 @@ class TournamentRegistrationController extends Controller
             'tournament' => $tournament,
             'divisions' => $tournament->divisions,
             'preselectedDivisionId' => $preselectedDivisionId,
+            'transactionFee' => Settings::getTransactionFee(),
         ]);
     }
 
@@ -76,7 +79,9 @@ class TournamentRegistrationController extends Controller
             ->first();
 
         if ($existing) {
-            return redirect()->route('tournaments.register.success', $existing->confirmation_code);
+            throw ValidationException::withMessages([
+                'duplicate_registration' => "You've already paid for this division (confirmation #{$existing->confirmation_code}). Use a different email to register another player.",
+            ]);
         }
 
         // 3. Create team for team divisions
@@ -85,8 +90,10 @@ class TournamentRegistrationController extends Controller
             $team = Team::create(['name' => $request->team_name]);
         }
 
-        // 4. Calculate amount from division fee
-        $amountCents = (int) ($division->fee * 100);
+        // 4. Calculate amount from division fee + transaction fee
+        $feeCents = (int) ($division->fee * 100);
+        $transactionFeeCents = Settings::getTransactionFeeCents();
+        $amountCents = $feeCents + $transactionFeeCents;
 
         // 5. Create registration
         $registration = TournamentRegistration::create([
@@ -100,6 +107,7 @@ class TournamentRegistrationController extends Controller
             'phone' => $request->phone,
             'date_of_birth' => $request->date_of_birth ?? '2000-01-01',
             'amount_cents' => $amountCents,
+            'transaction_fee_cents' => $transactionFeeCents,
             'currency' => 'IDR',
             'payment_status' => 'pending',
         ]);

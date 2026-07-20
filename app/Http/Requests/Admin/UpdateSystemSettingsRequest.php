@@ -9,7 +9,8 @@ class UpdateSystemSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contact_wa_number' => ['required', 'string', 'max:20'],
+            'contact_wa_number' => ['nullable', 'string', 'max:20'],
+            'transaction_fee' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

@@ -17,12 +17,13 @@ class TournamentRegistration extends Model
         'confirmation_code',
         'name', 'email', 'phone', 'date_of_birth',
         'payment_status', 'payment_reference', 'payment_url',
-        'amount_cents', 'currency',
+        'amount_cents', 'transaction_fee_cents', 'currency',
         'paid_at',
     ];
 
     protected $casts = [
         'amount_cents' => 'integer',
+        'transaction_fee_cents' => 'integer',
         'date_of_birth' => 'date',
         'paid_at' => 'datetime',
     ];

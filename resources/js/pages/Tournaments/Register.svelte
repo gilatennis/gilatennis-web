@@ -39,6 +39,7 @@
         tournament,
         divisions,
         preselectedDivisionId = null,
+        transactionFee = 0,
     }: {
         tournament: any & {
             contact_person_name?: string | null;
@@ -46,6 +47,7 @@
         };
         divisions: any[];
         preselectedDivisionId?: number | null;
+        transactionFee?: number;
     } = $props();
 
     // === SHARED ===
@@ -122,12 +124,15 @@
 
     const division: DivisionContext = $derived.by(() => {
         const d = selectedDivision;
+        const fee = d?.fee ?? 0;
 
         return {
             selected: d,
             isTeam: d?.participation_category === 'team',
             participationCategory: d?.participation_category ?? '',
-            total: d?.fee ?? 0,
+            fee,
+            transactionFee,
+            total: fee + transactionFee,
             minTeamSize: d?.min_team_size ?? 0,
             maxTeamSize: d?.max_team_size ?? 0,
             minFemalePlayers: d?.min_female_players ?? 0,

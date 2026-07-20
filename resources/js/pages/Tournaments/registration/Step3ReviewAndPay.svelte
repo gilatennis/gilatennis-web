@@ -235,7 +235,21 @@
         <div class="text-[11px] uppercase tracking-[0.25em] opacity-60 mb-4">
             Order summary
         </div>
-        <div class="flex justify-between items-baseline">
+        <div class="space-y-2 mb-4">
+            <div class="flex justify-between text-sm">
+                <span class="opacity-70 uppercase tracking-[0.15em] text-[10px]">Registration</span>
+                <span class="font-mono">{formatIDR(division.fee)}</span>
+            </div>
+            {#if division.transactionFee > 0}
+                <div class="flex justify-between text-sm">
+                    <span class="opacity-70 uppercase tracking-[0.15em] text-[10px]">Transaction fee</span>
+                    <span class="font-mono">{formatIDR(division.transactionFee)}</span>
+                </div>
+            {/if}
+        </div>
+        <div
+            class="flex justify-between items-baseline border-t border-white/20 dark:border-black/20 pt-3"
+        >
             <span class="text-[11px] uppercase tracking-[0.2em]">Total</span>
             <span class="font-display font-black text-3xl"
                 >{formatIDR(division.total)}</span

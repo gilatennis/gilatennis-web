@@ -11,7 +11,10 @@ class SettingsSeeder extends Seeder
     {
         Settings::query()->updateOrCreate(
             ['id' => 1],
-            ['contact_wa_number' => '+6287887240444']
+            [
+                'contact_wa_number' => '+6287887240444',
+                'transaction_fee' => 0,
+            ]
         );
     }
 }

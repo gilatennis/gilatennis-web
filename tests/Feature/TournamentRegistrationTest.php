@@ -4,6 +4,7 @@ use App\DTOs\DuitkuInvoiceResponse;
 use App\Models\Division;
 use App\Models\DivisionPlayerFieldRequirement;
 use App\Models\Role;
+use App\Models\Settings;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
@@ -185,20 +186,121 @@ describe('Registration Form', function () {
         ]);
     });
 
-    it('redirects existing paid registration to success', function () {
+    it('rejects duplicate paid registration with validation error', function () {
         $t = Tournament::factory()->create(['status' => 'open']);
         $div = makeSinglesDivision($t, ['fee' => 5000]);
         $user = User::factory()->create(['email' => 'jane@example.com']);
-        $existing = TournamentRegistration::factory()->forTournament($t)->forUser($user)->create([
+        TournamentRegistration::factory()->forTournament($t)->forUser($user)->create([
+            'confirmation_code' => 'GO-2026-EXIST',
             'email' => $user->email,
             'division_id' => $div->id,
             'payment_status' => 'paid',
         ]);
 
+        $initialCount = TournamentRegistration::where('division_id', $div->id)->count();
+
+        $response = $this->postJson(route('tournaments.register.store', $t->slug), singlesFormData($div))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['duplicate_registration']);
+
+        expect($response->json('errors.duplicate_registration.0'))->toContain('GO-2026-EXIST');
+        expect(TournamentRegistration::where('division_id', $div->id)->count())->toBe($initialCount);
+    });
+
+    it('allows re-registration when existing is pending', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
+        $user = User::factory()->create(['email' => 'jane@example.com']);
+        TournamentRegistration::factory()->forTournament($t)->forUser($user)->create([
+            'email' => $user->email,
+            'division_id' => $div->id,
+            'payment_status' => 'pending',
+        ]);
+
+        $initialCount = TournamentRegistration::where('email', $user->email)->count();
+
         fakeInvoiceService();
 
         $this->post(route('tournaments.register.store', $t->slug), singlesFormData($div))
-            ->assertRedirect(route('tournaments.register.success', $existing->confirmation_code));
+            ->assertStatus(302);
+
+        expect(TournamentRegistration::where('email', $user->email)->count())->toBe($initialCount + 1);
+    });
+
+    it('allows re-registration when existing is failed', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
+        $user = User::factory()->create(['email' => 'jane@example.com']);
+        TournamentRegistration::factory()->forTournament($t)->forUser($user)->create([
+            'email' => $user->email,
+            'division_id' => $div->id,
+            'payment_status' => 'failed',
+        ]);
+
+        $initialCount = TournamentRegistration::where('email', $user->email)->count();
+
+        fakeInvoiceService();
+
+        $this->post(route('tournaments.register.store', $t->slug), singlesFormData($div))
+            ->assertStatus(302);
+
+        expect(TournamentRegistration::where('email', $user->email)->count())->toBe($initialCount + 1);
+    });
+
+    it('allows re-registration when existing is processing', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
+        $user = User::factory()->create(['email' => 'jane@example.com']);
+        TournamentRegistration::factory()->forTournament($t)->forUser($user)->create([
+            'email' => $user->email,
+            'division_id' => $div->id,
+            'payment_status' => 'processing',
+        ]);
+
+        $initialCount = TournamentRegistration::where('email', $user->email)->count();
+
+        fakeInvoiceService();
+
+        $this->post(route('tournaments.register.store', $t->slug), singlesFormData($div))
+            ->assertStatus(302);
+
+        expect(TournamentRegistration::where('email', $user->email)->count())->toBe($initialCount + 1);
+    });
+
+    it('adds transaction fee to amount_cents and persists breakdown', function () {
+        Settings::query()->updateOrCreate(
+            ['id' => 1],
+            ['contact_wa_number' => '+6280000000000', 'transaction_fee' => 5000],
+        );
+
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 50000]);
+
+        fakeInvoiceService();
+
+        $this->post(route('tournaments.register.store', $t->slug), singlesFormData($div))
+            ->assertStatus(302);
+
+        $this->assertDatabaseHas('tournament_registrations', [
+            'email' => 'jane@example.com',
+            'amount_cents' => 5500000,
+            'transaction_fee_cents' => 500000,
+        ]);
+    });
+
+    it('passes transaction fee to register page', function () {
+        Settings::query()->updateOrCreate(
+            ['id' => 1],
+            ['contact_wa_number' => '+6280000000000', 'transaction_fee' => 5000],
+        );
+
+        $t = makeTournamentWithDivisions();
+
+        $this->get(route('tournaments.register', $t->slug))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('transactionFee', 5000)
+            );
     });
 });
 

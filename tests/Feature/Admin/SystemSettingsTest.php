@@ -69,11 +69,78 @@ describe('Admin System Settings', function () {
             ->assertRedirect(route('admin.login'));
     });
 
-    it('validates required whatsapp number', function () {
+    it('accepts empty whatsapp number and stores null', function () {
+        Settings::create(['contact_wa_number' => '+6281234567890']);
+
         $this->actingAs($this->admin)
             ->patch(route('admin.settings.update'), [
                 'contact_wa_number' => '',
             ])
-            ->assertSessionHasErrors('contact_wa_number');
+            ->assertRedirect(route('admin.settings'));
+
+        expect(Settings::first()->contact_wa_number)->toBeNull();
+    });
+
+    it('passes transaction fee to system settings page', function () {
+        Settings::create([
+            'contact_wa_number' => '+6281234567890',
+            'transaction_fee' => 5000,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.settings'))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Settings/System')
+                ->where('transactionFee', 5000)
+            );
+    });
+
+    it('defaults transaction fee to zero when not set', function () {
+        Settings::create(['contact_wa_number' => '+6281234567890']);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.settings'))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->where('transactionFee', 0)
+            );
+    });
+
+    it('admin can update transaction fee', function () {
+        Settings::create(['contact_wa_number' => '+6281234567890']);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.settings.update'), [
+                'contact_wa_number' => '+6281234567890',
+                'transaction_fee' => 7500,
+            ])
+            ->assertRedirect(route('admin.settings'));
+
+        expect(Settings::first()->transaction_fee)->toBe(7500);
+    });
+
+    it('rejects negative transaction fee', function () {
+        Settings::create(['contact_wa_number' => '+6281234567890']);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.settings.update'), [
+                'contact_wa_number' => '+6281234567890',
+                'transaction_fee' => -100,
+            ])
+            ->assertSessionHasErrors('transaction_fee');
+    });
+
+    it('accepts null transaction fee and stores zero', function () {
+        Settings::create(['contact_wa_number' => '+6281234567890']);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.settings.update'), [
+                'contact_wa_number' => '+6281234567890',
+                'transaction_fee' => null,
+            ])
+            ->assertRedirect(route('admin.settings'));
+
+        expect(Settings::first()->transaction_fee)->toBe(0);
     });
 });

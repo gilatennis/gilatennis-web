@@ -16,12 +16,19 @@ class SystemController extends Controller
 
         return Inertia::render('Admin/Settings/System', [
             'contactWaNumber' => $settings?->contact_wa_number,
+            'transactionFee' => (int) ($settings?->transaction_fee ?? 0),
         ]);
     }
 
     public function update(UpdateSystemSettingsRequest $request)
     {
-        Settings::updateOrCreate([], $request->validated());
+        $data = $request->validated();
+        $data['contact_wa_number'] = $data['contact_wa_number'] !== null && $data['contact_wa_number'] !== ''
+            ? $data['contact_wa_number']
+            : null;
+        $data['transaction_fee'] = (int) ($data['transaction_fee'] ?? 0);
+
+        Settings::updateOrCreate([], $data);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('System settings updated.')]);
 

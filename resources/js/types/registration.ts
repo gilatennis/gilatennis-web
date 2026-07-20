@@ -154,6 +154,8 @@ export interface DivisionContext {
     selected: Division | null;
     isTeam: boolean;
     participationCategory: ParticipationCategory;
+    fee: number;
+    transactionFee: number;
     total: number;
     minTeamSize: number;
     maxTeamSize: number;
