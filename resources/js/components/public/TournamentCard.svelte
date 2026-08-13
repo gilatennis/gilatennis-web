@@ -31,6 +31,14 @@
     } = $props();
 
     const isCanceled = $derived(tournament.status === 'canceled');
+
+    const spotsLeft = $derived(
+        tournament.spotsAvailable ??
+            (tournament.maxPlayers !== undefined &&
+            tournament.playerCount !== undefined
+                ? tournament.maxPlayers - tournament.playerCount
+                : null),
+    );
 </script>
 
 <div class="bg-foreground text-background sticky top-35">
