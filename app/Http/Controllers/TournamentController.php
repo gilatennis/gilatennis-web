@@ -9,6 +9,8 @@ class TournamentController extends Controller
 {
     public function show(Tournament $tournament)
     {
+        abort_if($tournament->isCanceledAndOver(), 404);
+
         $tournament->load([
             'scheduleDays.items',
             'rules',

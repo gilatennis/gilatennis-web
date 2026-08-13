@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TournamentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -37,7 +38,8 @@ class Tournament extends Model
             'venue' => $this->venue ?? '',
             'surface' => $this->surface ?? '',
             'dates' => $this->dates ?? '',
-            'status' => $this->status ?? '',
+            'status' => $this->status?->value ?? '',
+            'end' => $this->end?->toDateString() ?? '',
         ];
     }
 
@@ -81,6 +83,9 @@ class Tournament extends Model
     protected $casts = [
         'is_featured' => 'boolean',
         'perks' => 'array',
+        'start' => 'date',
+        'end' => 'date',
+        'status' => TournamentStatus::class,
     ];
 
     public function prizes(): HasMany
@@ -120,13 +125,50 @@ class Tournament extends Model
 
     public function scopeOpen($query)
     {
-        return $query->where('status', 'open')
+        return $query->where('status', TournamentStatus::Open)
             ->whereHas('divisions', fn ($q) => $q->hasAvailableSpots());
     }
 
     public function scopeUpcoming($query)
     {
-        return $query->where('status', 'open');
+        return $query->where('status', TournamentStatus::Open);
+    }
+
+    public function scopeCanceled($query)
+    {
+        return $query->where('status', TournamentStatus::Canceled);
+    }
+
+    public function scopeVisibleOnPublicSite($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('status', TournamentStatus::Open)
+                ->orWhere(function ($q2) {
+                    $q2->where('status', TournamentStatus::Canceled)
+                        ->whereNotNull('end')
+                        ->whereDate('end', '>=', today());
+                });
+        });
+    }
+
+    public function isCanceled(): bool
+    {
+        return $this->status === TournamentStatus::Canceled;
+    }
+
+    public function isCanceledAndOver(): bool
+    {
+        return $this->isCanceled()
+            && $this->end !== null
+            && $this->end->lt(today());
+    }
+
+    public function isPubliclyVisible(): bool
+    {
+        return $this->status === TournamentStatus::Open
+            || ($this->isCanceled()
+                && $this->end !== null
+                && $this->end->gte(today()));
     }
 
     public function getSpotsAvailableAttribute(): int
@@ -181,12 +223,7 @@ class Tournament extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return match ($this->status) {
-            'draft' => 'Draft',
-            'open' => 'Open',
-            'closed' => 'Closed',
-            'completed' => 'Completed',
-        };
+        return $this->status?->label() ?? '';
     }
 
     public function getCoverImageUrlAttribute(): ?string

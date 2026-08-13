@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TennisLevel;
+use App\Enums\TournamentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -153,6 +154,6 @@ class Division extends Model
     public function scopeOpen($query)
     {
         return $query->hasAvailableSpots()
-            ->whereHas('tournament', fn ($q) => $q->where('status', 'open'));
+            ->whereHas('tournament', fn ($q) => $q->where('status', TournamentStatus::Open));
     }
 }

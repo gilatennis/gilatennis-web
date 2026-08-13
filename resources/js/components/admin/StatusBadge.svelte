@@ -1,20 +1,14 @@
 <script lang="ts">
     import { Badge } from '@/components/ui/badge';
-
-    type TournamentStatus = 'draft' | 'open' | 'closed' | 'completed';
+    import type { TournamentStatus } from '@/types';
+    import { TOURNAMENT_STATUS_LABELS } from '@/types';
 
     const variants: Record<TournamentStatus, string> = {
         draft: 'bg-neutral-100 text-neutral-500 border-neutral-200',
         open: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         closed: 'bg-amber-50 text-amber-700 border-amber-200',
         completed: 'bg-blue-50 text-blue-700 border-blue-200',
-    };
-
-    const labels: Record<TournamentStatus, string> = {
-        draft: 'Draft',
-        open: 'Open',
-        closed: 'Closed',
-        completed: 'Completed',
+        canceled: 'bg-red-50 text-red-700 border-red-200',
     };
 
     let { status }: { status: TournamentStatus } = $props();
@@ -26,5 +20,5 @@
         status
     ] ?? variants.draft}"
 >
-    {labels[status] ?? status}
+    {TOURNAMENT_STATUS_LABELS[status] ?? status}
 </Badge>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TournamentStatus;
 use App\Models\Division;
 use App\Models\Role;
 use App\Models\Tournament;
@@ -279,5 +280,191 @@ describe('Admin Tournament CRUD', function () {
 
         $this->get(route('admin.tournaments.index'))
             ->assertRedirect('/admin/login');
+    });
+
+    it('admin can set status to canceled', function () {
+        $tournament = Tournament::factory()->create(['status' => 'open']);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tournaments.update', $tournament), [
+                'name' => $tournament->name,
+                'slug' => $tournament->slug,
+                'dates' => $tournament->dates,
+                'start' => $tournament->start->format('Y-m-d'),
+                'end' => $tournament->end?->format('Y-m-d'),
+                'city' => $tournament->city,
+                'surface' => $tournament->surface,
+                'status' => 'canceled',
+                'is_featured' => false,
+                'perks' => [],
+            ])
+            ->assertRedirect(route('admin.tournaments.show', $tournament));
+
+        $tournament->refresh();
+        expect($tournament->status)->toBe(TournamentStatus::Canceled);
+        expect($tournament->status->value)->toBe('canceled');
+        expect($tournament->status_label)->toBe('Canceled');
+    });
+
+    it('admin update rejects invalid status value', function () {
+        $tournament = Tournament::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.tournaments.update', $tournament), [
+                'name' => $tournament->name,
+                'slug' => $tournament->slug,
+                'dates' => $tournament->dates,
+                'start' => $tournament->start->format('Y-m-d'),
+                'end' => $tournament->end?->format('Y-m-d'),
+                'city' => $tournament->city,
+                'surface' => $tournament->surface,
+                'status' => 'invalid-status',
+                'is_featured' => false,
+                'perks' => [],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['status']);
+    });
+
+    it('admin can update start and end dates via edit form (regression)', function () {
+        $tournament = Tournament::factory()->create([
+            'start' => '2026-09-01',
+            'end' => '2026-09-03',
+        ]);
+
+        $isoStart = '2026-10-15T00:00:00.000000Z';
+        $isoEnd = '2026-10-17T00:00:00.000000Z';
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tournaments.update', $tournament), [
+                'name' => $tournament->name,
+                'slug' => $tournament->slug,
+                'dates' => $tournament->dates,
+                'start' => $isoStart,
+                'end' => $isoEnd,
+                'city' => $tournament->city,
+                'surface' => $tournament->surface,
+                'status' => $tournament->status->value,
+                'is_featured' => false,
+                'perks' => [],
+            ])
+            ->assertRedirect(route('admin.tournaments.show', $tournament));
+
+        $tournament->refresh();
+        expect($tournament->start->format('Y-m-d'))->toBe('2026-10-15');
+        expect($tournament->end->format('Y-m-d'))->toBe('2026-10-17');
+    });
+
+    it('admin update rejects end date before start date', function () {
+        $tournament = Tournament::factory()->create([
+            'start' => '2026-09-01',
+            'end' => '2026-09-03',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.tournaments.update', $tournament), [
+                'name' => $tournament->name,
+                'slug' => $tournament->slug,
+                'dates' => $tournament->dates,
+                'start' => '2026-10-15',
+                'end' => '2026-10-10',
+                'city' => $tournament->city,
+                'surface' => $tournament->surface,
+                'status' => $tournament->status->value,
+                'is_featured' => false,
+                'perks' => [],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['end']);
+    });
+
+    it('admin can view detail of canceled tournament', function () {
+        $tournament = Tournament::factory()->canceled()->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.show', $tournament))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Tournaments/Detail')
+                ->where('tournament.status', 'canceled')
+            );
+    });
+
+    it('admin can edit a canceled tournament', function () {
+        $tournament = Tournament::factory()->canceled()->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.edit', $tournament))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Tournaments/Edit')
+                ->where('tournament.status', 'canceled')
+            );
+    });
+
+    it('admin can create tournament with canceled status', function () {
+        $data = [
+            'name' => 'Pre-canceled Tournament',
+            'slug' => 'pre-canceled',
+            'dates' => 'Nov 1-3, 2026',
+            'start' => '2026-11-01',
+            'end' => '2026-11-03',
+            'city' => 'Jakarta',
+            'surface' => 'hard',
+            'status' => 'canceled',
+            'is_featured' => false,
+            'perks' => [],
+        ];
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.store'), $data)
+            ->assertRedirect(route('admin.tournaments.index'));
+
+        $tournament = Tournament::where('slug', 'pre-canceled')->first();
+        expect($tournament)->not->toBeNull();
+        expect($tournament->status)->toBe(TournamentStatus::Canceled);
+    });
+
+    it('admin update rejects blank start date', function () {
+        $tournament = Tournament::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.tournaments.update', $tournament), [
+                'name' => $tournament->name,
+                'slug' => $tournament->slug,
+                'dates' => $tournament->dates,
+                'start' => '',
+                'end' => '',
+                'city' => $tournament->city,
+                'surface' => $tournament->surface,
+                'status' => $tournament->status->value,
+                'is_featured' => false,
+                'perks' => [],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['start']);
+    });
+
+    it('admin update accepts YYYY-MM-DD format from date input', function () {
+        $tournament = Tournament::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tournaments.update', $tournament), [
+                'name' => $tournament->name,
+                'slug' => $tournament->slug,
+                'dates' => $tournament->dates,
+                'start' => '2026-12-15',
+                'end' => '2026-12-17',
+                'city' => $tournament->city,
+                'surface' => $tournament->surface,
+                'status' => $tournament->status->value,
+                'is_featured' => false,
+                'perks' => [],
+            ])
+            ->assertRedirect(route('admin.tournaments.show', $tournament));
+
+        $tournament->refresh();
+        expect($tournament->start->format('Y-m-d'))->toBe('2026-12-15');
+        expect($tournament->end->format('Y-m-d'))->toBe('2026-12-17');
     });
 });

@@ -23,26 +23,37 @@
         SelectContent,
         SelectItem,
     } from '@/components/ui/select';
-    import { PLAYER_FIELDS, PLAYER_FIELD_KEYS } from '@/types/registration';
+    import {
+        PLAYER_FIELDS,
+        PLAYER_FIELD_KEYS,
+        TOURNAMENT_STATUSES,
+        TOURNAMENT_STATUS_LABELS,
+    } from '@/types';
+    import type { TournamentStatus } from '@/types';
 
     let { tournament }: { tournament: Record<string, any> | null } = $props();
 
     const isCreate = $derived(!tournament);
+
+    const toDateInput = (v: string | null | undefined) =>
+        v ? String(v).substring(0, 10) : '';
+    const toDateTimeInput = (v: string | null | undefined) =>
+        v ? String(v).substring(0, 16) : '';
 
     const init = $derived({
         name: tournament?.name ?? '',
         slug: tournament?.slug ?? '',
         tagline: tournament?.tagline ?? '',
         dates: tournament?.dates ?? '',
-        start: tournament?.start ?? '',
-        end: tournament?.end ?? '',
+        start: toDateInput(tournament?.start),
+        end: toDateInput(tournament?.end),
         city: tournament?.city ?? '',
         venue: tournament?.venue ?? '',
         surface: tournament?.surface ?? 'hard',
         ball_type: tournament?.ball_type ?? '',
         venue_type: tournament?.venue_type ?? 'indoor',
         perks: (tournament?.perks ?? []) as { key: string; value: string }[],
-        registration_closes: tournament?.registration_closes ?? '',
+        registration_closes: toDateTimeInput(tournament?.registration_closes),
         is_featured: tournament?.is_featured ?? false,
         status: tournament?.status ?? 'draft',
         cover_image: null as File | null,
@@ -89,12 +100,7 @@
         existingCoverUrl && !form.cover_image && !form.cover_image_remove,
     );
 
-    const statusLabels: Record<string, string> = {
-        draft: 'Draft',
-        open: 'Open',
-        closed: 'Closed',
-        completed: 'Completed',
-    };
+    const statusLabels: Record<TournamentStatus, string> = TOURNAMENT_STATUS_LABELS;
 
     const surfaceLabels: Record<string, string> = {
         hard: 'Hard',
@@ -491,7 +497,7 @@
                 : tournament!.name || 'Edit Tournament'}
         </span>
         {#if !isCreate}
-            <StatusBadge status={form.status as any} />
+            <StatusBadge status={form.status as TournamentStatus} />
         {/if}
     {/snippet}
 
@@ -708,19 +714,12 @@
                                         {statusLabels[form.status]}
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem
-                                            value="draft"
-                                            label="Draft"
-                                        />
-                                        <SelectItem value="open" label="Open" />
-                                        <SelectItem
-                                            value="closed"
-                                            label="Closed"
-                                        />
-                                        <SelectItem
-                                            value="completed"
-                                            label="Completed"
-                                        />
+                                        {#each TOURNAMENT_STATUSES as status (status)}
+                                            <SelectItem
+                                                value={status}
+                                                label={statusLabels[status]}
+                                            />
+                                        {/each}
                                     </SelectContent>
                                 </Select>
                                 {#if form.errors.status}

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
     import { ArrowRight } from 'lucide-svelte/icons';
+    import type { TournamentStatus } from '@/types';
     import ImagePlaceholder from './ImagePlaceholder.svelte';
 
     let {
@@ -26,16 +26,11 @@
             level?: string;
             perks?: string[];
             registrationCloses?: string;
+            status?: TournamentStatus;
         };
     } = $props();
 
-    const spotsLeft = $derived(
-        tournament.spotsAvailable ??
-            (tournament.maxPlayers !== undefined &&
-            tournament.playerCount !== undefined
-                ? tournament.maxPlayers - tournament.playerCount
-                : null),
-    );
+    const isCanceled = $derived(tournament.status === 'canceled');
 </script>
 
 <div class="bg-foreground text-background sticky top-35">
@@ -60,10 +55,15 @@
             ></div>
         {/if}
         <div
-            class="absolute top-4 left-4 px-2.5 py-1 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-1.5"
+            class="absolute top-4 left-4 px-2.5 py-1 text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-1.5 {isCanceled
+                ? 'bg-red-700'
+                : 'bg-coral'}"
         >
-            <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"
-            ></span> Registration open
+            {#if !isCanceled}
+                <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"
+                ></span>
+            {/if}
+            {isCanceled ? 'Canceled' : 'Registration open'}
         </div>
     </ImagePlaceholder>
 
@@ -192,13 +192,22 @@
             </ul>
         {/if}
 
-        <button
-            onclick={() =>
-                (window.location.href = `/tournaments/${tournament.slug}`)}
-            class="mt-8 w-full h-14 bg-coral text-white font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:bg-background hover:text-foreground transition-colors"
-        >
-            Register now <ArrowRight size={18}></ArrowRight>
-        </button>
+        {#if isCanceled}
+            <span
+                class="mt-8 w-full h-14 bg-neutral-300 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center"
+                aria-label="Tournament canceled"
+            >
+                Canceled
+            </span>
+        {:else}
+            <button
+                onclick={() =>
+                    (window.location.href = `/tournaments/${tournament.slug}`)}
+                class="mt-8 w-full h-14 bg-coral text-white font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:bg-background hover:text-foreground transition-colors"
+            >
+                Register now <ArrowRight size={18}></ArrowRight>
+            </button>
+        {/if}
         <!--
         <button
             class="mt-2 w-full h-10 text-xs uppercase tracking-[0.2em] opacity-60 hover:opacity-100 transition-opacity"

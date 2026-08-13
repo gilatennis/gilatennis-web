@@ -214,3 +214,43 @@ it('limits results to 5 per type', function () {
     $response->assertStatus(200);
     expect($response->json('tournaments'))->toHaveCount(5);
 });
+
+it('includes canceled tournament with future end date in results', function () {
+    Tournament::factory()->canceled()->create([
+        'name' => 'Future Canceled Tournament',
+        'city' => 'Jakarta',
+        'end' => now()->addWeek()->toDateString(),
+    ]);
+
+    $response = $this->getJson('/search?q=Future&type=tournaments');
+
+    $response->assertStatus(200);
+    expect($response->json('tournaments'))->toHaveCount(1);
+    expect($response->json('tournaments.0.title'))->toBe('Future Canceled Tournament');
+});
+
+it('excludes canceled tournament whose end date has passed from results', function () {
+    Tournament::factory()->canceled()->create([
+        'name' => 'Past Canceled Tournament',
+        'city' => 'Jakarta',
+        'end' => now()->subDay()->toDateString(),
+    ]);
+
+    $response = $this->getJson('/search?q=Past&type=tournaments');
+
+    $response->assertStatus(200);
+    expect($response->json('tournaments'))->toHaveCount(0);
+});
+
+it('excludes canceled tournament with no end date from search results', function () {
+    Tournament::factory()->canceled()->create([
+        'name' => 'NullEnd Canceled Tournament',
+        'city' => 'Jakarta',
+        'end' => null,
+    ]);
+
+    $response = $this->getJson('/search?q=NullEnd&type=tournaments');
+
+    $response->assertStatus(200);
+    expect($response->json('tournaments'))->toHaveCount(0);
+});

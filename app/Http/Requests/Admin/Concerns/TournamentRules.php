@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Admin\Concerns;
 
 use App\Enums\TennisLevel;
+use App\Enums\TournamentStatus;
 use App\Models\DivisionPlayerFieldRequirement;
+use Illuminate\Validation\Rule;
 
 trait TournamentRules
 {
@@ -15,8 +17,8 @@ trait TournamentRules
             'name' => ['required', 'string', 'max:255'],
             'tagline' => ['nullable', 'string', 'max:500'],
             'dates' => ['required', 'string', 'max:255'],
-            'start' => ['required', 'string', 'max:255'],
-            'end' => ['nullable', 'string', 'max:255'],
+            'start' => ['required', 'date'],
+            'end' => ['nullable', 'date', 'after_or_equal:start'],
             'city' => ['required', 'string', 'max:255'],
             'venue' => ['nullable', 'string', 'max:255'],
             'surface' => ['required', 'in:hard,clay,grass,indoor_hard'],
@@ -27,7 +29,7 @@ trait TournamentRules
             'perks.*.value' => ['required', 'string', 'max:500'],
             'registration_closes' => ['nullable', 'date'],
             'is_featured' => ['boolean'],
-            'status' => ['required', 'in:draft,open,closed,completed'],
+            'status' => ['required', Rule::enum(TournamentStatus::class)],
             'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'contact_person_name' => ['nullable', 'string', 'max:255'],
             'contact_person_phone' => ['nullable', 'string', 'max:20'],

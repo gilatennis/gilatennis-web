@@ -50,6 +50,7 @@
     ];
 
     const isSoldOut = $derived((tournament?.spots_available ?? 0) === 0);
+    const isCanceled = $derived(tournament?.status === 'canceled');
     const registrationOpen = $derived(
         tournament?.status === 'open' && !isSoldOut,
     );
@@ -139,7 +140,15 @@
                 <div class="bg-black text-white dark:bg-white dark:text-black">
                     <div class="p-6 lg:p-8">
                         <!-- Registration Open badge -->
-                        {#if registrationOpen}
+                        {#if isCanceled}
+                            <div class="mb-6">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-700 text-white text-[11px] uppercase tracking-[0.2em] font-bold"
+                                >
+                                    Canceled
+                                </span>
+                            </div>
+                        {:else if registrationOpen}
                             <div class="mb-6">
                                 <span
                                     class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-coral text-white text-[11px] uppercase tracking-[0.2em] font-bold"
@@ -430,7 +439,13 @@
                                 {/if}
                             </div>
                             <div class="mt-3">
-                                {#if !registrationOpen}
+                                {#if isCanceled}
+                                    <div
+                                        class="block w-full h-10 bg-red-700 text-white font-display font-bold text-[10px] uppercase tracking-[0.18em] flex items-center justify-center opacity-80 cursor-not-allowed"
+                                    >
+                                        Canceled
+                                    </div>
+                                {:else if !registrationOpen}
                                     <div
                                         class="block w-full h-10 bg-neutral-600 text-white font-display font-bold text-[10px] uppercase tracking-[0.18em] flex items-center justify-center opacity-60 cursor-not-allowed"
                                     >
@@ -508,7 +523,13 @@
                 {tournament?.name ?? ''}
             </div>
         </div>
-        {#if registrationOpen}
+        {#if isCanceled}
+            <span
+                class="h-12 px-6 bg-red-700 text-white font-display font-bold text-sm uppercase tracking-[0.18em] flex items-center gap-2 shrink-0"
+            >
+                Canceled
+            </span>
+        {:else if registrationOpen}
             <Link
                 href={tournamentRegister.url({ tournament: tournament.slug })}
                 class="h-12 px-6 bg-coral text-white font-display font-bold text-sm uppercase tracking-[0.18em] flex items-center gap-2 active:scale-[0.98] transition-all shrink-0"

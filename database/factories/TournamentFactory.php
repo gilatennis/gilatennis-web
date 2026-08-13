@@ -71,4 +71,9 @@ class TournamentFactory extends Factory
     {
         return $this->state(fn ($attrs) => ['status' => 'closed']);
     }
+
+    public function canceled(): static
+    {
+        return $this->state(fn ($attrs) => ['status' => 'canceled']);
+    }
 }

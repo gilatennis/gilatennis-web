@@ -120,6 +120,39 @@ describe('Tournament Detail Page', function () {
                 ->where('registrationCount', 1)
             );
     });
+
+    it('returns 404 for canceled tournament whose end date has passed', function () {
+        $t = Tournament::factory()->canceled()->create([
+            'end' => now()->subDay()->toDateString(),
+        ]);
+
+        $this->get(route('tournaments.show', $t->slug))
+            ->assertStatus(404);
+    });
+
+    it('shows canceled tournament whose end date is in the future', function () {
+        $t = Tournament::factory()->canceled()->create([
+            'end' => now()->addWeek()->toDateString(),
+        ]);
+
+        $this->get(route('tournaments.show', $t->slug))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Tournaments/Show')
+                ->where('tournament.status', 'canceled')
+            );
+    });
+
+    it('shows canceled tournament with no end date set', function () {
+        $t = Tournament::factory()->canceled()->create(['end' => null]);
+
+        $this->get(route('tournaments.show', $t->slug))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Tournaments/Show')
+                ->where('tournament.status', 'canceled')
+            );
+    });
 });
 
 describe('Registration Form', function () {
@@ -140,6 +173,28 @@ describe('Registration Form', function () {
 
         $this->get(route('tournaments.register', $t->slug))
             ->assertStatus(403);
+    });
+
+    it('blocked for canceled tournament', function () {
+        $t = Tournament::factory()->canceled()->create();
+        Division::factory()->forTournament($t)->singles()->create([
+            'draw_size' => 32, 'fee' => 50000, 'sort_order' => 0,
+        ]);
+
+        $this->get(route('tournaments.register', $t->slug))
+            ->assertStatus(403);
+    });
+
+    it('store blocks canceled tournament', function () {
+        $t = Tournament::factory()->canceled()->create();
+        $div = Division::factory()->forTournament($t)->singles()->create([
+            'draw_size' => 32, 'fee' => 50000, 'sort_order' => 0,
+        ]);
+
+        $this->postJson(route('tournaments.register.store', $t->slug), singlesFormData($div))
+            ->assertStatus(403);
+
+        expect(TournamentRegistration::where('tournament_id', $t->id)->count())->toBe(0);
     });
 
     it('creates guest user', function () {

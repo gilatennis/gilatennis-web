@@ -23,6 +23,8 @@ class TournamentRegistrationController extends Controller
 
     public function create(Tournament $tournament)
     {
+        abort_if($tournament->isCanceled(), 403, 'Tournament is canceled.');
+
         $tournament->load('divisions.playerFieldRequirements');
 
         $hasOpenDivisions = $tournament->divisions->contains(fn (Division $d) => $d->spots_available > 0);
@@ -50,6 +52,8 @@ class TournamentRegistrationController extends Controller
 
     public function store(TournamentRegistrationRequest $request, Tournament $tournament)
     {
+        abort_if($tournament->isCanceled(), 403, 'Tournament is canceled.');
+
         $division = $tournament->divisions()->where('id', $request->division_id)->firstOrFail();
 
         abort_if($division->spots_available <= 0, 403, 'Division is sold out.');

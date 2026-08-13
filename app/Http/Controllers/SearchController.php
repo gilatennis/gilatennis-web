@@ -24,9 +24,9 @@ class SearchController extends Controller
 
         if (in_array($type, ['all', 'tournaments'])) {
             $results['tournaments'] = Tournament::search($query)
-                ->take(20)
+                ->take(50)
                 ->get()
-                ->filter(fn ($t) => $t->status === 'open')
+                ->filter(fn ($t) => $t->isPubliclyVisible())
                 ->take(5)
                 ->values()
                 ->map(fn ($t) => [

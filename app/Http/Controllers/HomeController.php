@@ -13,9 +13,10 @@ class HomeController extends Controller
 {
     public function index()
     {
-        $featuredTournaments = Tournament::open()
+        $featuredTournaments = Tournament::query()
             ->featured()
-            ->with('prizes')
+            ->visibleOnPublicSite()
+            ->with(['prizes', 'divisions', 'registrations'])
             ->orderBy('registration_closes')
             ->take(4)
             ->get();

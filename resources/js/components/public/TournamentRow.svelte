@@ -1,5 +1,6 @@
 <script lang="ts">
     import { MapPin, Calendar } from 'lucide-svelte/icons';
+    import type { TournamentStatus } from '@/types';
 
     let {
         tournament,
@@ -22,6 +23,7 @@
             tagline?: string;
             spotsAvailable?: number;
             featured?: boolean;
+            status?: TournamentStatus;
         };
         isSelected?: boolean;
         onclick?: () => void;
@@ -56,6 +58,12 @@
                 <span
                     class="px-1.5 py-0.5 bg-coral text-white text-[9px] font-bold uppercase tracking-[0.18em]"
                     >Featured</span
+                >
+            {/if}
+            {#if tournament.status === 'canceled'}
+                <span
+                    class="px-1.5 py-0.5 bg-red-700 text-white text-[9px] font-bold uppercase tracking-[0.18em]"
+                    >Canceled</span
                 >
             {/if}
             <span

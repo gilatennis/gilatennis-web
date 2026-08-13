@@ -268,7 +268,7 @@
                         <div
                             class="py-12 text-center text-sm text-muted-foreground border-t border-border"
                         >
-                            No tournaments open for registration right now.
+                            No tournaments listed right now.
                         </div>
                     {/if}
                 </div>

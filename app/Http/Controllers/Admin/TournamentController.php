@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\TennisLevel;
+use App\Enums\TournamentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TournamentStoreRequest;
 use App\Http\Requests\Admin\TournamentUpdateRequest;
@@ -73,7 +74,7 @@ class TournamentController extends Controller
 
         $stats = [
             'total' => Tournament::count(),
-            'open' => Tournament::where('status', 'open')->count(),
+            'open' => Tournament::where('status', TournamentStatus::Open)->count(),
         ];
 
         return Inertia::render('Admin/Tournaments/Index', [

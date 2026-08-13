@@ -3,6 +3,7 @@
 use App\Models\Division;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
+use Carbon\CarbonImmutable;
 
 describe('Tournament Model', function () {
     it('can be created via factory', function () {
@@ -84,6 +85,85 @@ describe('Tournament Model', function () {
 
         expect($t->rules[0]->body)->toBe('Be on time.');
         expect($t->rules[1]->body)->toBe('No phones.');
+    });
+
+    it('status_label returns Canceled for canceled tournament', function () {
+        $t = Tournament::factory()->canceled()->create();
+        expect($t->status_label)->toBe('Canceled');
+    });
+
+    it('casts start and end columns to dates', function () {
+        $t = Tournament::factory()->create([
+            'start' => '2026-09-01',
+            'end' => '2026-09-03',
+        ]);
+
+        expect($t->start)->toBeInstanceOf(CarbonImmutable::class);
+        expect($t->end)->toBeInstanceOf(CarbonImmutable::class);
+        expect($t->start->format('Y-m-d'))->toBe('2026-09-01');
+    });
+
+    it('visibleOnPublicSite scope hides canceled tournaments whose end date has passed', function () {
+        Tournament::factory()->canceled()->create(['end' => now()->subDay()->toDateString()]);
+
+        expect(Tournament::visibleOnPublicSite()->count())->toBe(0);
+    });
+
+    it('visibleOnPublicSite scope keeps canceled tournaments whose end date is in the future', function () {
+        Tournament::factory()->canceled()->create(['end' => now()->addWeek()->toDateString()]);
+
+        expect(Tournament::visibleOnPublicSite()->count())->toBe(1);
+    });
+
+    it('visibleOnPublicSite scope keeps open tournaments regardless of date', function () {
+        Tournament::factory()->create(['status' => 'open', 'end' => now()->subDay()->toDateString()]);
+        Tournament::factory()->create(['status' => 'open', 'end' => now()->addWeek()->toDateString()]);
+
+        expect(Tournament::visibleOnPublicSite()->count())->toBe(2);
+    });
+
+    it('visibleOnPublicSite scope excludes draft, closed, completed', function () {
+        Tournament::factory()->create(['status' => 'draft']);
+        Tournament::factory()->create(['status' => 'closed']);
+        Tournament::factory()->create(['status' => 'completed']);
+
+        expect(Tournament::visibleOnPublicSite()->count())->toBe(0);
+    });
+
+    it('visibleOnPublicSite scope excludes canceled tournament with null end date', function () {
+        Tournament::factory()->canceled()->create(['end' => null]);
+
+        expect(Tournament::visibleOnPublicSite()->count())->toBe(0);
+    });
+
+    it('isCanceled helper returns true only for canceled status', function () {
+        expect(Tournament::factory()->canceled()->create()->isCanceled())->toBeTrue();
+        expect(Tournament::factory()->create(['status' => 'open'])->isCanceled())->toBeFalse();
+        expect(Tournament::factory()->create(['status' => 'completed'])->isCanceled())->toBeFalse();
+    });
+
+    it('isCanceledAndOver requires both canceled status and past end date', function () {
+        $pastCanceled = Tournament::factory()->canceled()->create(['end' => now()->subDay()->toDateString()]);
+        $futureCanceled = Tournament::factory()->canceled()->create(['end' => now()->addWeek()->toDateString()]);
+        $openPast = Tournament::factory()->create(['status' => 'open', 'end' => now()->subDay()->toDateString()]);
+
+        expect($pastCanceled->isCanceledAndOver())->toBeTrue();
+        expect($futureCanceled->isCanceledAndOver())->toBeFalse();
+        expect($openPast->isCanceledAndOver())->toBeFalse();
+    });
+
+    it('isPubliclyVisible returns true for open and canceled-not-over only', function () {
+        $open = Tournament::factory()->create(['status' => 'open']);
+        $canceledFuture = Tournament::factory()->canceled()->create(['end' => now()->addWeek()->toDateString()]);
+        $canceledPast = Tournament::factory()->canceled()->create(['end' => now()->subDay()->toDateString()]);
+        $canceledNoEnd = Tournament::factory()->canceled()->create(['end' => null]);
+        $closed = Tournament::factory()->create(['status' => 'closed']);
+
+        expect($open->isPubliclyVisible())->toBeTrue();
+        expect($canceledFuture->isPubliclyVisible())->toBeTrue();
+        expect($canceledPast->isPubliclyVisible())->toBeFalse();
+        expect($canceledNoEnd->isPubliclyVisible())->toBeFalse();
+        expect($closed->isPubliclyVisible())->toBeFalse();
     });
 });
 
