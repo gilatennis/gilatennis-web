@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminLoginController;
+use App\Http\Controllers\Admin\BracketController;
 use App\Http\Controllers\Admin\DivisionController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SystemController;
@@ -43,6 +44,26 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     Route::post('divisions/validate', [DivisionController::class, 'validateDivision'])
         ->name('tournaments.divisions.validate');
+
+    Route::post('tournaments/{tournament}/divisions/{division}/bracket', [BracketController::class, 'store'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.store');
+
+    Route::delete('tournaments/{tournament}/divisions/{division}/bracket', [BracketController::class, 'destroy'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.destroy');
+
+    Route::patch('tournaments/{tournament}/divisions/{division}/bracket/seeds', [BracketController::class, 'seed'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.seed');
+
+    Route::post('tournaments/{tournament}/divisions/{division}/bracket/slots/{slot}/start', [BracketController::class, 'startSlot'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.slots.start');
+
+    Route::patch('tournaments/{tournament}/divisions/{division}/bracket/slots/{slot}', [BracketController::class, 'updateSlot'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.slots.update');
 
     Route::resource('tournaments', TournamentController::class);
 

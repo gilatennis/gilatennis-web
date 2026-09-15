@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\MatchStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 // INFO: have to be named `TennisMatch` because `Match` is a reserved php keyword
@@ -13,6 +14,10 @@ class TennisMatch extends Model
     use HasFactory;
 
     protected $fillable = [
+        'division_id',
+        'bracket_slot_id',
+        'entrant_a_id',
+        'entrant_b_id',
         'side_a_name',
         'side_b_name',
         'sets_to_win',
@@ -58,6 +63,26 @@ class TennisMatch extends Model
     public function state(): HasOne
     {
         return $this->hasOne(TennisMatchState::class);
+    }
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(Division::class);
+    }
+
+    public function bracketSlot(): BelongsTo
+    {
+        return $this->belongsTo(BracketSlot::class);
+    }
+
+    public function entrantA(): BelongsTo
+    {
+        return $this->belongsTo(TournamentRegistration::class, 'entrant_a_id');
+    }
+
+    public function entrantB(): BelongsTo
+    {
+        return $this->belongsTo(TournamentRegistration::class, 'entrant_b_id');
     }
 
     protected static function booted(): void

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ShapesBracket;
 use App\Http\Controllers\Admin\Concerns\ShapesRegistration;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DivisionValidateRequest;
@@ -13,7 +14,7 @@ use Inertia\Inertia;
 
 class DivisionController extends Controller
 {
-    use ShapesRegistration;
+    use ShapesBracket, ShapesRegistration;
 
     public function validateDivision(DivisionValidateRequest $request): JsonResponse
     {
@@ -22,7 +23,7 @@ class DivisionController extends Controller
 
     public function show(Tournament $tournament, Division $division)
     {
-        $division->load(['prizes', 'playerFieldRequirements']);
+        $division->load(['prizes', 'playerFieldRequirements', 'bracket']);
 
         $query = $division->registrations()
             ->with(['division', 'team', 'players.assessment']);
@@ -60,6 +61,15 @@ class DivisionController extends Controller
             'filled' => $division->entry_count,
             'draw' => $division->draw_size,
         ];
+
+        $bracketEntrants = $division->orderedPaidRegistrations()
+            ->with('team')
+            ->get()
+            ->map(fn (TournamentRegistration $r) => [
+                'id' => $r->id,
+                'name' => $r->team?->name ?? $r->name,
+            ])
+            ->values();
 
         return Inertia::render('Admin/Tournaments/Division', [
             'tournament' => [
@@ -100,6 +110,8 @@ class DivisionController extends Controller
             ],
             'registrations' => $registrations,
             'stats' => $stats,
+            'bracket' => self::shapeBracket($division->bracket),
+            'bracketEntrants' => $bracketEntrants,
             'filters' => [
                 'status' => $status,
                 'search' => $search,

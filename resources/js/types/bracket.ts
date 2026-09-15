@@ -1,0 +1,55 @@
+export type BracketStatus = 'draft' | 'active' | 'completed';
+
+export type BracketType = 'single_elimination';
+
+export type SeedingMode = 'auto' | 'manual';
+
+export interface BracketEntrant {
+    id: number;
+    name: string;
+    team: { id: number; name: string } | null;
+    players: { id: number; name: string }[];
+}
+
+export interface BracketMatchSummary {
+    id: number;
+    side_a_name: string;
+    side_b_name: string;
+    status: string;
+    format_label: string;
+    winner_side: number | null;
+}
+
+export interface BracketSlot {
+    id: number;
+    round: number;
+    position: number;
+    seed: number | null;
+    bye: boolean;
+    label: string | null;
+    entrant_a: BracketEntrant | null;
+    entrant_b: BracketEntrant | null;
+    winner_entrant: BracketEntrant | null;
+    is_ready: boolean;
+    is_complete: boolean;
+    matches: BracketMatchSummary[];
+}
+
+export interface BracketRound {
+    round: number;
+    label: string | null;
+    slots: BracketSlot[];
+}
+
+export interface Bracket {
+    id: number;
+    type: BracketType;
+    status: BracketStatus;
+    size: number;
+    rounds: BracketRound[];
+}
+
+export interface BracketEntrantOption {
+    id: number;
+    name: string;
+}

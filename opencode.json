@@ -9,12 +9,6 @@
                 "artisan",
                 "boost:mcp"
             ]
-        },
-        "context-mode": {
-            "type": "local",
-            "command": [
-                "context-mode"
-            ]
         }
     },
     "plugin": [

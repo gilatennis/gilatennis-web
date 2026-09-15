@@ -1,16 +1,16 @@
 <script lang="ts">
     import { Link, router } from '@inertiajs/svelte';
-    import Bracket from 'lucide-svelte/icons/brackets';
     import Calendar from 'lucide-svelte/icons/calendar';
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import Search from 'lucide-svelte/icons/search';
     import X from 'lucide-svelte/icons/x';
     import AdminPage from '@/components/admin/AdminPage.svelte';
+    import BracketView from '@/components/admin/bracket/BracketView.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import RegistrantsTable from '@/components/admin/RegistrantsTable.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
-    import type { Registration } from '@/types';
+    import type { Bracket, BracketEntrantOption, Registration } from '@/types';
 
     interface Prize {
         id: number;
@@ -24,6 +24,8 @@
         division,
         registrations,
         stats,
+        bracket,
+        bracketEntrants,
         filters,
     }: {
         tournament: { id: number; name: string; slug: string };
@@ -64,6 +66,8 @@
             filled: number;
             draw: number;
         };
+        bracket: Bracket | null;
+        bracketEntrants: BracketEntrantOption[];
         filters: { status?: string; search?: string };
     } = $props();
 
@@ -227,7 +231,7 @@
 
         <div class="bg-white border-b border-black/8 shrink-0 overflow-x-auto">
             <div class="flex items-end gap-0 min-w-max px-4 sm:px-8">
-                {#each [{ id: 'registrants', label: 'Registrants', count: registrations.total }, { id: 'prizes', label: 'Prizes', count: null }, { id: 'matches', label: 'Matches', count: null, soon: true }, { id: 'schedule', label: 'Schedule', count: null, soon: true }] as t}
+                {#each [{ id: 'registrants', label: 'Registrants', count: registrations.total }, { id: 'prizes', label: 'Prizes', count: null }, { id: 'matches', label: 'Matches', count: null }, { id: 'schedule', label: 'Schedule', count: null, soon: true }] as t}
                     <button
                         type="button"
                         onclick={() => switchTab(t.id)}
@@ -379,28 +383,12 @@
             </div>
         {/if}
     {:else if tab === 'matches'}
-        <div
-            class="flex flex-col items-center justify-center py-24 text-center"
-        >
-            <div
-                class="h-16 w-16 border border-black/10 bg-neutral-50 flex items-center justify-center mb-5 text-neutral-300"
-            >
-                <Bracket class="size-8" />
-            </div>
-            <span
-                class="mb-3 px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-[0.22em]"
-                >Planned</span
-            >
-            <h3
-                class="font-display font-black text-[18px] tracking-[-0.01em] text-neutral-800 mb-2"
-            >
-                Match Brackets
-            </h3>
-            <p class="text-[13px] text-neutral-500 max-w-sm leading-relaxed">
-                You'll be able to create brackets, seed players, record scores,
-                and track match progress for this division here.
-            </p>
-        </div>
+        <BracketView
+            {bracket}
+            {division}
+            {tournament}
+            entrants={bracketEntrants}
+        />
     {:else if tab === 'schedule'}
         <div
             class="flex flex-col items-center justify-center py-24 text-center"

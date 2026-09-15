@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
 class Division extends Model
@@ -51,10 +52,22 @@ class Division extends Model
         return $this->hasMany(TournamentRegistration::class);
     }
 
+    public function bracket(): HasOne
+    {
+        return $this->hasOne(Bracket::class);
+    }
+
     public function paidRegistrations(): HasMany
     {
         return $this->hasMany(TournamentRegistration::class)
             ->where('payment_status', 'paid');
+    }
+
+    public function orderedPaidRegistrations(): HasMany
+    {
+        return $this->paidRegistrations()
+            ->orderBy('created_at')
+            ->orderBy('id');
     }
 
     public function playerFieldRequirements(): HasMany
