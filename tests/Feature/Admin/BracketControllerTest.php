@@ -526,3 +526,78 @@ describe('Admin Division Bracket Payload', function () {
             ->assertInertia(fn ($page) => $page->where('bracket', null));
     });
 });
+
+describe('Admin Team Rubber Formats', function () {
+    it('creates a doubles rubber with the supplied format for a team division', function () {
+        $division = bracketTestDivision(2, 'team');
+        bracketTestEntrants($division, 2);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
+        $slot = $bracket->slots()->where('round', 1)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.slots.start', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'slot' => $slot->id,
+            ]), [
+                'side_a_name' => 'Ana / Bea',
+                'side_b_name' => 'Cara / Dana',
+                'sets_to_win' => 1,
+                'games_to_win' => 6,
+                'extend_at_tie' => true,
+                'tiebreak_to' => 7,
+            ])
+            ->assertRedirect(route('admin.tournaments.divisions.show', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'tab' => 'matches',
+            ]));
+
+        $match = TennisMatch::firstOrFail();
+
+        expect($match->side_a_name)->toBe('Ana / Bea')
+            ->and($match->side_b_name)->toBe('Cara / Dana')
+            ->and($match->sets_to_win)->toBe(1)
+            ->and($match->games_to_win)->toBe(6)
+            ->and($match->extend_at_tie)->toBeTrue()
+            ->and($match->tiebreak_to)->toBe(7)
+            ->and($match->bracket_slot_id)->toBe($slot->id)
+            ->and($match->format_label)->toBe('Best of 1 set(s), 6 games, TB to 7');
+    });
+
+    it('falls back to the built-in singles format when no overrides are supplied', function () {
+        $division = bracketTestDivision(2, 'team');
+        bracketTestEntrants($division, 2);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
+        $slot = $bracket->slots()->where('round', 1)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.slots.start', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'slot' => $slot->id,
+            ]), [
+                'side_a_name' => 'Ana',
+                'side_b_name' => 'Cara',
+            ]);
+
+        $match = TennisMatch::firstOrFail();
+
+        expect($match->sets_to_win)->toBe(2)
+            ->and($match->games_to_win)->toBe(6)
+            ->and($match->extend_at_tie)->toBeFalse()
+            ->and($match->tiebreak_to)->toBe(7);
+    });
+});

@@ -508,3 +508,67 @@ describe('Admin TennisMatch state persistence', function () {
         expect(TennisMatchState::find($stateId))->toBeNull();
     });
 });
+
+describe('Admin TennisMatch rubber edits', function () {
+    it('updates the sides and format and redirects back without a score payload', function () {
+        $match = TennisMatch::factory()->create([
+            'side_a_name' => 'Old A',
+            'side_b_name' => 'Old B',
+            'sets_to_win' => 2,
+            'games_to_win' => 6,
+            'extend_at_tie' => false,
+            'tiebreak_to' => 7,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tennis-matches.update', $match), [
+                'side_a_name' => 'Ana / Bea',
+                'side_b_name' => 'Cara / Dana',
+                'sets_to_win' => 1,
+                'games_to_win' => 6,
+                'extend_at_tie' => true,
+                'tiebreak_to' => 7,
+            ])
+            ->assertRedirect();
+
+        $match->refresh();
+
+        expect($match->side_a_name)->toBe('Ana / Bea')
+            ->and($match->side_b_name)->toBe('Cara / Dana')
+            ->and($match->sets_to_win)->toBe(1)
+            ->and($match->games_to_win)->toBe(6)
+            ->and($match->extend_at_tie)->toBeTrue()
+            ->and($match->tiebreak_to)->toBe(7)
+            ->and($match->format_label)->toBe('Best of 1 set(s), 6 games, TB to 7');
+    });
+
+    it('leaves the scoring state untouched when only rubber fields change', function () {
+        $match = TennisMatch::factory()->running()->create();
+        $match->state->update(['set_a' => 1, 'set_b' => 0, 'game_a' => 3, 'game_b' => 2]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tennis-matches.update', $match), [
+                'side_a_name' => 'Renamed A',
+            ])
+            ->assertRedirect();
+
+        $match->refresh();
+
+        expect($match->side_a_name)->toBe('Renamed A')
+            ->and($match->status)->toBe(MatchStatus::Running)
+            ->and($match->state->set_a)->toBe(1)
+            ->and($match->state->game_a)->toBe(3);
+    });
+
+    it('validates rubber field ranges on update', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tennis-matches.update', $match), [
+                'side_a_name' => str_repeat('a', 61),
+                'sets_to_win' => 4,
+                'tiebreak_to' => 30,
+            ])
+            ->assertSessionHasErrors(['side_a_name', 'sets_to_win', 'tiebreak_to']);
+    });
+});

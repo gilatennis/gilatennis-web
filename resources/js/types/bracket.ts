@@ -15,10 +15,23 @@ export interface BracketMatchSummary {
     id: number;
     side_a_name: string;
     side_b_name: string;
+    sets_to_win: number;
+    games_to_win: number;
+    extend_at_tie: boolean;
+    tiebreak_to: number;
     status: string;
     format_label: string;
     winner_side: number | null;
 }
+
+export type RubberPayload = {
+    side_a_name: string;
+    side_b_name: string;
+    sets_to_win: number;
+    games_to_win: number;
+    extend_at_tie: boolean;
+    tiebreak_to: number;
+};
 
 export interface BracketSlot {
     id: number;

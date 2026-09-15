@@ -68,6 +68,19 @@ class TennisMatchController extends Controller
     public function update(TennisMatchUpdateRequest $request, TennisMatch $match)
     {
         DB::transaction(function () use ($request, $match) {
+            $match->fill($request->safe()->only([
+                'side_a_name',
+                'side_b_name',
+                'sets_to_win',
+                'games_to_win',
+                'extend_at_tie',
+                'tiebreak_to',
+            ]));
+
+            if ($match->isDirty()) {
+                $match->save();
+            }
+
             if ($request->has('status')) {
                 $current = $match->status;
                 $next = MatchStatus::from($request->validated('status'));
@@ -105,6 +118,10 @@ class TennisMatchController extends Controller
 
         $match->refresh();
         $match->load('state');
+
+        if (! $request->hasAny(['status', 'state'])) {
+            return back();
+        }
 
         return Inertia::render('Admin/TennisMatches/Score', [
             'match' => $this->matchPayload($match),

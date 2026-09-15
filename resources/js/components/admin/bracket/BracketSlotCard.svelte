@@ -5,18 +5,24 @@
     import Trophy from 'lucide-svelte/icons/trophy';
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
     import { show as showMatch } from '@/routes/admin/tennis-matches';
-    import type { BracketEntrant, BracketSlot } from '@/types';
+    import type {
+        BracketEntrant,
+        BracketMatchSummary,
+        BracketSlot,
+    } from '@/types';
 
     let {
         slot,
         isTeam,
         onStart,
         onSetWinner,
+        onEditRubber,
     }: {
         slot: BracketSlot;
         isTeam: boolean;
         onStart: (slot: BracketSlot) => void;
         onSetWinner: (slot: BracketSlot, entrantId: number) => void;
+        onEditRubber: (slot: BracketSlot, match: BracketMatchSummary) => void;
     } = $props();
 
     const isWinner = (entrant: BracketEntrant | null) =>
@@ -88,26 +94,40 @@
     {#if slot.matches.length > 0}
         <div class="border-t border-black/6 divide-y divide-black/5">
             {#each slot.matches as match (match.id)}
-                <div class="flex items-center gap-2 px-2.5 h-8">
-                    {#if isTeam}
+                {#if isTeam}
+                    <button
+                        type="button"
+                        onclick={() => onEditRubber(slot, match)}
+                        class="w-full flex items-center gap-2 px-2.5 h-8 text-left hover:bg-neutral-50 transition-colors"
+                        title="Edit rubber"
+                    >
                         <span class="text-[11px] truncate text-neutral-600">
                             {match.side_a_name} v {match.side_b_name}
                         </span>
-                    {:else}
+                        <span class="ml-auto shrink-0"
+                            ><MatchStatusBadge
+                                status={match.status as any}
+                            /></span
+                        >
+                    </button>
+                {:else}
+                    <div class="flex items-center gap-2 px-2.5 h-8">
                         <span class="text-[10px] text-neutral-400 truncate"
                             >Match #{match.id}</span
                         >
-                    {/if}
-                    <span class="ml-auto shrink-0"
-                        ><MatchStatusBadge status={match.status as any} /></span
-                    >
-                    <Link
-                        href={showMatch({ match: match.id }).url}
-                        class="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-coral hover:opacity-80"
-                    >
-                        Score
-                    </Link>
-                </div>
+                        <span class="ml-auto shrink-0"
+                            ><MatchStatusBadge
+                                status={match.status as any}
+                            /></span
+                        >
+                        <Link
+                            href={showMatch({ match: match.id }).url}
+                            class="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-coral hover:opacity-80"
+                        >
+                            Score
+                        </Link>
+                    </div>
+                {/if}
             {/each}
         </div>
     {/if}

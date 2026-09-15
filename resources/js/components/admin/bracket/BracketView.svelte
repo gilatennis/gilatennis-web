@@ -11,6 +11,7 @@
     import TeamRubberDialog from '@/components/admin/bracket/TeamRubberDialog.svelte';
     import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
     import { Button } from '@/components/ui/button';
+    import { update as updateMatch } from '@/routes/admin/tennis-matches';
     import {
         store as storeBracket,
         destroy as destroyBracket,
@@ -20,7 +21,9 @@
     import type {
         Bracket,
         BracketEntrantOption,
+        BracketMatchSummary,
         BracketSlot,
+        RubberPayload,
         SeedingMode,
     } from '@/types';
 
@@ -51,6 +54,7 @@
     let showDelete = $state(false);
     let showRubber = $state(false);
     let rubberSlot = $state<BracketSlot | null>(null);
+    let editingRubber = $state<BracketMatchSummary | null>(null);
 
     const roundOne = $derived(
         bracket?.rounds.find((r) => r.round === 1)?.slots ?? [],
@@ -105,6 +109,7 @@
     function startSlot(slot: BracketSlot) {
         if (isTeam) {
             rubberSlot = slot;
+            editingRubber = null;
             showRubber = true;
 
             return;
@@ -113,7 +118,13 @@
         router.post(slotsRoute.start.url({ ...args, slot: slot.id }), {});
     }
 
-    function addRubber(payload: { side_a_name: string; side_b_name: string }) {
+    function editRubber(slot: BracketSlot, match: BracketMatchSummary) {
+        rubberSlot = slot;
+        editingRubber = match;
+        showRubber = true;
+    }
+
+    function addRubber(payload: RubberPayload) {
         if (!rubberSlot) {
             return;
         }
@@ -123,6 +134,16 @@
             payload,
             { preserveScroll: true },
         );
+    }
+
+    function saveRubber(payload: RubberPayload) {
+        if (!editingRubber) {
+            return;
+        }
+
+        router.patch(updateMatch.url({ match: editingRubber.id }), payload, {
+            preserveScroll: true,
+        });
     }
 
     function setWinner(slot: BracketSlot, entrantId: number) {
@@ -218,6 +239,7 @@
                                     {isTeam}
                                     onStart={startSlot}
                                     onSetWinner={setWinner}
+                                    onEditRubber={editRubber}
                                 />
                                 {#if roundIndex > 0}
                                     <span
@@ -247,7 +269,13 @@
 
 <SeedEditor bind:open={showSeed} {entrants} {initialOrder} onSave={saveSeeds} />
 
-<TeamRubberDialog bind:open={showRubber} slot={rubberSlot} onAdd={addRubber} />
+<TeamRubberDialog
+    bind:open={showRubber}
+    slot={rubberSlot}
+    rubber={editingRubber}
+    onAdd={addRubber}
+    onSave={saveRubber}
+/>
 
 <ConfirmModal
     bind:open={showDelete}
