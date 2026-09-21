@@ -68,10 +68,10 @@
         };
         bracket: Bracket | null;
         bracketEntrants: BracketEntrantOption[];
-        filters: { status?: string; search?: string };
+        filters: { status?: string; search?: string; tab?: string };
     } = $props();
 
-    let tab = $state('registrants');
+    let tab = $state(filters.tab ?? 'registrants');
     let statusFilter = $state(filters.status ?? '');
 
     const searchHandler = useSearch(
@@ -81,6 +81,7 @@
 
     $effect(() => {
         statusFilter = filters.status ?? '';
+        tab = filters.tab ?? 'registrants';
     });
 
     function applyFilters() {

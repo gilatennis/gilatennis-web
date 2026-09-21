@@ -30,6 +30,9 @@ class DivisionController extends Controller
 
         $status = request('status');
         $search = request('search');
+        $tab = in_array(request('tab'), ['registrants', 'prizes', 'matches', 'schedule'], true)
+            ? request('tab')
+            : 'registrants';
 
         if ($status) {
             $query->where('payment_status', $status);
@@ -115,6 +118,7 @@ class DivisionController extends Controller
             'filters' => [
                 'status' => $status,
                 'search' => $search,
+                'tab' => $tab,
             ],
         ]);
     }
