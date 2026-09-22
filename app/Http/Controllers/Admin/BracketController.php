@@ -101,9 +101,35 @@ class BracketController extends Controller
             ? null
             : TournamentRegistration::where('division_id', $division->id)->findOrFail($entrantId);
 
-        $this->brackets->setWinner($bracketSlot, $winner);
+        $this->brackets->setWinner($bracketSlot, $winner, $request->validated('reason'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Slot updated.']);
+
+        return $this->backToMatches($tournament, $division);
+    }
+
+    public function undoSlot(
+        Tournament $tournament,
+        Division $division,
+        int $slot,
+    ): RedirectResponse {
+        $bracketSlot = $this->slotOrFail($division, $slot);
+
+        if ($bracketSlot->winner_entrant_id === null) {
+            return back()->withErrors(['slot' => 'Nothing to undo.']);
+        }
+
+        if ($bracketSlot->bye) {
+            return back()->withErrors(['slot' => 'Byes advance automatically.']);
+        }
+
+        if ($this->brackets->laterRoundsHaveProgress($bracketSlot)) {
+            return back()->withErrors(['slot' => 'Undo the later rounds first.']);
+        }
+
+        $this->brackets->setWinner($bracketSlot, null);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Advance undone.']);
 
         return $this->backToMatches($tournament, $division);
     }

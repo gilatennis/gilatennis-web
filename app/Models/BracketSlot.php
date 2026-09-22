@@ -18,6 +18,7 @@ class BracketSlot extends Model
         'entrant_a_id',
         'entrant_b_id',
         'winner_entrant_id',
+        'advance_reason',
         'prev_slot_a_id',
         'prev_slot_b_id',
         'seed',

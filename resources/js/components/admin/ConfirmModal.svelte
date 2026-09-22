@@ -16,7 +16,10 @@
         warning,
         confirmLabel = 'Confirm',
         destructive = false,
+        reason = $bindable(''),
+        reasonOptions,
         onConfirm,
+        onOpenChange,
     }: {
         open?: boolean;
         title?: string;
@@ -24,12 +27,26 @@
         warning?: string;
         confirmLabel?: string;
         destructive?: boolean;
+        reason?: string;
+        reasonOptions?: { value: string; label: string }[];
         onConfirm?: () => void;
+        onOpenChange?: (open: boolean) => void;
     } = $props();
+
+    function requestClose() {
+        open = false;
+        onOpenChange?.(false);
+    }
 </script>
 
 {#if open}
-    <Dialog {open} onOpenChange={(v) => (open = v)}>
+    <Dialog
+        {open}
+        onOpenChange={(v) => {
+            open = v;
+            onOpenChange?.(v);
+        }}
+    >
         <DialogContent class="max-w-[440px]">
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
@@ -49,15 +66,33 @@
                 </div>
             {/if}
 
+            {#if reasonOptions}
+                <label class="mt-4 mb-4 block">
+                    <span
+                        class="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400"
+                        >Reason</span
+                    >
+                    <select
+                        bind:value={reason}
+                        class="mt-1.5 h-9 w-full rounded-md border border-black/12 bg-white px-2.5 text-sm text-neutral-800 focus:border-emerald-400 focus:outline-none"
+                    >
+                        <option value="">None</option>
+                        {#each reasonOptions as option (option.value)}
+                            <option value={option.value}>{option.label}</option>
+                        {/each}
+                    </select>
+                </label>
+            {/if}
+
             <DialogFooter>
-                <Button variant="outline" onclick={() => (open = false)}
+                <Button variant="outline" onclick={requestClose}
                     >Cancel</Button
                 >
                 <Button
                     variant={destructive ? 'destructive' : 'coral'}
                     onclick={() => {
                         onConfirm?.();
-                        open = false;
+                        requestClose();
                     }}
                 >
                     {confirmLabel}

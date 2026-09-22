@@ -20,6 +20,7 @@
     import slotsRoute from '@/routes/admin/tournaments/divisions/bracket/slots';
     import type {
         Bracket,
+        BracketEntrant,
         BracketEntrantOption,
         BracketMatchSummary,
         BracketSlot,
@@ -55,6 +56,71 @@
     let showRubber = $state(false);
     let rubberSlot = $state<BracketSlot | null>(null);
     let editingRubber = $state<BracketMatchSummary | null>(null);
+
+    type PendingAction =
+        | {
+              kind: 'advance';
+              slot: BracketSlot;
+              entrantId: number;
+              name: string;
+          }
+        | { kind: 'undo'; slot: BracketSlot; name: string };
+
+    let pendingAction = $state<PendingAction | null>(null);
+    let advanceReason = $state('');
+
+    const reasonOptions = [
+        { value: 'walkover', label: 'Walkover' },
+        { value: 'retirement', label: 'Retirement' },
+        { value: 'disqualification', label: 'Disqualification' },
+    ];
+
+    const slotByPosition = $derived.by(() => {
+        const map: Record<string, BracketSlot> = {};
+
+        for (const round of bracket?.rounds ?? []) {
+            for (const slot of round.slots) {
+                map[`${round.round}:${slot.position}`] = slot;
+            }
+        }
+
+        return map;
+    });
+
+    const undoableSlots = $derived.by(() => {
+        const ids: Record<number, boolean> = {};
+
+        for (const round of bracket?.rounds ?? []) {
+            for (const slot of round.slots) {
+                if (!slot.winner_entrant || slot.bye) {
+                    continue;
+                }
+
+                let position = slot.position;
+                let blocked = false;
+
+                for (let r = round.round + 1; ; r++) {
+                    position = Math.floor(position / 2);
+                    const ancestor = slotByPosition[`${r}:${position}`];
+
+                    if (!ancestor) {
+                        break;
+                    }
+
+                    if (ancestor.winner_entrant || ancestor.matches.length > 0) {
+                        blocked = true;
+                        break;
+                    }
+                }
+
+                if (!blocked) {
+                    ids[slot.id] = true;
+                }
+            }
+        }
+
+        return ids;
+    });
 
     const roundOne = $derived(
         bracket?.rounds.find((r) => r.round === 1)?.slots ?? [],
@@ -146,13 +212,63 @@
         });
     }
 
-    function setWinner(slot: BracketSlot, entrantId: number) {
-        router.patch(
-            slotsRoute.update.url({ ...args, slot: slot.id }),
-            { winner_entrant_id: entrantId },
-            { preserveScroll: true },
-        );
+    function openAdvanceConfirm(slot: BracketSlot, entrant: BracketEntrant) {
+        advanceReason = '';
+        pendingAction = {
+            kind: 'advance',
+            slot,
+            entrantId: entrant.id,
+            name: entrant.name,
+        };
     }
+
+    function openUndoConfirm(slot: BracketSlot) {
+        pendingAction = {
+            kind: 'undo',
+            slot,
+            name: slot.winner_entrant?.name ?? 'the winner',
+        };
+    }
+
+    function runPendingAction() {
+        if (!pendingAction) {
+            return;
+        }
+
+        if (pendingAction.kind === 'undo') {
+            router.delete(
+                slotsRoute.undo.url({ ...args, slot: pendingAction.slot.id }),
+                { preserveScroll: true },
+            );
+        } else {
+            router.patch(
+                slotsRoute.update.url({ ...args, slot: pendingAction.slot.id }),
+                {
+                    winner_entrant_id: pendingAction.entrantId,
+                    reason: advanceReason || null,
+                },
+                { preserveScroll: true },
+            );
+        }
+
+        pendingAction = null;
+    }
+
+    const isUndo = $derived(pendingAction?.kind === 'undo');
+
+    const confirmTitle = $derived(isUndo ? 'Undo advance' : 'Set winner');
+
+    const confirmMessage = $derived.by(() => {
+        if (!pendingAction) {
+            return '';
+        }
+
+        return isUndo
+            ? `Move ${pendingAction.name} back and clear their result?`
+            : `Advance ${pendingAction.name} as the winner?`;
+    });
+
+    const confirmLabel = $derived(isUndo ? 'Undo' : 'Set Winner');
 </script>
 
 {#if !bracket}
@@ -238,7 +354,9 @@
                                     {slot}
                                     {isTeam}
                                     onStart={startSlot}
-                                    onSetWinner={setWinner}
+                                    onAdvance={openAdvanceConfirm}
+                                    onUndo={openUndoConfirm}
+                                    canUndo={undoableSlots[slot.id] === true}
                                     onEditRubber={editRubber}
                                 />
                                 {#if roundIndex > 0}
@@ -284,4 +402,20 @@
     confirmLabel="Delete Bracket"
     destructive
     onConfirm={removeBracket}
+/>
+
+<ConfirmModal
+    open={pendingAction !== null}
+    onOpenChange={(v) => {
+        if (!v) {
+            pendingAction = null;
+        }
+    }}
+    title={confirmTitle}
+    message={confirmMessage}
+    confirmLabel={confirmLabel}
+    destructive={isUndo}
+    bind:reason={advanceReason}
+    reasonOptions={isUndo ? undefined : reasonOptions}
+    onConfirm={runPendingAction}
 />

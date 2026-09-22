@@ -66,6 +66,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.slots.update');
 
+    Route::delete('tournaments/{tournament}/divisions/{division}/bracket/slots/{slot}/winner', [BracketController::class, 'undoSlot'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.slots.undo');
+
     Route::resource('tournaments', TournamentController::class);
 
     Route::get('settings', [SystemController::class, 'edit'])->name('settings');

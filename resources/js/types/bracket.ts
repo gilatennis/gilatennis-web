@@ -33,6 +33,8 @@ export type RubberPayload = {
     tiebreak_to: number;
 };
 
+export type AdvanceReason = 'walkover' | 'retirement' | 'disqualification';
+
 export interface BracketSlot {
     id: number;
     round: number;
@@ -43,6 +45,7 @@ export interface BracketSlot {
     entrant_a: BracketEntrant | null;
     entrant_b: BracketEntrant | null;
     winner_entrant: BracketEntrant | null;
+    advance_reason: AdvanceReason | null;
     is_ready: boolean;
     is_complete: boolean;
     matches: BracketMatchSummary[];

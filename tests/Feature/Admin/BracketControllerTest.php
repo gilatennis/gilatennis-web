@@ -231,18 +231,29 @@ describe('Admin Bracket Progression', function () {
 
         $match = TennisMatch::firstOrFail();
 
-        $this->actingAs($this->admin)
-            ->patch(route('admin.tennis-matches.update', $match), [
-                'status' => 'running',
-            ]);
+        $this->actingAs($this->admin)->patch(route('admin.tennis-matches.update', $match), [
+            'sets_to_win' => 1,
+            'games_to_win' => 4,
+            'extend_at_tie' => false,
+        ]);
 
         $this->actingAs($this->admin)
-            ->patch(route('admin.tennis-matches.update', $match), [
-                'status' => 'completed',
-                'state' => ['win' => 1],
-            ]);
+            ->postJson(route('admin.tennis-matches.server', $match), ['side' => 1]);
 
-        expect($slot->fresh()->winner_entrant_id)->toBeNull();
+        for ($i = 0; $i < 16; $i++) {
+            $this->actingAs($this->admin)
+                ->postJson(route('admin.tennis-matches.points', $match), ['side' => 1]);
+        }
+
+        expect($match->fresh()->status)->toBe(MatchStatus::Running)
+            ->and($slot->fresh()->winner_entrant_id)->toBeNull();
+
+        $this->actingAs($this->admin)->patch(route('admin.tennis-matches.update', $match), [
+            'status' => 'completed',
+        ]);
+
+        expect($match->fresh()->status)->toBe(MatchStatus::Completed)
+            ->and($slot->fresh()->winner_entrant_id)->toBeNull();
 
         $round2 = $bracket->slots()->where('round', 2)->orderBy('position')->firstOrFail();
         expect($round2->fresh()->entrant_a_id)->toBeNull();
@@ -599,5 +610,288 @@ describe('Admin Team Rubber Formats', function () {
             ->and($match->games_to_win)->toBe(6)
             ->and($match->extend_at_tie)->toBeFalse()
             ->and($match->tiebreak_to)->toBe(7);
+    });
+});
+
+describe('Admin Bracket Advancement', function () {
+    function bracketAdvanceSetup(int $drawSize = 4): array
+    {
+        $division = bracketTestDivision($drawSize);
+        bracketTestEntrants($division, $drawSize);
+
+        test()->actingAs(test()->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
+        $slot = $bracket->slots()->where('round', 1)->orderBy('position')->firstOrFail();
+
+        test()->actingAs(test()->admin)->post(route('admin.tournaments.divisions.bracket.slots.start', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+            'slot' => $slot->id,
+        ]));
+
+        return [$division, $bracket, $slot, TennisMatch::firstOrFail()];
+    }
+
+    function advanceArgs(Division $division, int $slotId): array
+    {
+        return [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+            'slot' => $slotId,
+        ];
+    }
+
+    it('sets the winner explicitly with a reason', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $round2 = $bracket->slots()->where('round', 2)->orderBy('position')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_b_id,
+                'reason' => 'walkover',
+            ])
+            ->assertRedirect();
+
+        expect($slot->fresh()->winner_entrant_id)->toBe($slot->entrant_b_id)
+            ->and($slot->fresh()->advance_reason)->toBe('walkover')
+            ->and($round2->fresh()->entrant_a_id)->toBe($slot->entrant_b_id);
+    });
+
+    it('allows setting a winner without a reason', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_a_id,
+            ])
+            ->assertRedirect();
+
+        expect($slot->fresh()->winner_entrant_id)->toBe($slot->entrant_a_id)
+            ->and($slot->fresh()->advance_reason)->toBeNull();
+    });
+
+    it('rejects an unknown reason', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_a_id,
+                'reason' => 'bribery',
+            ])
+            ->assertSessionHasErrors('reason');
+
+        expect($slot->fresh()->winner_entrant_id)->toBeNull();
+    });
+
+    it('clears the winner and reason when the winner is removed', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $round2 = $bracket->slots()->where('round', 2)->orderBy('position')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_a_id,
+                'reason' => 'retirement',
+            ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => null,
+            ]);
+
+        expect($slot->fresh()->winner_entrant_id)->toBeNull()
+            ->and($slot->fresh()->advance_reason)->toBeNull()
+            ->and($round2->fresh()->entrant_a_id)->toBeNull();
+    });
+
+    it('clears the winner and reason when the match is reverted', function () {
+        [$division, $bracket, $slot, $match] = bracketAdvanceSetup();
+
+        $round2 = $bracket->slots()->where('round', 2)->orderBy('position')->firstOrFail();
+
+        $match->update(['status' => MatchStatus::Completed, 'ended_at' => now()]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_a_id,
+                'reason' => 'walkover',
+            ]);
+
+        expect($slot->fresh()->advance_reason)->toBe('walkover');
+
+        $this->actingAs($this->admin)->patch(route('admin.tennis-matches.update', $match), [
+            'status' => 'running',
+        ]);
+
+        expect($slot->fresh()->winner_entrant_id)->toBeNull()
+            ->and($slot->fresh()->advance_reason)->toBeNull()
+            ->and($round2->fresh()->entrant_a_id)->toBeNull();
+    });
+
+    it('exposes the advance reason in the division payload', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_a_id,
+                'reason' => 'disqualification',
+            ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.divisions.show', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+            ]))
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Tournaments/Division')
+                ->where('bracket.rounds.0.slots.0.advance_reason', 'disqualification')
+            );
+    });
+
+    it('undoes an advance and clears the parent entrant', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $round2 = $bracket->slots()->where('round', 2)->orderBy('position')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_a_id,
+                'reason' => 'walkover',
+            ]);
+
+        expect($round2->fresh()->entrant_a_id)->toBe($slot->entrant_a_id);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.undo', advanceArgs($division, $slot->id)))
+            ->assertRedirect();
+
+        expect($slot->fresh()->winner_entrant_id)->toBeNull()
+            ->and($slot->fresh()->advance_reason)->toBeNull()
+            ->and($round2->fresh()->entrant_a_id)->toBeNull();
+    });
+
+    it('reverts a completed bracket to active when the final is undone', function () {
+        $division = bracketTestDivision(2);
+        bracketTestEntrants($division, 2);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
+        $final = $bracket->slots()->where('round', 1)->orderBy('position')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $final->id)), [
+                'winner_entrant_id' => $final->entrant_a_id,
+            ]);
+
+        expect($bracket->fresh()->status)->toBe(Bracket::STATUS_COMPLETED);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.undo', advanceArgs($division, $final->id)))
+            ->assertRedirect();
+
+        expect($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE)
+            ->and($final->fresh()->winner_entrant_id)->toBeNull();
+    });
+
+    it('refuses to undo while a later round has a winner', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $round2 = $bracket->slots()->where('round', 2)->orderBy('position')->firstOrFail();
+        $sibling = $bracket->slots()->where('round', 1)->where('position', 1)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_a_id,
+            ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $sibling->id)), [
+                'winner_entrant_id' => $sibling->entrant_a_id,
+            ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $round2->id)), [
+                'winner_entrant_id' => $round2->fresh()->entrant_a_id,
+            ]);
+
+        expect($round2->fresh()->winner_entrant_id)->not->toBeNull();
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.undo', advanceArgs($division, $slot->id)))
+            ->assertRedirect()
+            ->assertSessionHasErrors('slot');
+
+        expect($slot->fresh()->winner_entrant_id)->not->toBeNull();
+    });
+
+    it('refuses to undo while a later round has a started match', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $round2 = $bracket->slots()->where('round', 2)->orderBy('position')->firstOrFail();
+        $sibling = $bracket->slots()->where('round', 1)->where('position', 1)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $slot->id)), [
+                'winner_entrant_id' => $slot->entrant_a_id,
+            ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', advanceArgs($division, $sibling->id)), [
+                'winner_entrant_id' => $sibling->entrant_a_id,
+            ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.slots.start', advanceArgs($division, $round2->id)));
+
+        expect($round2->matches()->count())->toBe(1);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.undo', advanceArgs($division, $slot->id)))
+            ->assertRedirect()
+            ->assertSessionHasErrors('slot');
+
+        expect($slot->fresh()->winner_entrant_id)->not->toBeNull();
+    });
+
+    it('refuses to undo a bye', function () {
+        $division = bracketTestDivision(4);
+        bracketTestEntrants($division, 3);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
+        $byeSlot = $bracket->slots()->where('round', 1)->where('bye', true)->firstOrFail();
+
+        expect($byeSlot->winner_entrant_id)->not->toBeNull();
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.undo', advanceArgs($division, $byeSlot->id)))
+            ->assertRedirect()
+            ->assertSessionHasErrors('slot');
+
+        expect($byeSlot->fresh()->winner_entrant_id)->not->toBeNull();
+    });
+
+    it('refuses to undo a slot with no winner', function () {
+        [$division, $bracket, $slot] = bracketAdvanceSetup();
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.undo', advanceArgs($division, $slot->id)))
+            ->assertRedirect()
+            ->assertSessionHasErrors('slot');
+
+        expect($slot->fresh()->winner_entrant_id)->toBeNull();
     });
 });

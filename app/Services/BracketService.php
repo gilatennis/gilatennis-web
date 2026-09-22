@@ -131,17 +131,21 @@ class BracketService
      * Explicitly award a slot to an entrant. This is the only path that
      * advances a slot; match results never propagate automatically. Passing
      * null clears the result and every downstream entrant/winner.
+     *
+     * The optional reason records why a slot was decided without a completed
+     * result (walkover, retirement, disqualification) for reporting.
      */
-    public function setWinner(BracketSlot $slot, ?TournamentRegistration $winner): void
+    public function setWinner(BracketSlot $slot, ?TournamentRegistration $winner, ?string $reason = null): void
     {
         $slot->loadMissing('bracket');
         $bracket = $slot->bracket;
 
-        DB::transaction(function () use ($slot, $bracket, $winner) {
+        DB::transaction(function () use ($slot, $bracket, $winner, $reason) {
             $graph = $this->loadSlotGraph($bracket);
             $slot = $graph['slots'][$slot->id];
 
             $slot->winner_entrant_id = $winner?->id;
+            $slot->advance_reason = $winner === null ? null : $reason;
             $slot->save();
 
             if ($winner !== null) {
@@ -153,6 +157,40 @@ class BracketService
 
             $this->syncStatus($bracket, $graph);
         });
+    }
+
+    /**
+     * A slot may only be undone from the bottom up: every slot that consumes
+     * its winner (and their successors) must be untouched. Clearing it while a
+     * later round carries a winner or a started match would silently orphan
+     * that progress.
+     */
+    public function laterRoundsHaveProgress(BracketSlot $slot): bool
+    {
+        $slot->loadMissing('bracket');
+
+        $graph = $this->loadSlotGraph($slot->bracket);
+        $ancestorIds = [];
+        $currentId = $slot->id;
+
+        while (($parent = $graph['parents'][$currentId] ?? null) !== null) {
+            $ancestorIds[] = $parent['id'];
+            $currentId = $parent['id'];
+        }
+
+        if ($ancestorIds === []) {
+            return false;
+        }
+
+        $decided = $graph['slots']
+            ->only($ancestorIds)
+            ->contains(fn (BracketSlot $ancestor) => $ancestor->winner_entrant_id !== null);
+
+        if ($decided) {
+            return true;
+        }
+
+        return TennisMatch::whereIn('bracket_slot_id', $ancestorIds)->exists();
     }
 
     public function delete(Bracket $bracket): void
@@ -255,6 +293,7 @@ class BracketService
             $slot->seed = min($seedA, $seedB);
             $slot->bye = $entrantA === null || $entrantB === null;
             $slot->winner_entrant_id = null;
+            $slot->advance_reason = null;
             $slot->save();
         }
 
@@ -262,6 +301,7 @@ class BracketService
             'entrant_a_id' => null,
             'entrant_b_id' => null,
             'winner_entrant_id' => null,
+            'advance_reason' => null,
         ]);
 
         $this->resolveByes($bracket, $this->loadSlotGraph($bracket));
@@ -281,6 +321,7 @@ class BracketService
             }
 
             $slot->winner_entrant_id = $winnerId;
+            $slot->advance_reason = null;
             $slot->save();
 
             $this->propagate($slot, $graph);
@@ -362,6 +403,7 @@ class BracketService
             }
 
             $childSlot->winner_entrant_id = null;
+            $childSlot->advance_reason = null;
             $childSlot->save();
 
             $this->clearDescendants($childSlot, $graph);

@@ -2,7 +2,7 @@
     import { Link } from '@inertiajs/svelte';
     import Check from 'lucide-svelte/icons/check';
     import Plus from 'lucide-svelte/icons/plus';
-    import Trophy from 'lucide-svelte/icons/trophy';
+    import Undo2 from 'lucide-svelte/icons/undo-2';
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
     import { show as showMatch } from '@/routes/admin/tennis-matches';
     import type {
@@ -14,23 +14,50 @@
     let {
         slot,
         isTeam,
+        canUndo = false,
         onStart,
-        onSetWinner,
         onEditRubber,
+        onAdvance,
+        onUndo,
     }: {
         slot: BracketSlot;
         isTeam: boolean;
+        canUndo?: boolean;
         onStart: (slot: BracketSlot) => void;
-        onSetWinner: (slot: BracketSlot, entrantId: number) => void;
         onEditRubber: (slot: BracketSlot, match: BracketMatchSummary) => void;
+        onAdvance: (slot: BracketSlot, entrant: BracketEntrant) => void;
+        onUndo: (slot: BracketSlot) => void;
     } = $props();
 
     const isWinner = (entrant: BracketEntrant | null) =>
         entrant !== null && slot.winner_entrant?.id === entrant.id;
 
-    const hasScoreableMatch = $derived(
-        !isTeam && slot.matches.length > 0 && !slot.is_complete,
-    );
+    const hasMatches = $derived(slot.matches.length > 0);
+
+    const leadingSide = $derived.by(() => {
+        let a = 0;
+        let b = 0;
+
+        for (const match of slot.matches) {
+            if (match.winner_side === 1) {
+                a++;
+            } else if (match.winner_side === 2) {
+                b++;
+            }
+        }
+
+        if (a === b) {
+            return null;
+        }
+
+        return a > b ? 1 : 2;
+    });
+
+    const reasonLabels: Record<string, string> = {
+        walkover: 'WO',
+        retirement: 'Ret',
+        disqualification: 'DQ',
+    };
 </script>
 
 <div
@@ -85,13 +112,25 @@
                     {row.entrant?.name ?? (slot.bye ? 'Bye' : 'TBD')}
                 </span>
                 {#if isWinner(row.entrant)}
-                    <Check class="size-3 ml-auto shrink-0 text-emerald-600" />
+                    {#if slot.advance_reason}
+                        <span
+                            class="ml-auto shrink-0 rounded-sm border border-amber-200 bg-amber-50 px-1 text-[8px] font-bold uppercase tracking-[0.1em] text-amber-700"
+                            title={`Advanced by ${slot.advance_reason}`}
+                        >
+                            {reasonLabels[slot.advance_reason] ??
+                                slot.advance_reason}
+                        </span>
+                    {:else}
+                        <Check
+                            class="size-3 ml-auto shrink-0 text-emerald-600"
+                        />
+                    {/if}
                 {/if}
             </div>
         {/each}
     </div>
 
-    {#if slot.matches.length > 0}
+    {#if hasMatches}
         <div class="border-t border-black/6 divide-y divide-black/5">
             {#each slot.matches as match (match.id)}
                 {#if isTeam}
@@ -135,24 +174,14 @@
     {#if slot.is_ready && !slot.is_complete}
         <div class="border-t border-black/6 p-2 flex flex-col gap-1.5">
             {#if isTeam}
-                {#if hasScoreableMatch}
-                    <span class="text-[10px] text-neutral-400 px-0.5">
-                        In progress
-                    </span>
-                {:else}
-                    <button
-                        type="button"
-                        onclick={() => onStart(slot)}
-                        class="h-7 inline-flex items-center justify-center gap-1.5 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.12em] hover:opacity-90"
-                    >
-                        <Plus class="size-3" /> Add Rubber
-                    </button>
-                {/if}
-            {:else if hasScoreableMatch}
-                <span class="text-[10px] text-neutral-400 px-0.5">
-                    In progress
-                </span>
-            {:else}
+                <button
+                    type="button"
+                    onclick={() => onStart(slot)}
+                    class="h-7 inline-flex items-center justify-center gap-1.5 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.12em] hover:opacity-90"
+                >
+                    <Plus class="size-3" /> Add Rubber
+                </button>
+            {:else if !hasMatches}
                 <button
                     type="button"
                     onclick={() => onStart(slot)}
@@ -160,28 +189,58 @@
                 >
                     Start Match
                 </button>
+            {:else}
+                <span class="text-[10px] text-neutral-400 px-0.5">
+                    Awaiting result
+                </span>
             {/if}
+
+            <span
+                class="text-[8px] font-bold uppercase tracking-[0.16em] text-neutral-300 text-center pt-0.5"
+            >
+                Set winner
+            </span>
             <div class="grid grid-cols-2 gap-1.5">
-                {#each [slot.entrant_a, slot.entrant_b] as entrant, i (i)}
-                    {#if entrant}
+                {#each [{ entrant: slot.entrant_a, side: 1 }, { entrant: slot.entrant_b, side: 2 }] as row (row.side)}
+                    {#if row.entrant}
+                        {@const entrant = row.entrant}
                         <button
                             type="button"
-                            onclick={() => onSetWinner(slot, entrant.id)}
-                            class="h-6 inline-flex items-center justify-center gap-1 border border-black/12 text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-600 hover:border-emerald-400 hover:text-emerald-700 truncate px-1"
-                            title="Award slot to {entrant.name}"
+                            onclick={() => onAdvance(slot, entrant)}
+                            class="h-6 inline-flex items-center justify-center gap-1 border text-[9px] font-bold uppercase tracking-[0.08em] truncate px-1 {leadingSide ===
+                            row.side
+                                ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                                : 'border-black/12 text-neutral-600 hover:border-emerald-400 hover:text-emerald-700'}"
+                            title={leadingSide === row.side
+                                ? `Leading: set ${entrant.name} as winner`
+                                : `Set ${entrant.name} as winner`}
                         >
-                            <Trophy class="size-2.5 shrink-0" />
                             <span class="truncate">{entrant.name}</span>
                         </button>
                     {/if}
                 {/each}
             </div>
         </div>
-    {:else if slot.is_complete && slot.matches.length === 0}
+    {:else if slot.is_complete}
         <div
-            class="border-t border-black/6 px-2.5 h-7 flex items-center text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-700"
+            class="border-t border-black/6 px-2.5 h-8 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-700"
         >
-            Winner &middot; {slot.winner_entrant?.name ?? '—'}
+            <span class="truncate"
+                >Winner &middot; {slot.winner_entrant?.name ?? '—'}</span
+            >
+            <button
+                type="button"
+                disabled={!canUndo}
+                onclick={() => onUndo(slot)}
+                title={canUndo
+                    ? 'Move this entrant back'
+                    : 'Undo the later rounds first'}
+                class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-sm border px-1.5 h-5 text-[9px] font-bold uppercase tracking-[0.08em] transition-colors {canUndo
+                    ? 'border-black/12 text-neutral-600 hover:border-coral hover:text-coral'
+                    : 'border-black/8 text-neutral-300 cursor-not-allowed'}"
+            >
+                <Undo2 class="size-3" /> Undo
+            </button>
         </div>
     {/if}
 </div>

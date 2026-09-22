@@ -60,6 +60,7 @@ trait ShapesBracket
             'entrant_a' => self::shapeEntrant($slot->entrantA),
             'entrant_b' => self::shapeEntrant($slot->entrantB),
             'winner_entrant' => self::shapeEntrant($slot->winnerEntrant),
+            'advance_reason' => $slot->advance_reason,
             'is_ready' => $slot->isReady(),
             'is_complete' => $slot->isComplete(),
             'matches' => $slot->matches->map(fn (TennisMatch $match) => [

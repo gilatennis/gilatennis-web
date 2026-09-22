@@ -15,6 +15,7 @@ class BracketSlotUpdateRequest extends FormRequest
     {
         return [
             'winner_entrant_id' => ['nullable', 'integer', 'exists:tournament_registrations,id'],
+            'reason' => ['nullable', 'in:walkover,retirement,disqualification'],
         ];
     }
 }
