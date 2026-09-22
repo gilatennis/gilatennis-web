@@ -1,10 +1,14 @@
 export type Side = 1 | 2;
 
-// TODO: add unit tests for the engine. Critical cases:
-//   - displayGameScore: deuce/Ad boundaries (regression for the "4 vs Ad" bug)
-//   - scorePoint: deuce reset at 4-4, advantage -> game, tiebreak transitions
-//   - statusLine: Deuce / Advantage / Set point / Match point / Tiebreak branches
-//   - undo: history pop, recursive reset to fresh state
+// The authoritative scoring rules live server-side in
+// app/Services/TennisScoringEngine.php. This module mirrors them so the score
+// board can update optimistically; every request is reconciled against the
+// server projection afterwards, so a drift here can only be a transient render.
+//
+// TODO: mirror tests/Unit/TennisScoringEngineTest.php in JS to catch drift.
+// Reference cases: displayGameScore deuce/Ad boundaries, scorePoint deuce reset
+// at 4-4, advantage -> game, tiebreak transitions, and the statusLine branches
+// (Deuce / Advantage / Set point / Match point / Tiebreak / Match won).
 
 export type ShotTag =
     | 'Ace'
@@ -50,22 +54,7 @@ export interface MatchState extends MatchScore {
     created_at: string | null;
     updated_at: string | null;
     format_label: string;
-    pending_shot: ShotTag | EventTag | null;
-    fault: boolean;
-    history: Snapshot[];
-}
-
-export interface Snapshot {
-    server: Side | null;
-    set_a: number;
-    set_b: number;
-    game_a: number;
-    game_b: number;
-    sets: SetScore[];
-    tiebreak: boolean;
-    tb_a: number;
-    tb_b: number;
-    tb_first: Side | null;
+    event_count: number;
     pending_shot: ShotTag | EventTag | null;
     fault: boolean;
 }
@@ -141,70 +130,6 @@ export function tiebreakServer(total: number, firstSrv: Side): Side {
     const grp = Math.floor((t - 1) / 2);
 
     return grp % 2 === 0 ? alt : firstSrv;
-}
-
-export function createInitialScore(): MatchScore {
-    return {
-        server: 1,
-        first_server: null,
-        set_a: 0,
-        set_b: 0,
-        game_a: 0,
-        game_b: 0,
-        tiebreak: false,
-        tb_a: 0,
-        tb_b: 0,
-        tb_first: null,
-        sets: [],
-        win: null,
-    };
-}
-
-function snap(state: MatchState): Snapshot {
-    return {
-        server: state.server,
-        set_a: state.set_a,
-        set_b: state.set_b,
-        game_a: state.game_a,
-        game_b: state.game_b,
-        sets: state.sets.map((s) => ({ a: s.a, b: s.b })),
-        tiebreak: state.tiebreak,
-        tb_a: state.tb_a,
-        tb_b: state.tb_b,
-        tb_first: state.tb_first,
-        pending_shot: state.pending_shot,
-        fault: state.fault,
-    };
-}
-
-function fromSnap(s: Snapshot, base: MatchState): MatchState {
-    return {
-        ...base,
-        server: s.server,
-        set_a: s.set_a,
-        set_b: s.set_b,
-        game_a: s.game_a,
-        game_b: s.game_b,
-        sets: s.sets.map((sc) => ({ a: sc.a, b: sc.b })),
-        tiebreak: s.tiebreak,
-        tb_a: s.tb_a,
-        tb_b: s.tb_b,
-        tb_first: s.tb_first,
-        pending_shot: s.pending_shot,
-        fault: s.fault,
-        win: null,
-    };
-}
-
-export function undo(state: MatchState): MatchState | null {
-    if (state.history.length === 0) {
-        return null;
-    }
-
-    const h = state.history[state.history.length - 1];
-    const rest = state.history.slice(0, -1);
-
-    return { ...fromSnap(h, state), history: rest };
 }
 
 function finishGame(state: MatchState, gw: Side): MatchState {
@@ -303,10 +228,8 @@ export function scorePoint(state: MatchState, who: Side): MatchState {
         return state;
     }
 
-    const history = [...state.history, snap(state)];
     const cleared: MatchState = {
         ...state,
-        history,
         pending_shot: null,
         fault: false,
     };
@@ -368,7 +291,7 @@ export function tagShot(state: MatchState, label: ShotTag): MatchState {
 }
 
 export function setServer(state: MatchState, side: Side): MatchState {
-    if (state.history.length > 0 || state.game_a > 0 || state.game_b > 0) {
+    if (state.first_server !== null) {
         return state;
     }
 
@@ -380,6 +303,12 @@ export function isComplete(state: MatchState): boolean {
 }
 
 export function statusLine(state: MatchState): StatusLine {
+    if (state.win !== null) {
+        const winner = state.win === 1 ? state.side_a_name : state.side_b_name;
+
+        return { text: `Match won · ${winner}`, tone: 'emerald' };
+    }
+
     if (state.tiebreak) {
         return { text: 'Tiebreak', tone: 'blue' };
     }
@@ -460,8 +389,4 @@ export function displayGameScore(state: MatchState, side: Side): string {
     }
 
     return gamePointLabel(mine);
-}
-
-export function canUndo(state: MatchState): boolean {
-    return state.history.length > 0 || state.first_server !== null;
 }

@@ -242,12 +242,7 @@ describe('Admin TennisMatch status transitions', function () {
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), ['status' => 'running'])
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Admin/TennisMatches/Score')
-                ->where('match.status', 'running')
-                ->where('match.id', $match->id)
-            );
+            ->assertRedirect();
 
         $match->refresh();
         expect($match->status)->toBe(MatchStatus::Running);
@@ -260,11 +255,7 @@ describe('Admin TennisMatch status transitions', function () {
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), ['status' => 'completed'])
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Admin/TennisMatches/Score')
-                ->where('match.status', 'completed')
-            );
+            ->assertRedirect();
 
         $match->refresh();
         expect($match->status)->toBe(MatchStatus::Completed);
@@ -283,16 +274,31 @@ describe('Admin TennisMatch status transitions', function () {
         expect($match->status)->toBe(MatchStatus::Pending);
     });
 
-    it('rejects invalid transition from completed to running', function () {
+    it('allows reverting a completed match back to running', function () {
         $match = TennisMatch::factory()->completed()->create();
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), ['status' => 'running'])
             ->assertRedirect()
-            ->assertSessionHasErrors('status');
+            ->assertSessionDoesntHaveErrors();
 
         $match->refresh();
-        expect($match->status)->toBe(MatchStatus::Completed);
+        expect($match->status)->toBe(MatchStatus::Running);
+    });
+
+    it('clears ended_at when reopening a completed match', function () {
+        $match = TennisMatch::factory()->completed()->create();
+
+        expect($match->ended_at)->not->toBeNull();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.tennis-matches.update', $match), ['status' => 'running'])
+            ->assertRedirect();
+
+        $match->refresh();
+        expect($match->status)->toBe(MatchStatus::Running)
+            ->and($match->ended_at)->toBeNull()
+            ->and($match->started_at)->not->toBeNull();
     });
 
     it('preserves started_at if already set', function () {
@@ -304,7 +310,7 @@ describe('Admin TennisMatch status transitions', function () {
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), ['status' => 'completed'])
-            ->assertOk();
+            ->assertRedirect();
 
         $match->refresh();
         expect($match->started_at->toIso8601String())->toBe($existing->toIso8601String());
@@ -340,11 +346,7 @@ describe('Admin TennisMatch status transitions', function () {
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), ['status' => 'pending'])
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Admin/TennisMatches/Score')
-                ->where('match.status', 'pending')
-            );
+            ->assertRedirect();
 
         $match->refresh();
         expect($match->status)->toBe(MatchStatus::Pending);
@@ -357,7 +359,7 @@ describe('Admin TennisMatch status transitions', function () {
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), ['status' => 'canceled'])
-            ->assertOk();
+            ->assertRedirect();
 
         $match->refresh();
         expect($match->status)->toBe(MatchStatus::Canceled);
@@ -368,7 +370,7 @@ describe('Admin TennisMatch status transitions', function () {
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), ['status' => 'canceled'])
-            ->assertOk();
+            ->assertRedirect();
 
         $match->refresh();
         expect($match->status)->toBe(MatchStatus::Canceled);
@@ -419,56 +421,44 @@ describe('Admin TennisMatch state persistence', function () {
             );
     });
 
-    it('update persists state body and creates a new state row', function () {
+    it('ignores client-supplied score state on update', function () {
         $match = TennisMatch::factory()->create();
-        $payload = [
-            'status' => 'running',
-            'state' => [
-                'server' => 1,
-                'first_server' => 1,
-                'set_a' => 1, 'set_b' => 0,
-                'game_a' => 2, 'game_b' => 1,
-                'tiebreak' => false, 'tb_a' => 0, 'tb_b' => 0, 'tb_first' => null,
-                'sets' => [['a' => 6, 'b' => 4]],
-                'win' => null,
-            ],
-        ];
 
         $this->actingAs($this->admin)
-            ->put(route('admin.tennis-matches.update', $match), $payload)
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->component('Admin/TennisMatches/Score')
-                ->where('match.set_a', 1)
-                ->where('match.game_a', 2)
-            );
+            ->put(route('admin.tennis-matches.update', $match), [
+                'status' => 'running',
+                'state' => [
+                    'server' => 1,
+                    'first_server' => 1,
+                    'set_a' => 1, 'set_b' => 0,
+                    'game_a' => 2, 'game_b' => 1,
+                    'tiebreak' => false, 'tb_a' => 0, 'tb_b' => 0, 'tb_first' => null,
+                    'sets' => [['a' => 6, 'b' => 4]],
+                    'win' => null,
+                ],
+            ])
+            ->assertRedirect();
 
         $match->refresh();
-        expect($match->status)->toBe(MatchStatus::Running);
-        $row = $match->state;
-        expect($row)->not->toBeNull();
-        expect($row->set_a)->toBe(1);
-        expect($row->game_a)->toBe(2);
-        expect($row->sets)->toBe([['a' => 6, 'b' => 4]]);
+
+        expect($match->status)->toBe(MatchStatus::Running)
+            ->and($match->state->set_a)->toBe(0)
+            ->and($match->state->game_a)->toBe(0)
+            ->and($match->state->sets)->toBe([]);
     });
 
-    it('update with state only does not change status', function () {
+    it('treats a state-only payload as a no-op', function () {
         $match = TennisMatch::factory()->running()->create();
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), [
-                'state' => [
-                    'server' => 2, 'first_server' => 2,
-                    'set_a' => 0, 'set_b' => 0, 'game_a' => 0, 'game_b' => 0,
-                    'tiebreak' => false, 'tb_a' => 0, 'tb_b' => 0, 'tb_first' => null,
-                    'sets' => [], 'win' => null,
-                ],
+                'state' => ['server' => 2, 'first_server' => 2],
             ])
-            ->assertOk();
+            ->assertRedirect();
 
         $match->refresh();
-        expect($match->status)->toBe(MatchStatus::Running);
-        expect($match->state->server)->toBe(2);
+        expect($match->status)->toBe(MatchStatus::Running)
+            ->and($match->state->server)->toBe(1);
     });
 
     it('re-sending the same status is a no-op (not a transition error)', function () {
@@ -476,27 +466,11 @@ describe('Admin TennisMatch state persistence', function () {
 
         $this->actingAs($this->admin)
             ->put(route('admin.tennis-matches.update', $match), ['status' => 'running'])
-            ->assertOk()
+            ->assertRedirect()
             ->assertSessionDoesntHaveErrors();
 
         $match->refresh();
         expect($match->status)->toBe(MatchStatus::Running);
-    });
-
-    it('update with invalid state values returns 422', function () {
-        $match = TennisMatch::factory()->create();
-
-        $this->actingAs($this->admin)
-            ->put(route('admin.tennis-matches.update', $match), [
-                'status' => 'running',
-                'state' => [
-                    'server' => 99, 'first_server' => null,
-                    'set_a' => 0, 'set_b' => 0, 'game_a' => 99, 'game_b' => 0,
-                    'tiebreak' => false, 'tb_a' => 0, 'tb_b' => 0, 'tb_first' => null,
-                    'sets' => [], 'win' => null,
-                ],
-            ])
-            ->assertSessionHasErrors(['state.server', 'state.game_a']);
     });
 
     it('deleting a match cascades to the state row', function () {

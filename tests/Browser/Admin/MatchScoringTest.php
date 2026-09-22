@@ -31,6 +31,28 @@ function refreshMatch(TennisMatch $match): TennisMatch
     return $match->fresh(['state']);
 }
 
+function scoreToMatchPoint(TennisMatch $match, User $user): void
+{
+    test()->actingAs($user)
+        ->postJson(route('admin.tennis-matches.server', $match), ['side' => 1])
+        ->assertOk();
+
+    for ($i = 0; $i < 15; $i++) {
+        test()->actingAs($user)
+            ->postJson(route('admin.tennis-matches.points', $match), ['side' => 1])
+            ->assertOk();
+    }
+}
+
+function oneSetFast4Match(): TennisMatch
+{
+    return TennisMatch::factory()->create([
+        'sets_to_win' => 1,
+        'games_to_win' => 4,
+        'extend_at_tie' => false,
+    ]);
+}
+
 describe('match score page access', function () {
     it('shows pending state on a fresh match for an admin', function () {
         $user = User::factory()->admin()->create();
@@ -48,6 +70,50 @@ describe('match score page access', function () {
             ->assertMissing('@point-a')
             ->assertMissing('@point-b')
             ->assertMissing('@undo');
+    });
+
+    it('stacks doubles partner names on separate lines in the heading', function () {
+        $user = User::factory()->admin()->create();
+        $match = TennisMatch::factory()->create([
+            'side_a_name' => 'Andi Wijaya / Budi Santoso',
+            'side_b_name' => 'Citra Dewi / Dedi Kurnia',
+        ]);
+
+        $page = openMatchScorePage($user, $match);
+
+        $page->assertScript(
+            'Array.from(document.querySelectorAll("h1 span.block")).map((el) => el.textContent.trim()).join("|")',
+            'Andi Wijaya|/ Budi Santoso|Citra Dewi|/ Dedi Kurnia',
+        )->assertNoJavaScriptErrors();
+    });
+
+    it('keeps a singles side name on a single line in the heading', function () {
+        $user = User::factory()->admin()->create();
+        $match = TennisMatch::factory()->create([
+            'side_a_name' => 'Novak Djokovic',
+            'side_b_name' => 'Carlos Alcaraz',
+        ]);
+
+        $page = openMatchScorePage($user, $match);
+
+        $page->assertScript(
+            'document.querySelectorAll("h1 span.block").length',
+            0,
+        )->assertSee('Novak Djokovic');
+    });
+
+    it('scales the heading font size up on wider viewports', function () {
+        $user = User::factory()->admin()->create();
+        $match = TennisMatch::factory()->create();
+
+        $page = openMatchScorePage($user, $match);
+
+        $headingSize =
+            'getComputedStyle(document.querySelector(\'[data-testid="match-heading"]\')).fontSize';
+
+        $page->resize(390, 844)->assertScript($headingSize, '16px');
+        $page->resize(700, 900)->assertScript($headingSize, '28px');
+        $page->resize(1280, 900)->assertScript($headingSize, '28px');
     });
 
     it('denies non-admin users and redirects to admin login', function () {
@@ -162,7 +228,13 @@ describe('game scoring', function () {
         $match = TennisMatch::factory()->create();
         $a = $match->side_a_name;
 
-        $match->update(['status' => 'running']);
+        $match->update(['status' => 'running', 'started_at' => now()]);
+        $match->events()->create(['seq' => 1, 'type' => 'server', 'side' => 1]);
+
+        foreach ([1, 2, 1, 2, 1, 2] as $index => $side) {
+            $match->events()->create(['seq' => $index + 2, 'type' => 'point', 'side' => $side]);
+        }
+
         $match->state->update([
             'server' => 1,
             'first_server' => 1,
@@ -371,11 +443,128 @@ describe('tiebreak and match completion', function () {
             ->assertSee('Match Winner')
             ->assertSeeIn('@match-winner', $a);
 
+        $winnerSize =
+            'getComputedStyle(document.querySelector("[data-testid=match-winner]")).fontSize';
+
+        $page->assertScript($winnerSize, '28px');
+        $page->resize(390, 844)->assertScript($winnerSize, '16px');
+
         $page->wait(SAVE_WAIT_S);
 
         $match = refreshMatch($match);
         expect($match->status->value)->toBe('completed');
         expect($match->state->win)->toBe(1);
         expect($match->state->sets)->toHaveCount(2);
+    });
+
+    it('shows a neutral completed panel when no winner was recorded', function () {
+        $user = User::factory()->admin()->create();
+        $match = TennisMatch::factory()->create(['status' => 'completed']);
+
+        $page = openMatchScorePage($user, $match);
+
+        $page->wait(1)
+            ->assertVisible('@match-completed')
+            ->assertMissing('@match-winner')
+            ->assertSee('Match completed')
+            ->assertSee('No winner was recorded for this match.')
+            ->assertSeeIn('@reopen-match', 'Reopen match');
+    });
+
+    it('surfaces the server message when the score is frozen', function () {
+        $user = User::factory()->admin()->create();
+        $match = oneSetFast4Match();
+
+        test()->actingAs($user)
+            ->postJson(route('admin.tennis-matches.server', $match), ['side' => 1])
+            ->assertOk();
+
+        test()->actingAs($user)
+            ->postJson(route('admin.tennis-matches.points', $match), ['side' => 1])
+            ->assertOk();
+
+        $page = openMatchScorePage($user, $match);
+
+        $page->assertMissing('@save-error')->assertButtonEnabled('@point-a');
+
+        test()->actingAs($user)
+            ->patch(route('admin.tennis-matches.update', $match), ['status' => 'completed']);
+
+        $page->click('@point-a')->wait(1);
+
+        $page->assertSeeIn(
+            '@save-error',
+            'The match is completed. Reopen it before changing the score.',
+        );
+
+        $match = refreshMatch($match);
+        expect($match->state->game_a)->toBe(1)
+            ->and($match->state->game_b)->toBe(0);
+    });
+
+    it('keeps scoring controls after the deciding point and completes on request', function () {
+        $user = User::factory()->admin()->create();
+        $match = oneSetFast4Match();
+
+        scoreToMatchPoint($match, $user);
+
+        $page = openMatchScorePage($user, $match);
+
+        $page->assertMissing('@match-winner')
+            ->assertButtonEnabled('@point-a')
+            ->click('@point-a')
+            ->wait(1);
+
+        $page->assertVisible('@match-winner')
+            ->assertVisible('@mark-completed')
+            ->assertButtonDisabled('@point-a')
+            ->assertButtonDisabled('@point-b')
+            ->assertButtonEnabled('@undo');
+
+        $page->click('@mark-completed')->wait(1);
+
+        $page->assertVisible('@reopen-match')
+            ->assertMissing('@point-a')
+            ->assertMissing('@mark-completed');
+
+        $page->wait(SAVE_WAIT_S);
+
+        $match = refreshMatch($match);
+        expect($match->status->value)->toBe('completed');
+        expect($match->state->win)->toBe(1);
+        expect($match->ended_at)->not->toBeNull();
+    });
+
+    it('reopens a completed match so the deciding point can be undone', function () {
+        $user = User::factory()->admin()->create();
+        $match = oneSetFast4Match();
+
+        scoreToMatchPoint($match, $user);
+
+        $page = openMatchScorePage($user, $match);
+
+        $page->click('@point-a')->wait(1);
+        $page->click('@mark-completed')->wait(1);
+
+        $page->assertVisible('@reopen-match')
+            ->assertMissing('@point-a');
+
+        $page->click('@reopen-match')->wait(1);
+
+        $page->assertVisible('@point-a')
+            ->assertVisible('@match-winner');
+
+        $page->click('@undo')->wait(1);
+
+        $page->assertMissing('@match-winner')
+            ->assertButtonEnabled('@point-a')
+            ->assertNoJavaScriptErrors();
+
+        $page->wait(SAVE_WAIT_S);
+
+        $match = refreshMatch($match);
+        expect($match->status->value)->toBe('running');
+        expect($match->state->win)->toBeNull();
+        expect($match->ended_at)->toBeNull();
     });
 });

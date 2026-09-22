@@ -7,7 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TennisMatchStoreRequest;
 use App\Http\Requests\Admin\TennisMatchUpdateRequest;
 use App\Models\TennisMatch;
-use App\Models\TennisMatchState;
+use App\Services\BracketService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -15,6 +16,8 @@ use Inertia\Response;
 
 class TennisMatchController extends Controller
 {
+    public function __construct(private BracketService $brackets) {}
+
     public function index(): Response
     {
         $matches = TennisMatch::orderByDesc('created_at')
@@ -47,7 +50,7 @@ class TennisMatchController extends Controller
         return Inertia::render('Admin/TennisMatches/Create');
     }
 
-    public function store(TennisMatchStoreRequest $request)
+    public function store(TennisMatchStoreRequest $request): RedirectResponse
     {
         $match = TennisMatch::create($request->validated());
 
@@ -61,12 +64,18 @@ class TennisMatchController extends Controller
         $match->loadMissing('state');
 
         return Inertia::render('Admin/TennisMatches/Score', [
-            'match' => $this->matchPayload($match),
+            'match' => $match->toScorePayload(),
         ]);
     }
 
-    public function update(TennisMatchUpdateRequest $request, TennisMatch $match)
+    /**
+     * Update match configuration (rubber sides, format) and manual status.
+     * Score state is server-owned and written only via the scoring endpoints.
+     */
+    public function update(TennisMatchUpdateRequest $request, TennisMatch $match): RedirectResponse
     {
+        $previousStatus = $match->status;
+
         DB::transaction(function () use ($request, $match) {
             $match->fill($request->safe()->only([
                 'side_a_name',
@@ -91,8 +100,12 @@ class TennisMatchController extends Controller
                     ]);
                 }
 
-                if ($next === MatchStatus::Running && $match->started_at === null) {
-                    $match->started_at = $request->validated('started_at') ?? now();
+                if ($next === MatchStatus::Running) {
+                    if ($match->started_at === null) {
+                        $match->started_at = $request->validated('started_at') ?? now();
+                    }
+
+                    $match->ended_at = null;
                 }
 
                 if ($next === MatchStatus::Completed && $match->ended_at === null) {
@@ -107,57 +120,27 @@ class TennisMatchController extends Controller
                 $match->status = $next;
                 $match->save();
             }
-
-            if ($request->has('state')) {
-                TennisMatchState::updateOrCreate(
-                    ['tennis_match_id' => $match->id],
-                    $request->validated('state'),
-                );
-            }
         });
 
         $match->refresh();
-        $match->load('state');
 
-        if (! $request->hasAny(['status', 'state'])) {
-            return back();
+        if ($previousStatus === MatchStatus::Completed && $match->status !== MatchStatus::Completed) {
+            $this->clearBracketWinner($match);
         }
 
-        return Inertia::render('Admin/TennisMatches/Score', [
-            'match' => $this->matchPayload($match),
-        ]);
+        return back();
     }
 
-    private function matchPayload(TennisMatch $match): array
+    private function clearBracketWinner(TennisMatch $match): void
     {
-        $state = $match->state;
+        if ($match->bracket_slot_id === null) {
+            return;
+        }
 
-        return [
-            'id' => $match->id,
-            'side_a_name' => $match->side_a_name,
-            'side_b_name' => $match->side_b_name,
-            'sets_to_win' => $match->sets_to_win,
-            'games_to_win' => $match->games_to_win,
-            'extend_at_tie' => $match->extend_at_tie,
-            'tiebreak_to' => $match->tiebreak_to,
-            'status' => $match->status,
-            'started_at' => $match->started_at?->toIso8601String(),
-            'ended_at' => $match->ended_at?->toIso8601String(),
-            'created_at' => $match->created_at?->toIso8601String(),
-            'updated_at' => $match->updated_at?->toIso8601String(),
-            'format_label' => $match->format_label,
-            'server' => $state?->server,
-            'first_server' => $state?->first_server,
-            'set_a' => $state?->set_a ?? 0,
-            'set_b' => $state?->set_b ?? 0,
-            'game_a' => $state?->game_a ?? 0,
-            'game_b' => $state?->game_b ?? 0,
-            'tiebreak' => $state?->tiebreak ?? false,
-            'tb_a' => $state?->tb_a ?? 0,
-            'tb_b' => $state?->tb_b ?? 0,
-            'tb_first' => $state?->tb_first,
-            'sets' => $state?->sets ?? [],
-            'win' => $state?->win,
-        ];
+        $slot = $match->bracketSlot()->first();
+
+        if ($slot !== null && $slot->winner_entrant_id !== null) {
+            $this->brackets->setWinner($slot, null);
+        }
     }
 }

@@ -32,7 +32,8 @@ enum MatchStatus: string
         return match ($this) {
             self::Pending => [self::Running, self::Canceled],
             self::Running => [self::Pending, self::Completed, self::Canceled],
-            self::Completed, self::Canceled => [],
+            self::Completed => [self::Running, self::Pending, self::Canceled],
+            self::Canceled => [self::Pending],
         };
     }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DivisionController;
 use App\Http\Controllers\Admin\RegistrationController;
 use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\Admin\TennisMatchController;
+use App\Http\Controllers\Admin\TennisMatchScoringController;
 use App\Http\Controllers\Admin\TournamentController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +74,15 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::resource('tennis-matches', TennisMatchController::class)
         ->only(['index', 'create', 'store', 'show', 'update'])
         ->parameters(['tennis-matches' => 'match']);
+
+    Route::post('tennis-matches/{match}/points', [TennisMatchScoringController::class, 'point'])
+        ->name('tennis-matches.points');
+
+    Route::post('tennis-matches/{match}/server', [TennisMatchScoringController::class, 'server'])
+        ->name('tennis-matches.server');
+
+    Route::post('tennis-matches/{match}/undo', [TennisMatchScoringController::class, 'undo'])
+        ->name('tennis-matches.undo');
 
     Route::resource('users', UserController::class)
         ->only(['index', 'create', 'store', 'edit', 'update', 'destroy'])

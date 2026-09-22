@@ -6,6 +6,7 @@ use App\Enums\MatchStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 // INFO: have to be named `TennisMatch` because `Match` is a reserved php keyword
@@ -60,9 +61,53 @@ class TennisMatch extends Model
         return "Best of {$bestOf} set(s), {$this->games_to_win} games, TB to {$this->tiebreak_to}";
     }
 
+    /**
+     * Payload consumed by the admin scoreboard (Inertia prop and JSON responses).
+     *
+     * @return array<string, mixed>
+     */
+    public function toScorePayload(): array
+    {
+        $state = $this->state;
+
+        return [
+            'id' => $this->id,
+            'side_a_name' => $this->side_a_name,
+            'side_b_name' => $this->side_b_name,
+            'sets_to_win' => $this->sets_to_win,
+            'games_to_win' => $this->games_to_win,
+            'extend_at_tie' => $this->extend_at_tie,
+            'tiebreak_to' => $this->tiebreak_to,
+            'status' => $this->status,
+            'started_at' => $this->started_at?->toIso8601String(),
+            'ended_at' => $this->ended_at?->toIso8601String(),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
+            'format_label' => $this->format_label,
+            'server' => $state?->server,
+            'first_server' => $state?->first_server,
+            'set_a' => $state?->set_a ?? 0,
+            'set_b' => $state?->set_b ?? 0,
+            'game_a' => $state?->game_a ?? 0,
+            'game_b' => $state?->game_b ?? 0,
+            'tiebreak' => $state?->tiebreak ?? false,
+            'tb_a' => $state?->tb_a ?? 0,
+            'tb_b' => $state?->tb_b ?? 0,
+            'tb_first' => $state?->tb_first,
+            'sets' => $state?->sets ?? [],
+            'win' => $state?->win,
+            'event_count' => $this->events()->count(),
+        ];
+    }
+
     public function state(): HasOne
     {
         return $this->hasOne(TennisMatchState::class);
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(TennisMatchEvent::class)->orderBy('seq');
     }
 
     public function division(): BelongsTo
