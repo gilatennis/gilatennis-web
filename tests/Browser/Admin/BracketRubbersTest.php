@@ -49,15 +49,19 @@ function rubberBracketSlot(Division $division): int
         ->id;
 }
 
-function startTeamRubber(Division $division, User $admin): TennisMatch
-{
+function startTeamRubber(
+    Division $division,
+    User $admin,
+    string $sideA = 'Ana / Bea',
+    string $sideB = 'Cara / Dana',
+): TennisMatch {
     test()->actingAs($admin)->post(route('admin.tournaments.divisions.bracket.slots.start', [
         'tournament' => $division->tournament_id,
         'division' => $division->id,
         'slot' => rubberBracketSlot($division),
     ]), [
-        'side_a_name' => 'Ana / Bea',
-        'side_b_name' => 'Cara / Dana',
+        'side_a_name' => $sideA,
+        'side_b_name' => $sideB,
         'sets_to_win' => 1,
         'games_to_win' => 6,
         'extend_at_tie' => true,
@@ -116,30 +120,60 @@ it('summarises an empty tie and adds the first rubber from the dialog', function
         JS);
 });
 
-it('opens an existing tie on the rubber list and edits from a row', function () {
+it('lists every rubber with edit and score buttons and edits from a row', function () {
     [$admin, $tournament, $division] = rubberBracketSetup();
 
     startTeamRubber($division, $admin);
+    startTeamRubber($division, $admin, 'Eve / Fay', 'Gia / Hana');
+
+    $matchIds = TennisMatch::orderBy('id')->pluck('id')->all();
 
     $page = openRubberBracket($admin, $tournament, $division);
 
-    $page->assertSeeIn('@rubber-summary', '1 rubber')
+    $page->assertSeeIn('@rubber-summary', '2 rubbers')
         ->click('@rubbers')
         ->wait(1)
         ->assertSeeIn('@rubber-list', 'Ana / Bea')
         ->assertSeeIn('@rubber-list', 'Cara / Dana')
-        ->assertSeeIn('@rubber-list', 'Pending');
+        ->assertSeeIn('@rubber-list', 'Eve / Fay')
+        ->assertSeeIn('@rubber-list', 'Gia / Hana');
 
-    $page->click('@rubber-row')
+    $page->assertScript(sprintf(
+        <<<'JS'
+        function() {
+            const rows = document.querySelectorAll('[data-testid="rubber-row"]');
+            const edits = document.querySelectorAll('[data-testid="rubber-edit"]');
+            const scores = [...document.querySelectorAll('[data-testid="rubber-score"]')];
+
+            if (rows.length !== 2 || edits.length !== 2 || scores.length !== 2) {
+                return false;
+            }
+
+            const expected = [%s].map((id) => `/admin/tennis-matches/${id}`).sort();
+            const actual = scores.map((link) => new URL(link.href).pathname).sort();
+
+            return JSON.stringify(actual) === JSON.stringify(expected);
+        }
+        JS,
+        implode(', ', $matchIds),
+    ));
+
+    $page->click('@rubber-edit')
         ->wait(1)
         ->assertSee('Edit Rubber')
         ->click('@rubber-type-singles')
         ->click('@rubber-submit')
         ->wait(3);
 
-    $page->assertSeeIn('@rubber-list', 'Ana');
+    $page->assertScript(<<<'JS'
+        document.querySelectorAll('[data-testid="rubber-row"]').length === 2
+        JS);
 
-    expect(TennisMatch::firstOrFail()->side_a_name)->toBe('Ana');
+    $singles = TennisMatch::orderBy('id')
+        ->pluck('side_a_name')
+        ->filter(fn (string $name) => ! str_contains($name, ' / '));
+
+    expect($singles)->toHaveCount(1);
 });
 
 it('counts completed rubbers in the card summary', function () {

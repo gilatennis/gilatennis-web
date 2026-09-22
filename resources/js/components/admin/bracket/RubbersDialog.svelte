@@ -118,14 +118,11 @@
                     data-testid="rubber-list"
                 >
                     {#each matches as match (match.id)}
-                        <div class="flex items-center gap-2 px-3 h-12">
-                            <button
-                                type="button"
-                                data-testid="rubber-row"
-                                onclick={() => startEdit(match)}
-                                title={`Edit ${match.format_label}`}
-                                class="flex-1 min-w-0 text-left"
-                            >
+                        <div
+                            class="flex items-center gap-2 px-3 h-12"
+                            data-testid="rubber-row"
+                        >
+                            <div class="flex-1 min-w-0">
                                 <div
                                     class="text-[12px] truncate {match.winner_side ===
                                     1
@@ -142,18 +139,38 @@
                                 >
                                     {match.side_b_name}
                                 </div>
-                            </button>
+                            </div>
                             <span class="shrink-0">
                                 <MatchStatusBadge
                                     status={match.status as any}
                                 />
                             </span>
-                            <Link
-                                href={showMatch({ match: match.id }).url}
-                                class="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-coral hover:opacity-80"
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                data-testid="rubber-edit"
+                                title={`Edit ${match.format_label}`}
+                                onclick={() => startEdit(match)}
                             >
-                                Score
-                            </Link>
+                                Edit
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                class="text-coral"
+                                asChild
+                            >
+                                {#snippet children(props)}
+                                    <Link
+                                        href={showMatch({ match: match.id })
+                                            .url}
+                                        class={props.class}
+                                        data-testid="rubber-score"
+                                    >
+                                        Score
+                                    </Link>
+                                {/snippet}
+                            </Button>
                         </div>
                     {/each}
                 </div>
