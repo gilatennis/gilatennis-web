@@ -105,6 +105,15 @@ it('summarises an empty tie and adds the first rubber from the dialog', function
         ->assertSeeIn('@rubber-summary', '0 completed');
 
     expect($match->bracket_slot_id)->not->toBeNull();
+
+    $page->assertScript(<<<'JS'
+        function() {
+            const list = document.querySelector('[data-testid="rubber-list"]');
+            const footer = document.querySelector('[data-testid="rubber-add"]').parentElement;
+
+            return footer.getBoundingClientRect().top - list.getBoundingClientRect().bottom >= 24;
+        }
+        JS);
 });
 
 it('opens an existing tie on the rubber list and edits from a row', function () {

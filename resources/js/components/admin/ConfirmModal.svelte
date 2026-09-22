@@ -67,7 +67,7 @@
             {/if}
 
             {#if reasonOptions}
-                <label class="mt-4 mb-4 block">
+                <label class="mt-4 block">
                     <span
                         class="text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400"
                         >Reason</span
@@ -85,9 +85,7 @@
             {/if}
 
             <DialogFooter>
-                <Button variant="outline" onclick={requestClose}
-                    >Cancel</Button
-                >
+                <Button variant="outline" onclick={requestClose}>Cancel</Button>
                 <Button
                     variant={destructive ? 'destructive' : 'coral'}
                     onclick={() => {
