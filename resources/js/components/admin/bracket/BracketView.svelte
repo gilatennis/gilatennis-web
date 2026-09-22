@@ -7,8 +7,8 @@
     import Trophy from 'lucide-svelte/icons/trophy';
     import BracketSlotCard from '@/components/admin/bracket/BracketSlotCard.svelte';
     import GenerateBracketDialog from '@/components/admin/bracket/GenerateBracketDialog.svelte';
+    import RubbersDialog from '@/components/admin/bracket/RubbersDialog.svelte';
     import SeedEditor from '@/components/admin/bracket/SeedEditor.svelte';
-    import TeamRubberDialog from '@/components/admin/bracket/TeamRubberDialog.svelte';
     import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
     import { Button } from '@/components/ui/button';
     import { update as updateMatch } from '@/routes/admin/tennis-matches';
@@ -53,9 +53,8 @@
     let showGenerate = $state(false);
     let showSeed = $state(false);
     let showDelete = $state(false);
-    let showRubber = $state(false);
-    let rubberSlot = $state<BracketSlot | null>(null);
-    let editingRubber = $state<BracketMatchSummary | null>(null);
+    let showRubbers = $state(false);
+    let rubbersSlotId = $state<number | null>(null);
 
     type PendingAction =
         | {
@@ -87,6 +86,22 @@
         return map;
     });
 
+    const rubbersSlot = $derived.by(() => {
+        if (rubbersSlotId === null) {
+            return null;
+        }
+
+        for (const round of bracket?.rounds ?? []) {
+            for (const slot of round.slots) {
+                if (slot.id === rubbersSlotId) {
+                    return slot;
+                }
+            }
+        }
+
+        return null;
+    });
+
     const undoableSlots = $derived.by(() => {
         const ids: Record<number, boolean> = {};
 
@@ -107,7 +122,10 @@
                         break;
                     }
 
-                    if (ancestor.winner_entrant || ancestor.matches.length > 0) {
+                    if (
+                        ancestor.winner_entrant ||
+                        ancestor.matches.length > 0
+                    ) {
                         blocked = true;
                         break;
                     }
@@ -172,11 +190,14 @@
         );
     }
 
+    function openRubbers(slot: BracketSlot) {
+        rubbersSlotId = slot.id;
+        showRubbers = true;
+    }
+
     function startSlot(slot: BracketSlot) {
         if (isTeam) {
-            rubberSlot = slot;
-            editingRubber = null;
-            showRubber = true;
+            openRubbers(slot);
 
             return;
         }
@@ -184,30 +205,20 @@
         router.post(slotsRoute.start.url({ ...args, slot: slot.id }), {});
     }
 
-    function editRubber(slot: BracketSlot, match: BracketMatchSummary) {
-        rubberSlot = slot;
-        editingRubber = match;
-        showRubber = true;
-    }
-
     function addRubber(payload: RubberPayload) {
-        if (!rubberSlot) {
+        if (!rubbersSlot) {
             return;
         }
 
         router.post(
-            slotsRoute.start.url({ ...args, slot: rubberSlot.id }),
+            slotsRoute.start.url({ ...args, slot: rubbersSlot.id }),
             payload,
             { preserveScroll: true },
         );
     }
 
-    function saveRubber(payload: RubberPayload) {
-        if (!editingRubber) {
-            return;
-        }
-
-        router.patch(updateMatch.url({ match: editingRubber.id }), payload, {
+    function saveRubber(rubber: BracketMatchSummary, payload: RubberPayload) {
+        router.patch(updateMatch.url({ match: rubber.id }), payload, {
             preserveScroll: true,
         });
     }
@@ -357,7 +368,7 @@
                                     onAdvance={openAdvanceConfirm}
                                     onUndo={openUndoConfirm}
                                     canUndo={undoableSlots[slot.id] === true}
-                                    onEditRubber={editRubber}
+                                    onRubbers={openRubbers}
                                 />
                                 {#if roundIndex > 0}
                                     <span
@@ -387,10 +398,9 @@
 
 <SeedEditor bind:open={showSeed} {entrants} {initialOrder} onSave={saveSeeds} />
 
-<TeamRubberDialog
-    bind:open={showRubber}
-    slot={rubberSlot}
-    rubber={editingRubber}
+<RubbersDialog
+    bind:open={showRubbers}
+    slot={rubbersSlot}
     onAdd={addRubber}
     onSave={saveRubber}
 />
@@ -413,7 +423,7 @@
     }}
     title={confirmTitle}
     message={confirmMessage}
-    confirmLabel={confirmLabel}
+    {confirmLabel}
     destructive={isUndo}
     bind:reason={advanceReason}
     reasonOptions={isUndo ? undefined : reasonOptions}

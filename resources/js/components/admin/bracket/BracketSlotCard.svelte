@@ -1,22 +1,17 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
     import Check from 'lucide-svelte/icons/check';
-    import Plus from 'lucide-svelte/icons/plus';
     import Undo2 from 'lucide-svelte/icons/undo-2';
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
     import { show as showMatch } from '@/routes/admin/tennis-matches';
-    import type {
-        BracketEntrant,
-        BracketMatchSummary,
-        BracketSlot,
-    } from '@/types';
+    import type { BracketEntrant, BracketSlot } from '@/types';
 
     let {
         slot,
         isTeam,
         canUndo = false,
         onStart,
-        onEditRubber,
+        onRubbers,
         onAdvance,
         onUndo,
     }: {
@@ -24,7 +19,7 @@
         isTeam: boolean;
         canUndo?: boolean;
         onStart: (slot: BracketSlot) => void;
-        onEditRubber: (slot: BracketSlot, match: BracketMatchSummary) => void;
+        onRubbers: (slot: BracketSlot) => void;
         onAdvance: (slot: BracketSlot, entrant: BracketEntrant) => void;
         onUndo: (slot: BracketSlot) => void;
     } = $props();
@@ -33,6 +28,10 @@
         entrant !== null && slot.winner_entrant?.id === entrant.id;
 
     const hasMatches = $derived(slot.matches.length > 0);
+
+    const completedCount = $derived(
+        slot.matches.filter((match) => match.status === 'completed').length,
+    );
 
     const leadingSide = $derived.by(() => {
         let a = 0;
@@ -130,69 +129,69 @@
         {/each}
     </div>
 
-    {#if hasMatches}
+    {#if isTeam && (slot.is_ready || hasMatches)}
+        <div class="border-t border-black/6 px-2.5 h-8 flex items-center gap-2">
+            <span
+                class="text-[10px] text-neutral-500 truncate"
+                data-testid="rubber-summary"
+            >
+                {#if !hasMatches}
+                    No rubbers set up
+                {:else}
+                    {slot.matches.length}
+                    {slot.matches.length === 1 ? 'rubber' : 'rubbers'}
+                    <span class="text-neutral-300 mx-0.5">&middot;</span>
+                    {completedCount} completed
+                {/if}
+            </span>
+            <button
+                type="button"
+                data-testid="rubbers"
+                onclick={() => onRubbers(slot)}
+                class="ml-auto shrink-0 text-[9px] font-bold uppercase tracking-[0.1em] text-coral hover:opacity-80"
+            >
+                {hasMatches ? 'Rubbers' : 'Add rubber'}
+            </button>
+        </div>
+    {/if}
+
+    {#if !isTeam && hasMatches}
         <div class="border-t border-black/6 divide-y divide-black/5">
             {#each slot.matches as match (match.id)}
-                {#if isTeam}
-                    <button
-                        type="button"
-                        onclick={() => onEditRubber(slot, match)}
-                        class="w-full flex items-center gap-2 px-2.5 h-8 text-left hover:bg-neutral-50 transition-colors"
-                        title="Edit rubber"
+                <div class="flex items-center gap-2 px-2.5 h-8">
+                    <span class="text-[10px] text-neutral-400 truncate"
+                        >Match #{match.id}</span
                     >
-                        <span class="text-[11px] truncate text-neutral-600">
-                            {match.side_a_name} v {match.side_b_name}
-                        </span>
-                        <span class="ml-auto shrink-0"
-                            ><MatchStatusBadge
-                                status={match.status as any}
-                            /></span
-                        >
-                    </button>
-                {:else}
-                    <div class="flex items-center gap-2 px-2.5 h-8">
-                        <span class="text-[10px] text-neutral-400 truncate"
-                            >Match #{match.id}</span
-                        >
-                        <span class="ml-auto shrink-0"
-                            ><MatchStatusBadge
-                                status={match.status as any}
-                            /></span
-                        >
-                        <Link
-                            href={showMatch({ match: match.id }).url}
-                            class="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-coral hover:opacity-80"
-                        >
-                            Score
-                        </Link>
-                    </div>
-                {/if}
+                    <span class="ml-auto shrink-0"
+                        ><MatchStatusBadge status={match.status as any} /></span
+                    >
+                    <Link
+                        href={showMatch({ match: match.id }).url}
+                        class="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-coral hover:opacity-80"
+                    >
+                        Score
+                    </Link>
+                </div>
             {/each}
         </div>
     {/if}
 
     {#if slot.is_ready && !slot.is_complete}
         <div class="border-t border-black/6 p-2 flex flex-col gap-1.5">
-            {#if isTeam}
-                <button
-                    type="button"
-                    onclick={() => onStart(slot)}
-                    class="h-7 inline-flex items-center justify-center gap-1.5 bg-coral text-white text-[10px] font-bold uppercase tracking-[0.12em] hover:opacity-90"
-                >
-                    <Plus class="size-3" /> Add Rubber
-                </button>
-            {:else if !hasMatches}
-                <button
-                    type="button"
-                    onclick={() => onStart(slot)}
-                    class="h-7 inline-flex items-center justify-center gap-1.5 bg-neutral-900 text-white text-[10px] font-bold uppercase tracking-[0.12em] hover:opacity-90"
-                >
-                    Start Match
-                </button>
-            {:else}
-                <span class="text-[10px] text-neutral-400 px-0.5">
-                    Awaiting result
-                </span>
+            {#if !isTeam}
+                {#if hasMatches}
+                    <span class="text-[10px] text-neutral-400 px-0.5">
+                        Awaiting result
+                    </span>
+                {:else}
+                    <button
+                        type="button"
+                        onclick={() => onStart(slot)}
+                        class="h-7 inline-flex items-center justify-center gap-1.5 bg-neutral-900 text-white text-[10px] font-bold uppercase tracking-[0.12em] hover:opacity-90"
+                    >
+                        Start Match
+                    </button>
+                {/if}
             {/if}
 
             <span
