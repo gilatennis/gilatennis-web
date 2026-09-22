@@ -176,6 +176,36 @@ it('lists every rubber with edit and score buttons and edits from a row', functi
     expect($singles)->toHaveCount(1);
 });
 
+it('stacks the status above the row actions on mobile only', function () {
+    [$admin, $tournament, $division] = rubberBracketSetup();
+
+    startTeamRubber($division, $admin);
+
+    $page = openRubberBracket($admin, $tournament, $division);
+
+    $page->click('@rubbers')->wait(1);
+
+    $page->resize(390, 844)->assertScript(<<<'JS'
+        function() {
+            const row = document.querySelector('[data-testid="rubber-row"]');
+            const status = row.querySelector('[data-testid="rubber-status"]').getBoundingClientRect();
+            const edit = row.querySelector('[data-testid="rubber-edit"]').getBoundingClientRect();
+
+            return status.bottom <= edit.top;
+        }
+        JS);
+
+    $page->resize(1280, 900)->assertScript(<<<'JS'
+        function() {
+            const row = document.querySelector('[data-testid="rubber-row"]');
+            const status = row.querySelector('[data-testid="rubber-status"]').getBoundingClientRect();
+            const edit = row.querySelector('[data-testid="rubber-edit"]').getBoundingClientRect();
+
+            return status.top < edit.bottom && status.bottom > edit.top;
+        }
+        JS);
+});
+
 it('counts completed rubbers in the card summary', function () {
     [$admin, $tournament, $division] = rubberBracketSetup();
 
