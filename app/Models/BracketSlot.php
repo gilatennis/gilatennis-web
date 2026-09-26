@@ -13,8 +13,10 @@ class BracketSlot extends Model
 
     protected $fillable = [
         'bracket_id',
+        'bracket_group_id',
         'round',
         'position',
+        'leg',
         'entrant_a_id',
         'entrant_b_id',
         'winner_entrant_id',
@@ -29,6 +31,7 @@ class BracketSlot extends Model
     protected $casts = [
         'round' => 'integer',
         'position' => 'integer',
+        'leg' => 'integer',
         'seed' => 'integer',
         'bye' => 'boolean',
     ];
@@ -36,6 +39,11 @@ class BracketSlot extends Model
     public function bracket(): BelongsTo
     {
         return $this->belongsTo(Bracket::class);
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(BracketGroup::class, 'bracket_group_id');
     }
 
     public function entrantA(): BelongsTo

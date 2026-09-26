@@ -13,6 +13,8 @@ class Bracket extends Model
 
     public const TYPE_SINGLE_ELIMINATION = 'single_elimination';
 
+    public const TYPE_GROUP_STAGE = 'group_stage';
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_ACTIVE = 'active';
@@ -40,6 +42,17 @@ class Bracket extends Model
         return $this->hasMany(BracketSlot::class)
             ->orderBy('round')
             ->orderBy('position');
+    }
+
+    public function groups(): HasMany
+    {
+        return $this->hasMany(BracketGroup::class)
+            ->orderBy('position');
+    }
+
+    public function isGroupStage(): bool
+    {
+        return $this->type === self::TYPE_GROUP_STAGE;
     }
 
     public function finalSlot(): ?BracketSlot
