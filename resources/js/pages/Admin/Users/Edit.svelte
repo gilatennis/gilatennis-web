@@ -46,6 +46,9 @@
     const currentUserId = $derived(page.props.auth.user?.id);
     const isSelf = $derived(currentUserId === user.id);
 
+    // Draft is two-way bound by <Select bind:value>, so it must be $state. The
+    // effect re-seeds it when Inertia swaps `user` for another record.
+    // eslint-disable-next-line svelte/prefer-writable-derived
     let role = $state<string>(user.role?.slug ?? '');
     const roleLocked = $derived(isSelf);
 
