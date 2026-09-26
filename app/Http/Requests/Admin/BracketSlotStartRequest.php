@@ -4,6 +4,10 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates the optional format overrides when starting a tie in a singles or
+ * doubles division. Exactly one rubber is created per slot.
+ */
 class BracketSlotStartRequest extends FormRequest
 {
     public function authorize(): bool

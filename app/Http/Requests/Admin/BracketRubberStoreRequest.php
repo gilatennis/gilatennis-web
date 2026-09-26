@@ -4,6 +4,10 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates the optional format overrides when appending a rubber to a team
+ * tie. A team slot may carry several rubbers, added one at a time.
+ */
 class BracketRubberStoreRequest extends FormRequest
 {
     public function authorize(): bool
