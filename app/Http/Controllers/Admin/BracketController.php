@@ -31,7 +31,7 @@ class BracketController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Bracket generated.']);
 
-        return $this->backToMatches($tournament, $division);
+        return $this->redirectToDivisionBracket($tournament, $division);
     }
 
     public function destroy(Tournament $tournament, Division $division): RedirectResponse
@@ -42,7 +42,7 @@ class BracketController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Bracket removed.']);
 
-        return $this->backToMatches($tournament, $division);
+        return $this->redirectToDivisionBracket($tournament, $division);
     }
 
     public function seed(BracketSeedRequest $request, Tournament $tournament, Division $division): RedirectResponse
@@ -57,7 +57,7 @@ class BracketController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Seeding saved.']);
 
-        return $this->backToMatches($tournament, $division);
+        return $this->redirectToDivisionBracket($tournament, $division);
     }
 
     public function startSlot(
@@ -85,7 +85,7 @@ class BracketController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Team rubber added.']);
 
-        return $this->backToMatches($tournament, $division);
+        return $this->redirectToDivisionBracket($tournament, $division);
     }
 
     public function updateSlot(
@@ -105,7 +105,7 @@ class BracketController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Slot updated.']);
 
-        return $this->backToMatches($tournament, $division);
+        return $this->redirectToDivisionBracket($tournament, $division);
     }
 
     public function undoSlot(
@@ -131,7 +131,7 @@ class BracketController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Advance undone.']);
 
-        return $this->backToMatches($tournament, $division);
+        return $this->redirectToDivisionBracket($tournament, $division);
     }
 
     private function bracketOrFail(Division $division): Bracket
@@ -144,7 +144,7 @@ class BracketController extends Controller
         return $this->bracketOrFail($division)->slots()->findOrFail($slot);
     }
 
-    private function backToMatches(Tournament $tournament, Division $division): RedirectResponse
+    private function redirectToDivisionBracket(Tournament $tournament, Division $division): RedirectResponse
     {
         return redirect()->route('admin.tournaments.divisions.show', [
             'tournament' => $tournament,
