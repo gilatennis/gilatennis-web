@@ -9,26 +9,22 @@
     } = $props();
 
     // Auto-poll registration status every 3 seconds
-    let status = $state(registration?.payment_status ?? 'processing');
-
     $effect(() => {
-        if (status === 'processing') {
+        if (registration?.payment_status === 'processing') {
             const interval = setInterval(() => {
                 router.reload({
                     only: ['registration'],
                     onSuccess: ({ props }: any) => {
-                        if (props.registration) {
-                            status = props.registration.payment_status;
+                        const next = props.registration?.payment_status;
 
-                            if (status === 'paid') {
-                                router.visit(
-                                    `/tournaments/registration/${props.registration.confirmation_code}/success`,
-                                );
-                            } else if (status === 'failed') {
-                                router.visit(
-                                    `/tournaments/registration/${props.registration.confirmation_code}/failed`,
-                                );
-                            }
+                        if (next === 'paid') {
+                            router.visit(
+                                `/tournaments/registration/${props.registration.confirmation_code}/success`,
+                            );
+                        } else if (next === 'failed') {
+                            router.visit(
+                                `/tournaments/registration/${props.registration.confirmation_code}/failed`,
+                            );
                         }
                     },
                 });

@@ -29,6 +29,7 @@
     let isLoading = $state(false);
     let selectedIndex = $state(-1);
     let allResults = $state<SearchResult[]>([]);
+    let searchInput = $state<HTMLInputElement | null>(null);
 
     const TRENDING_TERMS = [
         'Jakarta Open',
@@ -121,13 +122,20 @@
         if (open) {
             document.addEventListener('keydown', handleKeydown);
 
+            searchInput?.focus();
+
             return () => document.removeEventListener('keydown', handleKeydown);
         }
     });
 </script>
 
 {#if open}
-    <div class="fixed inset-0 z-50 bg-black/50" onclick={closeDrawer}></div>
+    <button
+        type="button"
+        aria-label="Close search"
+        class="fixed inset-0 z-50 bg-black/50"
+        onclick={closeDrawer}
+    ></button>
     <div
         class="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-background shadow-lg border-l border-border"
         role="dialog"
@@ -154,12 +162,12 @@
                     class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
                 />
                 <input
+                    bind:this={searchInput}
                     type="text"
                     value={searchQuery}
                     oninput={handleInput}
                     placeholder="Search tournaments, articles, courts..."
                     class="w-full h-11 pl-10 pr-4 border border-input bg-background text-sm outline-none focus:border-foreground transition-colors rounded-md"
-                    autofocus
                 />
             </div>
         </div>

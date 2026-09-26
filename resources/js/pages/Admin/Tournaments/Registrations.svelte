@@ -51,8 +51,12 @@
         };
     } = $props();
 
+    // Drafts seeded from filters and re-synced below; the initial capture is intended.
+    // svelte-ignore state_referenced_locally
     let statusFilter = $state(filters.status ?? '');
+    // svelte-ignore state_referenced_locally
     let stuckFilter = $state(filters.stuck ?? false);
+    // svelte-ignore state_referenced_locally
     let divisionFilter = $state(filters.division_id ?? '');
     let selectedReg = $state<Registration | null>(null);
 

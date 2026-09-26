@@ -45,7 +45,10 @@
         },
     ];
 
-    const social = ['IG', 'TT'];
+    const social = [
+        { label: 'IG', href: 'https://instagram.com' },
+        { label: 'TT', href: 'https://tiktok.com' },
+    ];
 </script>
 
 <footer class="bg-black text-white">
@@ -64,12 +67,14 @@
                 </p>
                 -->
                 <div class="mt-6 flex gap-2">
-                    {#each social as s (s)}
+                    {#each social as s (s.label)}
                         <a
-                            href="#"
+                            href={s.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             class="h-10 w-10 grid place-items-center border border-white/20 text-xs font-bold hover:bg-coral hover:border-coral transition-colors"
                         >
-                            {s}
+                            {s.label}
                         </a>
                     {/each}
                 </div>
@@ -84,10 +89,7 @@
                     <ul class="space-y-2.5">
                         {#each col.links as link (link)}
                             <li>
-                                <a
-                                    href="#"
-                                    class="text-sm text-white/80 hover:text-white transition-colors"
-                                    >{link}</a
+                                <span class="text-sm text-white/80">{link}</span
                                 >
                             </li>
                         {/each}

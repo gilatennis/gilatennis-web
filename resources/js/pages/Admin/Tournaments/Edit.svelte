@@ -93,6 +93,7 @@
     });
 
     // useForm captures initial values — state_referenced_locally is expected here.
+    // svelte-ignore state_referenced_locally
     const form = useForm(init);
 
     const existingCoverUrl = $derived(tournament?.cover_image_url ?? null);
@@ -755,6 +756,7 @@
                                 <div class="h-9 flex items-center gap-3">
                                     <button
                                         type="button"
+                                        aria-label="Toggle featured"
                                         onclick={() =>
                                             (form.is_featured =
                                                 !form.is_featured)}
@@ -1625,10 +1627,12 @@
 <!-- Division slide-over -->
 {#if editingDivision}
     <div class="fixed inset-0 z-40 flex">
-        <div
+        <button
+            type="button"
+            aria-label="Close division panel"
             class="flex-1 bg-black/40"
             onclick={() => (editingDivision = null)}
-        ></div>
+        ></button>
         <div
             class="w-[420px] bg-white flex flex-col shadow-2xl"
             style="height: 100vh"

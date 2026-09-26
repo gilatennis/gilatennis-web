@@ -26,7 +26,14 @@
         availableRoles: RoleOption[];
     } = $props();
 
-    let role = $state<string>(availableRoles[0]?.slug ?? '');
+    // Draft is two-way bound by <Select bind:value>, so it must be $state; seeded
+    // from the (static) availableRoles prop via an effect.
+    // eslint-disable-next-line svelte/prefer-writable-derived
+    let role = $state<string>('');
+
+    $effect.pre(() => {
+        role = availableRoles[0]?.slug ?? '';
+    });
 </script>
 
 <AppHead title="New user" />

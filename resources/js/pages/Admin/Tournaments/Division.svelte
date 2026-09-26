@@ -71,15 +71,15 @@
         filters: { status?: string; search?: string; tab?: string };
     } = $props();
 
-    let tab = $state(filters.tab ?? 'registrants');
-    let statusFilter = $state(filters.status ?? '');
+    let tab = $state<string>();
+    let statusFilter = $state<string>();
 
     const searchHandler = useSearch(
         () => filters.search ?? '',
         () => applyFilters(),
     );
 
-    $effect(() => {
+    $effect.pre(() => {
         statusFilter = filters.status ?? '';
         tab = filters.tab ?? 'registrants';
     });

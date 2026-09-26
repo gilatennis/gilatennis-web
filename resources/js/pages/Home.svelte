@@ -128,7 +128,7 @@
         <!-- Decorative coral half-disc -->
         <div
             class="absolute -right-32 -top-32 h-[420px] w-[420px] rounded-full bg-coral/10 dark:bg-coral/15 pointer-events-none"
-        />
+        ></div>
         <div class="max-w-[1400px] mx-auto px-6 py-16 lg:py-24 relative">
             <div
                 class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10"

@@ -62,7 +62,7 @@
             <Menu size={22} />
         </button>
 
-        <a href="#" class="flex items-center gap-2.5 shrink-0">
+        <a href="/" class="flex items-center gap-2.5 shrink-0">
             <span
                 class="font-display font-black text-[22px] tracking-[-0.02em] text-black dark:text-white"
                 style="font-family: 'Inter Tight'">Gilatennis</span
@@ -74,7 +74,7 @@
         >
             {#each categories as cat (cat)}
                 <a
-                    href="#"
+                    href="/tournaments"
                     class="relative py-2 hover:text-coral transition-colors"
                 >
                     {cat}
@@ -172,14 +172,15 @@
 
     <!-- Mobile drawer -->
     {#if mobileOpen}
-        <div
-            class="fixed inset-0 h-screen z-[100] lg:hidden"
-            onclick={() => (mobileOpen = false)}
-        >
-            <div class="absolute inset-0 bg-black/60"></div>
+        <div class="fixed inset-0 h-screen z-[100] lg:hidden">
+            <button
+                type="button"
+                aria-label="Close menu"
+                class="absolute inset-0 bg-black/60"
+                onclick={() => (mobileOpen = false)}
+            ></button>
             <div
                 class="absolute left-0 top-0 bottom-0 w-[280px] bg-white dark:bg-neutral-950 shadow-2xl p-6 overflow-y-auto"
-                onclick={(e) => e.stopPropagation()}
             >
                 <div class="flex items-center justify-between mb-6">
                     <span
@@ -197,7 +198,8 @@
                     class="flex flex-col gap-4 text-lg font-display font-semibold text-black dark:text-white"
                 >
                     {#each categories as cat (cat)}
-                        <a href="#" class="hover:text-coral">{cat}</a>
+                        <a href="/tournaments" class="hover:text-coral">{cat}</a
+                        >
                     {/each}
                     <hr class="border-black/10 dark:border-white/10" />
                     {#each navLinks as link (link.href ?? link.label)}

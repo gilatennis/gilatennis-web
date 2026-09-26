@@ -31,17 +31,23 @@
 
     const { match }: { match: MatchState } = $props();
 
-    let score: MatchState = $state({
-        ...match,
+    let score = $state<MatchState>({
         pending_shot: null,
         fault: false,
-    });
-    let selectedSide: Side | null = $state(
-        score.first_server !== null ? score.server : null,
-    );
+    } as MatchState);
+    let selectedSide: Side | null = $state(null);
     let lastSavedAt: Date | null = $state(null);
     let saving = $state(false);
     let saveError = $state<string | null>(null);
+
+    $effect.pre(() => {
+        score = {
+            ...match,
+            pending_shot: null,
+            fault: false,
+        };
+        selectedSide = score.first_server !== null ? score.server : null;
+    });
 
     const http = useHttp<
         { side: number | null; shot: string | null },

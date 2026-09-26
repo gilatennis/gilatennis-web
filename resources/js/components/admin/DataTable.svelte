@@ -27,9 +27,11 @@
         pagination,
     }: Props = $props();
 
-    const keyFn: (item: T) => string | number =
+    const keyFn = $derived(
         getKey ??
-        ((item: T) => (item as unknown as { id?: string | number }).id ?? '');
+            ((item: T) =>
+                (item as unknown as { id?: string | number }).id ?? ''),
+    );
 </script>
 
 {#if items.length === 0}

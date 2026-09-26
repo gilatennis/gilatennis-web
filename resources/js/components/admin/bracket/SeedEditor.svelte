@@ -87,6 +87,7 @@
         <div class="mt-4 max-h-[420px] overflow-y-auto border border-black/10">
             {#each order as entrant, index (entrant.id)}
                 <div
+                    role="listitem"
                     draggable="true"
                     ondragstart={() => onDragStart(index)}
                     ondragover={(e) => onDragOver(e, index)}

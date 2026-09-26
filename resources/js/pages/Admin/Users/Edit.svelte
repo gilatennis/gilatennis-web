@@ -49,10 +49,10 @@
     // Draft is two-way bound by <Select bind:value>, so it must be $state. The
     // effect re-seeds it when Inertia swaps `user` for another record.
     // eslint-disable-next-line svelte/prefer-writable-derived
-    let role = $state<string>(user.role?.slug ?? '');
+    let role = $state<string>('');
     const roleLocked = $derived(isSelf);
 
-    $effect(() => {
+    $effect.pre(() => {
         role = user.role?.slug ?? '';
     });
 
