@@ -46,7 +46,7 @@
             pending_shot: null,
             fault: false,
         };
-        selectedSide = score.first_server !== null ? score.server : null;
+        selectedSide = match.first_server !== null ? match.server : null;
     });
 
     const http = useHttp<
