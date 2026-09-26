@@ -100,7 +100,8 @@
         existingCoverUrl && !form.cover_image && !form.cover_image_remove,
     );
 
-    const statusLabels: Record<TournamentStatus, string> = TOURNAMENT_STATUS_LABELS;
+    const statusLabels: Record<TournamentStatus, string> =
+        TOURNAMENT_STATUS_LABELS;
 
     const surfaceLabels: Record<string, string> = {
         hard: 'Hard',

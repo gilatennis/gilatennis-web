@@ -237,13 +237,20 @@
         </div>
         <div class="space-y-2 mb-4">
             <div class="flex justify-between text-sm">
-                <span class="opacity-70 uppercase tracking-[0.15em] text-[10px]">Registration</span>
+                <span class="opacity-70 uppercase tracking-[0.15em] text-[10px]"
+                    >Registration</span
+                >
                 <span class="font-mono">{formatIDR(division.fee)}</span>
             </div>
             {#if division.transactionFee > 0}
                 <div class="flex justify-between text-sm">
-                    <span class="opacity-70 uppercase tracking-[0.15em] text-[10px]">Transaction fee</span>
-                    <span class="font-mono">{formatIDR(division.transactionFee)}</span>
+                    <span
+                        class="opacity-70 uppercase tracking-[0.15em] text-[10px]"
+                        >Transaction fee</span
+                    >
+                    <span class="font-mono"
+                        >{formatIDR(division.transactionFee)}</span
+                    >
                 </div>
             {/if}
         </div>

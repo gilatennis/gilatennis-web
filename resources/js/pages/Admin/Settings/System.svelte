@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Form } from '@inertiajs/svelte';
-    import AppHead from '@/components/AppHead.svelte';
     import AdminPage from '@/components/admin/AdminPage.svelte';
+    import AppHead from '@/components/AppHead.svelte';
     import InputError from '@/components/InputError.svelte';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
@@ -63,7 +63,9 @@
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="transaction_fee">Transaction Fee (IDR)</Label>
+                        <Label for="transaction_fee"
+                            >Transaction Fee (IDR)</Label
+                        >
                         <Input
                             id="transaction_fee"
                             name="transaction_fee"
@@ -75,7 +77,8 @@
                             placeholder="0"
                         />
                         <p class="text-xs text-neutral-500">
-                            Flat amount added to every tournament registration, in whole IDR (e.g. 5000 for Rp 5,000).
+                            Flat amount added to every tournament registration,
+                            in whole IDR (e.g. 5000 for Rp 5,000).
                         </p>
                         <InputError
                             class="mt-2"

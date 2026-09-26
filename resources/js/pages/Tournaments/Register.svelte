@@ -8,12 +8,11 @@
     import { show as tournamentShow } from '@/routes/tournaments';
     import { store as tournamentStore } from '@/routes/tournaments/register';
     import type { FieldErrors, FormErrors } from '@/types/errors';
-    import {
-        PLAYER_FIELDS,
-        PLAYER_FIELD_KEYS,
-        type ComputedPlayer,
-        type DivisionContext,
-        type PlayerFieldRequirementMap,
+    import { PLAYER_FIELDS, PLAYER_FIELD_KEYS } from '@/types/registration';
+    import type {
+        ComputedPlayer,
+        DivisionContext,
+        PlayerFieldRequirementMap,
     } from '@/types/registration';
     import Step1DivisionSelection from './registration/Step1DivisionSelection.svelte';
     import Step2PlayerInfo from './registration/Step2PlayerInfo.svelte';

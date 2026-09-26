@@ -54,20 +54,23 @@
     } = $props();
 
     // svelte-ignore state_referenced_locally
-    const statusMap: Record<PlayerAssessmentStatusValue, AssessmentStatusOption> =
-        Object.fromEntries(assessment_statuses.map((s) => [s.value, s])) as Record<
-            PlayerAssessmentStatusValue,
-            AssessmentStatusOption
-        >;
+    const statusMap: Record<
+        PlayerAssessmentStatusValue,
+        AssessmentStatusOption
+    > = Object.fromEntries(
+        assessment_statuses.map((s) => [s.value, s]),
+    ) as Record<PlayerAssessmentStatusValue, AssessmentStatusOption>;
 
     // svelte-ignore state_referenced_locally
-    const initialAssessments: AssessmentRow[] = registration.players.map((p) => ({
-        player_id: p.id,
-        status: p.assessment.status,
-        reason: p.assessment.reason ?? '',
-        video_url: p.assessment.video_url ?? '',
-        notes: p.assessment.notes ?? '',
-    }));
+    const initialAssessments: AssessmentRow[] = registration.players.map(
+        (p) => ({
+            player_id: p.id,
+            status: p.assessment.status,
+            reason: p.assessment.reason ?? '',
+            video_url: p.assessment.video_url ?? '',
+            notes: p.assessment.notes ?? '',
+        }),
+    );
 
     const form = useForm<{ assessments: AssessmentRow[] }>({
         assessments: initialAssessments.map((a) => ({ ...a })),
@@ -218,9 +221,11 @@
     }
 
     function errorFor(playerIndex: number, field: string): string | null {
-        return (form.errors as Record<string, string> | null)?.[
-            `assessments.${playerIndex}.${field}`
-        ] ?? null;
+        return (
+            (form.errors as Record<string, string> | null)?.[
+                `assessments.${playerIndex}.${field}`
+            ] ?? null
+        );
     }
 
     function playerErrors(playerIndex: number): string[] {
@@ -341,14 +346,12 @@
             </h1>
             <div class="flex items-center gap-3 flex-wrap">
                 <div class="flex items-center gap-1.5">
-                    <span
-                        class="font-mono text-[12px] text-neutral-600"
+                    <span class="font-mono text-[12px] text-neutral-600"
                         >{registration.confirmation_code}</span
                     >
                     <button
                         type="button"
-                        onclick={() =>
-                            copyText(registration.confirmation_code)}
+                        onclick={() => copyText(registration.confirmation_code)}
                         class="size-5 flex items-center justify-center text-neutral-400 hover:text-neutral-700 transition-colors"
                         title="Copy"
                         aria-label="Copy confirmation code"
@@ -376,9 +379,7 @@
                 Registrant
             </h2>
             <div class="bg-white border border-black/10 p-5">
-                <div
-                    class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4"
-                >
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                     <div>
                         <div
                             class="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400 mb-0.5"
@@ -415,7 +416,9 @@
                         >
                             Division
                         </div>
-                        <div class="text-[13px] text-neutral-800 flex items-center gap-2">
+                        <div
+                            class="text-[13px] text-neutral-800 flex items-center gap-2"
+                        >
                             <span
                                 class={`px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase tracking-[0.2em] ${catCls[division.participation_category] ?? catCls.singles}`}
                             >
@@ -441,7 +444,9 @@
         </section>
 
         <section class="mb-10">
-            <div class="flex items-baseline justify-between mb-3 gap-4 flex-wrap">
+            <div
+                class="flex items-baseline justify-between mb-3 gap-4 flex-wrap"
+            >
                 <h2
                     class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400"
                 >
@@ -459,7 +464,9 @@
                 <div
                     class="bg-white border border-black/10 flex items-center justify-center py-10 px-6"
                 >
-                    <p class="text-[13px] text-neutral-400">No players on this registration.</p>
+                    <p class="text-[13px] text-neutral-400">
+                        No players on this registration.
+                    </p>
                 </div>
             {:else}
                 <div class="space-y-4">
@@ -467,7 +474,10 @@
                         {@const row = form.assessments[i]}
                         {@const status = statusMap[row.status]}
                         {@const color = status.color}
-                        {@const playerHasGender = !!(player.gender && genderLabel[player.gender.toLowerCase()])}
+                        {@const playerHasGender = !!(
+                            player.gender &&
+                            genderLabel[player.gender.toLowerCase()]
+                        )}
                         <article
                             class={`bg-white border ${color.border} transition-colors`}
                         >
@@ -476,8 +486,14 @@
                                     class="px-5 py-2 bg-red-50 border-b border-red-200 flex items-center gap-2 text-[10.5px] text-red-700"
                                 >
                                     <AlertTriangle class="size-3" />
-                                    <span class="font-bold uppercase tracking-[0.15em]">
-                                        {playerErrors(i).length} error{playerErrors(i).length === 1 ? '' : 's'} on this player
+                                    <span
+                                        class="font-bold uppercase tracking-[0.15em]"
+                                    >
+                                        {playerErrors(i).length} error{playerErrors(
+                                            i,
+                                        ).length === 1
+                                            ? ''
+                                            : 's'} on this player
                                     </span>
                                 </div>
                             {/if}
@@ -573,7 +589,8 @@
                                             {@const isLast =
                                                 opt ===
                                                 assessment_statuses[
-                                                    assessment_statuses.length - 1
+                                                    assessment_statuses.length -
+                                                        1
                                                 ]}
                                             <button
                                                 type="button"
@@ -604,7 +621,8 @@
                                         <span
                                             class="text-[9px] font-normal text-neutral-400"
                                         >
-                                            — optional, paste from YouTube, Vimeo, or other
+                                            — optional, paste from YouTube,
+                                            Vimeo, or other
                                         </span>
                                     </div>
                                     <div class="flex gap-2">
@@ -635,7 +653,9 @@
                                                 {#if provider}
                                                     <Play class="size-3" />
                                                 {:else}
-                                                    <ExternalLink class="size-3" />
+                                                    <ExternalLink
+                                                        class="size-3"
+                                                    />
                                                 {/if}
                                                 Open
                                             </a>
@@ -658,7 +678,9 @@
                                             <div
                                                 class="mt-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-red-600"
                                             >
-                                                <AlertTriangle class="size-2.5" />
+                                                <AlertTriangle
+                                                    class="size-2.5"
+                                                />
                                                 <span>Invalid URL</span>
                                             </div>
                                         {:else if provider}
@@ -672,16 +694,20 @@
                                             <div
                                                 class="mt-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-amber-600"
                                             >
-                                                <AlertTriangle class="size-2.5" />
+                                                <AlertTriangle
+                                                    class="size-2.5"
+                                                />
                                                 <span
-                                                    >Unknown provider — link will open
-                                                    as-is</span
+                                                    >Unknown provider — link
+                                                    will open as-is</span
                                                 >
                                             </div>
                                         {/if}
                                     {/if}
                                     {#if errorFor(i, 'video_url')}
-                                        <p class="mt-1.5 text-[10px] font-bold text-red-600">
+                                        <p
+                                            class="mt-1.5 text-[10px] font-bold text-red-600"
+                                        >
                                             {errorFor(i, 'video_url')}
                                         </p>
                                     {/if}
@@ -723,7 +749,9 @@
                                         >
                                     </div>
                                     {#if errorFor(i, 'notes')}
-                                        <p class="mt-1 text-[10px] font-bold text-red-600">
+                                        <p
+                                            class="mt-1 text-[10px] font-bold text-red-600"
+                                        >
                                             {errorFor(i, 'notes')}
                                         </p>
                                     {/if}
@@ -732,7 +760,9 @@
                                 {#if row.status === 'does_not_meet_level'}
                                     {@const helper = reasonHelper(row.reason)}
                                     <div>
-                                        <div class="flex items-center gap-1.5 mb-2">
+                                        <div
+                                            class="flex items-center gap-1.5 mb-2"
+                                        >
                                             <label
                                                 for={`reason-${player.id}`}
                                                 class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400"
@@ -766,13 +796,14 @@
                                             <span class={helper.cls}
                                                 >{helper.text}</span
                                             >
-                                            <span
-                                                class="text-neutral-500"
+                                            <span class="text-neutral-500"
                                                 >{row.reason.length} / 500</span
                                             >
                                         </div>
                                         {#if errorFor(i, 'reason')}
-                                            <p class="mt-1 text-[10px] font-bold text-red-600">
+                                            <p
+                                                class="mt-1 text-[10px] font-bold text-red-600"
+                                            >
                                                 {errorFor(i, 'reason')}
                                             </p>
                                         {/if}
@@ -807,12 +838,15 @@
                                     type="button"
                                     onclick={() =>
                                         copyText(
-                                            registration.payment_reference ?? '',
+                                            registration.payment_reference ??
+                                                '',
                                         )}
                                     class="size-5 flex items-center justify-center text-neutral-400 hover:text-neutral-700 transition-colors"
                                 >
                                     {#if copied === registration.payment_reference}
-                                        <Check class="size-3 text-emerald-600" />
+                                        <Check
+                                            class="size-3 text-emerald-600"
+                                        />
                                     {:else}
                                         <Copy class="size-3" />
                                     {/if}
@@ -860,7 +894,8 @@
                                         >{confirmingPayment === 'paid'
                                             ? 'Paid'
                                             : 'Refunded'}</strong
-                                    >? This updates the payment status immediately.
+                                    >? This updates the payment status
+                                    immediately.
                                 </p>
                             </div>
                             <div class="flex gap-2 shrink-0">
@@ -878,9 +913,7 @@
                                         confirmingPayment &&
                                         overridePayment(confirmingPayment)}
                                 >
-                                    {paymentPending
-                                        ? '...'
-                                        : 'Confirm'}
+                                    {paymentPending ? '...' : 'Confirm'}
                                 </Button>
                             </div>
                         </div>
@@ -906,7 +939,8 @@
                             {/if}
                             {#if registration.payment_status === 'refunded'}
                                 <p class="text-xs text-neutral-400 self-center">
-                                    No actions available for refunded registrations.
+                                    No actions available for refunded
+                                    registrations.
                                 </p>
                             {/if}
                         </div>
@@ -924,9 +958,13 @@
                 <div
                     class="max-w-3xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between gap-4"
                 >
-                    <div class="flex items-center gap-2 text-[12px] text-amber-800">
+                    <div
+                        class="flex items-center gap-2 text-[12px] text-amber-800"
+                    >
                         <AlertTriangle class="size-3.5 shrink-0" />
-                        <span>Discard all unsaved changes? This cannot be undone.</span>
+                        <span
+                            >Discard all unsaved changes? This cannot be undone.</span
+                        >
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
                         <Button
@@ -959,7 +997,8 @@
                     >
                         <AlertTriangle class="size-3.5 shrink-0" />
                         <span
-                            >{errorCount} error{errorCount === 1 ? '' : 's'} — review fields above</span
+                            >{errorCount} error{errorCount === 1 ? '' : 's'} — review
+                            fields above</span
                         >
                     </div>
                     <div class="flex items-center gap-2 shrink-0 ml-auto">
