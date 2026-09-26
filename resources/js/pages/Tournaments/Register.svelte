@@ -18,7 +18,7 @@
     import Step2PlayerInfo from './registration/Step2PlayerInfo.svelte';
     import Step3ReviewAndPay from './registration/Step3ReviewAndPay.svelte';
 
-    interface PlayerData extends ComputedPlayer {}
+    type PlayerData = ComputedPlayer;
 
     function emptyPlayer(): PlayerData {
         return {
@@ -147,12 +147,12 @@
     // Clear step 0 field errors on edit
     $effect(() => {
         if (selectedDivisionId && clientErrors.division_id) {
-            const { division_id, ...rest } = clientErrors;
+            const { division_id: _division_id, ...rest } = clientErrors;
             clientErrors = rest;
         }
 
         if (teamName && clientErrors.team_name) {
-            const { team_name, ...rest } = clientErrors;
+            const { team_name: _team_name, ...rest } = clientErrors;
             clientErrors = rest;
         }
     });
@@ -221,22 +221,22 @@
     // Clear step 1 field errors on edit
     $effect(() => {
         if (name && clientErrors.name) {
-            const { name: n, ...rest } = clientErrors;
+            const { name: _name, ...rest } = clientErrors;
             clientErrors = rest;
         }
 
         if (email && clientErrors.email) {
-            const { email: e, ...rest } = clientErrors;
+            const { email: _email, ...rest } = clientErrors;
             clientErrors = rest;
         }
 
         if (phone && clientErrors.phone) {
-            const { phone: p, ...rest } = clientErrors;
+            const { phone: _phone, ...rest } = clientErrors;
             clientErrors = rest;
         }
 
         if (gender && clientErrors.gender) {
-            const { gender: g, ...rest } = clientErrors;
+            const { gender: _gender, ...rest } = clientErrors;
             clientErrors = rest;
         }
     });
@@ -277,14 +277,6 @@
 
     // Clear player errors when team is valid
     $effect(() => {
-        additionalPlayers;
-        gender;
-        level;
-        division.isTeam;
-        division.minTeamSize;
-        division.minMalePlayers;
-        division.minFemalePlayers;
-        division.levelRequirements;
         const teamSizeMet =
             !division.isTeam ||
             1 + additionalPlayers.length >= division.minTeamSize;
@@ -566,7 +558,7 @@
                 {#snippet children({
                     errors: serverErrors,
                     processing,
-                    validate,
+                    validate: _validate,
                     clearErrors,
                 })}
                     {@const displayErrors = {

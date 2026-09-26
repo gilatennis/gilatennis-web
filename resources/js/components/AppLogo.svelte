@@ -1,5 +1,4 @@
 <script lang="ts">
-    import AppLogoIcon from '@/components/AppLogoIcon.svelte';
 </script>
 
 <div class="text-left text-sm">

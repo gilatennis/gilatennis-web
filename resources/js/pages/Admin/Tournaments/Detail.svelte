@@ -1,50 +1,12 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
-    import ArrowRight from 'lucide-svelte/icons/arrow-right';
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import ChevronRight from 'lucide-svelte/icons/chevron-right';
     import Pencil from 'lucide-svelte/icons/pencil';
     import AdminPage from '@/components/admin/AdminPage.svelte';
     import StatusBadge from '@/components/admin/StatusBadge.svelte';
     import AppHead from '@/components/AppHead.svelte';
-    import type { ByDivision, RegistrationStats } from '@/types';
-
-    interface Division {
-        id: number;
-        name: string;
-        slug: string;
-        participation_category: string;
-        category_label: string;
-        draw_size: number;
-        spots_available: number;
-        is_sold_out: boolean;
-        fee: number;
-        gender: string | null;
-        gender_label: string | null;
-        rating_type: string | null;
-        rating_min: number | null;
-        rating_max: number | null;
-        registration_count: number;
-    }
-
-    interface ScheduleItem {
-        id: number;
-        label: string;
-        sort_order: number;
-    }
-
-    interface ScheduleDay {
-        id: number;
-        day_label: string;
-        sort_order: number;
-        items: ScheduleItem[];
-    }
-
-    interface Rule {
-        id: number;
-        body: string;
-        sort_order: number;
-    }
+    import type { RegistrationStats } from '@/types';
 
     let {
         tournament,

@@ -1,4 +1,11 @@
 <script lang="ts">
+    import {
+        MapPin,
+        Clock,
+        Calendar,
+        Users,
+        Trophy,
+    } from 'lucide-svelte/icons';
     import { cn } from '@/lib/utils';
 
     let {
@@ -10,14 +17,6 @@
         label: string;
         icon?: 'map' | 'clock' | 'calendar' | 'users' | 'trophy' | null;
     } = $props();
-
-    import {
-        MapPin,
-        Clock,
-        Calendar,
-        Users,
-        Trophy,
-    } from 'lucide-svelte/icons';
 
     const icons = {
         map: MapPin,

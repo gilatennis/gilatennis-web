@@ -1,53 +1,17 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
-    import {
-        ArrowUpRight,
-        ChevronDown,
-        MessageCircleMore,
-        Users,
-    } from 'lucide-svelte/icons';
+    import { ArrowUpRight, MessageCircleMore } from 'lucide-svelte/icons';
     import ImagePlaceholder from '@/components/public/ImagePlaceholder.svelte';
-    import { Badge } from '@/components/ui/badge';
-    import {
-        Collapsible,
-        CollapsibleContent,
-        CollapsibleTrigger,
-    } from '@/components/ui/collapsible';
-    import { home } from '@/routes';
-    import {
-        show as tournamentShow,
-        register as tournamentRegister,
-    } from '@/routes/tournaments';
+    import { register as tournamentRegister } from '@/routes/tournaments';
 
     let {
         tournament,
-        registrationCount = 0,
     }: {
         tournament: any & {
             contact_person_name?: string | null;
             contact_person_phone?: string | null;
         };
-        registrationCount?: number;
     } = $props();
-
-    const faqs = [
-        {
-            q: 'How does check-in work?',
-            a: 'Check-in is Friday July 17, 4–7 PM at the main desk. Bring photo ID and your USTA membership card. Late check-in must be arranged by email.',
-        },
-        {
-            q: 'What is the refund policy?',
-            a: 'Full refund if cancelled 7+ days before the event. 50% refund within 7 days. No refund after July 11 unless the event is cancelled by organizers.',
-        },
-        {
-            q: 'What if I need a doubles partner?',
-            a: "Select 'Find me a partner' during registration. We'll match you with a similarly-rated player by July 12 and send mutual confirmation emails.",
-        },
-        {
-            q: 'Is stringing available on-site?',
-            a: 'Yes — professional stringing service runs Fri–Sun. Drop off by 8 PM for same-morning turnaround. Bring your own strings or purchase from our pro shop.',
-        },
-    ];
 
     const isSoldOut = $derived((tournament?.spots_available ?? 0) === 0);
     const isCanceled = $derived(tournament?.status === 'canceled');

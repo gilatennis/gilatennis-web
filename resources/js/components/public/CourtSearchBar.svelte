@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
     import { Search } from 'lucide-svelte/icons';
     import { Button } from '@/components/ui/button';
 

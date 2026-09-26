@@ -17,7 +17,6 @@
         SidebarMenuItem,
     } from '@/components/ui/sidebar';
     import { currentUrlState } from '@/lib/currentUrl.svelte';
-    import { toUrl } from '@/lib/utils';
 
     const url = currentUrlState();
     const isSuperAdmin = $derived(

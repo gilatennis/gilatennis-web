@@ -93,11 +93,9 @@
         });
     }
 
-    function handleStatusOverride(regId: number, newStatus: string | null) {
+    function handleStatusOverride(_regId: number, _newStatus: string | null) {
         router.reload();
     }
-
-    const basePath = `/admin/tournaments/${tournament.id}/registrations`;
 </script>
 
 <AppHead title={`${tournament.name} — Registrations`} />

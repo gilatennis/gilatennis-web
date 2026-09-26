@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { page, router } from '@inertiajs/svelte';
+    import { router } from '@inertiajs/svelte';
     import ChevronRight from 'lucide-svelte/icons/chevron-right';
     import FileText from 'lucide-svelte/icons/file-text';
     import MapPin from 'lucide-svelte/icons/map-pin';
@@ -114,17 +114,6 @@
             navigateTo(allResults[selectedIndex].url);
         } else if (event.key === 'Escape') {
             closeDrawer();
-        }
-    }
-
-    function getIcon(type: string) {
-        switch (type) {
-            case 'tournament':
-                return Trophy;
-            case 'article':
-                return FileText;
-            default:
-                return MapPin;
         }
     }
 

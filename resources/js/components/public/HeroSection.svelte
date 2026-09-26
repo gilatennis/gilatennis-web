@@ -244,7 +244,6 @@
                 value={formatCount(stats.memberCount)}
                 label="Community members"
             />
-            {/* <DetailStat value="Free" label="Returns to 60 days" />*/ ''}
         </div>
     </div>
 </section>

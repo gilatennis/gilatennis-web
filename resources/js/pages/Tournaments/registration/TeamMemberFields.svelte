@@ -18,7 +18,7 @@
         levelOptions = [] as string[],
         fieldErrors = {} as FieldErrors,
         onAddPlayer = () => {},
-        onRemovePlayer = (index: number) => {},
+        onRemovePlayer = (_index: number) => {},
     }: {
         computedPlayers?: any[];
         memberStartIndex?: number;
@@ -31,11 +31,6 @@
 
     const cfg = $derived(division.playerFieldConfig);
     const isTeam = $derived(division.isTeam);
-    const effectiveGenderRequired = $derived(
-        cfg.gender ||
-            division.minMalePlayers > 0 ||
-            division.minFemalePlayers > 0,
-    );
     const showLevel = $derived(isTeam && levelOptions.length > 0 && cfg.level);
     const showDob = $derived(isTeam && cfg.dob);
     const members = $derived(computedPlayers.slice(memberStartIndex));

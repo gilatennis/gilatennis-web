@@ -22,8 +22,6 @@
         user: User;
     } = $props();
 
-    const settingsUrl = $derived(user.is_admin ? settings.url() : edit.url());
-
     function handleLogout(propsOnClick?: () => void) {
         return () => {
             propsOnClick?.();

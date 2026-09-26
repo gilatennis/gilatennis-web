@@ -117,14 +117,6 @@
         });
     }
 
-    function handleStatusOverride(regId: number, newStatus: string | null) {
-        if (newStatus == null) {
-            return;
-        }
-
-        router.reload();
-    }
-
     const catCls: Record<string, string> = {
         singles: 'bg-blue-50 text-blue-700 border-blue-200',
         doubles: 'bg-purple-50 text-purple-700 border-purple-200',

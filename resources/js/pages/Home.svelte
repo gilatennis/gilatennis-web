@@ -1,25 +1,11 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
-    import {
-        ArrowRight,
-        Trophy,
-        MapPin,
-        ChevronDown,
-        ArrowUpRight,
-    } from 'lucide-svelte/icons';
-    import ArticleCard from '@/components/public/ArticleCard.svelte';
-    import CourtCard from '@/components/public/CourtCard.svelte';
-    import HeroSection from '@/components/public/HeroSection.svelte';
+    import { Trophy } from 'lucide-svelte/icons';
     import PublicLayout from '@/components/public/PublicLayout.svelte';
     import TournamentCard from '@/components/public/TournamentCard.svelte';
     import TournamentRow from '@/components/public/TournamentRow.svelte';
-    import TrustBar from '@/components/public/TrustBar.svelte';
 
     let {
         featuredTournaments = [],
-        articles = [],
-        featuredCourts = [],
-        stats = { articleCount: 0, tournamentCount: 0, memberCount: 0 },
     }: {
         featuredTournaments?: Array<{
             slug: string;
@@ -42,85 +28,12 @@
             perks?: string[];
             registrationCloses?: string;
         }>;
-        articles?: Array<{
-            slug: string;
-            imageLabel?: string;
-            type: string;
-            readTime: string;
-            title: string;
-            excerpt?: string;
-            author?: string;
-            publishedAt?: string;
-            rating?: number;
-            reviewCount?: number;
-        }>;
-        featuredCourts?: Array<{
-            slug: string;
-            name: string;
-            city: string;
-            surface: string;
-            imageLabel?: string;
-            rating?: number;
-            reviewCount?: number;
-            type?: string;
-            duration?: string;
-            amenities?: { name: string }[];
-            excerpt?: string;
-        }>;
-        stats?: {
-            articleCount: number;
-            tournamentCount: number;
-            memberCount: number;
-        };
     } = $props();
 
     // Tournament selection state
     let selectedTournamentIndex = $state(0);
     const selectedTournament = $derived(
         featuredTournaments[selectedTournamentIndex] ?? null,
-    );
-
-    // Article tab filtering
-    let activeArticleTab = $state('all');
-    const articleTabs = [
-        { key: 'all', label: 'All Stories' },
-        { key: 'tip', label: 'Tennis Tips' },
-        { key: 'review', label: 'Gear Reviews' },
-        { key: 'strategy', label: 'Strategy' },
-    ];
-
-    const typeMap: Record<string, string> = {
-        tip: 'Tennis Tip',
-        review: 'Gear Review',
-        strategy: 'Strategy',
-    };
-
-    const filteredArticles = $derived(
-        activeArticleTab === 'all'
-            ? articles
-            : articles.filter((a) => a.type === typeMap[activeArticleTab]),
-    );
-
-    // Hero data
-    const featuredArticle = $derived(
-        articles[0] ?? {
-            slug: '',
-            type: 'Gear Review',
-            readTime: '8 min read',
-            title: 'No articles yet.',
-            excerpt: '',
-            author: '',
-            timeAgo: '',
-        },
-    );
-
-    const sideStories = $derived(
-        articles.slice(1, 4).map((a) => ({
-            kicker: a.type,
-            title: a.title,
-            meta: `${a.author ?? 'Staff'} · ${a.readTime}`,
-            tone: 'dark' as const,
-        })),
     );
 </script>
 

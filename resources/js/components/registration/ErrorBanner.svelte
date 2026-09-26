@@ -25,7 +25,7 @@
             Some fields need your attention.
         </p>
         <ul class="mt-2 list-disc list-inside text-coral/70 space-y-0.5">
-            {#each visibleErrors as [field, messages]}
+            {#each visibleErrors as [_field, messages]}
                 {#each messages as msg}
                     <li>{msg}</li>
                 {/each}
