@@ -50,6 +50,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.store');
 
+    Route::post('tournaments/{tournament}/divisions/{division}/bracket/groups', [BracketController::class, 'storeGroups'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.groups.store');
+
     Route::delete('tournaments/{tournament}/divisions/{division}/bracket', [BracketController::class, 'destroy'])
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.destroy');

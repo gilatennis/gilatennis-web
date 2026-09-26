@@ -14,6 +14,7 @@ class BracketSlot extends Model
     protected $fillable = [
         'bracket_id',
         'bracket_group_id',
+        'bracket_scope',
         'round',
         'position',
         'leg',
@@ -32,6 +33,7 @@ class BracketSlot extends Model
         'round' => 'integer',
         'position' => 'integer',
         'leg' => 'integer',
+        'bracket_scope' => 'integer',
         'seed' => 'integer',
         'bye' => 'boolean',
     ];

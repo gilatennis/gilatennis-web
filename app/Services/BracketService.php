@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\MatchStatus;
 use App\Models\Bracket;
+use App\Models\BracketGroup;
 use App\Models\BracketSlot;
 use App\Models\Division;
 use App\Models\TennisMatch;
@@ -17,6 +18,83 @@ class BracketService
     public const SEEDING_AUTO = 'auto';
 
     public const SEEDING_MANUAL = 'manual';
+
+    /**
+     * Generate a fresh group-stage bracket for a division, split into the
+     * requested number of round-robin groups.
+     *
+     * In auto mode paid entrants are snake-distributed across the groups; in
+     * manual mode the groups start empty for the admin to fill. The group stage
+     * lives alongside (never replaces) a knockout bracket in the same division.
+     *
+     * @param  array<int, int>  $advanceCounts  Winners advancing per group, by position.
+     */
+    public function generateGroups(
+        Division $division,
+        int $groupCount,
+        array $advanceCounts,
+        bool $doubleRoundRobin = false,
+        string $seedingMode = self::SEEDING_AUTO,
+    ): Bracket {
+        $entrants = $this->paidEntrants($division);
+        $count = $entrants->count();
+
+        if ($groupCount < 2) {
+            throw new InvalidArgumentException('A group stage needs at least two groups.');
+        }
+
+        if ($count < $groupCount * 2) {
+            throw new InvalidArgumentException('Each group needs at least two entrants.');
+        }
+
+        if ($count > $division->draw_size) {
+            throw new InvalidArgumentException('Paid entrants exceed the configured draw size.');
+        }
+
+        if (count($advanceCounts) !== $groupCount) {
+            throw new InvalidArgumentException('An advancing-winner count is required for every group.');
+        }
+
+        foreach ($advanceCounts as $advanceCount) {
+            if ($advanceCount < 1) {
+                throw new InvalidArgumentException('Each group must advance at least one entrant.');
+            }
+        }
+
+        return DB::transaction(function () use ($division, $groupCount, $advanceCounts, $doubleRoundRobin, $seedingMode, $entrants) {
+            $bracket = Bracket::updateOrCreate(
+                [
+                    'division_id' => $division->id,
+                    'type' => Bracket::TYPE_GROUP_STAGE,
+                ],
+                [
+                    'status' => Bracket::STATUS_DRAFT,
+                    'size' => $entrants->count(),
+                ],
+            );
+
+            $this->purgeGroupStructure($bracket);
+
+            $groups = collect(range(0, $groupCount - 1))
+                ->map(fn (int $position) => BracketGroup::create([
+                    'bracket_id' => $bracket->id,
+                    'name' => 'Group '.chr(65 + $position),
+                    'position' => $position,
+                    'advance_count' => $advanceCounts[$position],
+                    'double_round_robin' => $doubleRoundRobin,
+                ]));
+
+            if ($seedingMode === self::SEEDING_AUTO) {
+                $this->distributeEntrants($groups, $entrants->values()->all(), $doubleRoundRobin);
+            } else {
+                foreach ($groups as $group) {
+                    $this->buildGroupFixtures($group, []);
+                }
+            }
+
+            return $bracket->fresh(['groups.slots']);
+        });
+    }
 
     /**
      * Generate a fresh single-elimination bracket for a division.
@@ -218,6 +296,68 @@ class BracketService
         }
 
         return $size;
+    }
+
+    /**
+     * Snake-distribute the seed-ordered entrants across the groups so the
+     * strongest seeds are spread apart (group A, B, C, then C, B, A, ...).
+     *
+     * @param  Collection<int, BracketGroup>  $groups
+     * @param  array<int, TournamentRegistration>  $entrants
+     */
+    private function distributeEntrants(Collection $groups, array $entrants, bool $doubleRoundRobin): void
+    {
+        $groupCount = $groups->count();
+        $buckets = array_fill(0, $groupCount, []);
+
+        foreach ($entrants as $index => $entrant) {
+            $row = intdiv($index, $groupCount);
+            $column = $index % $groupCount;
+            $target = $row % 2 === 0 ? $column : $groupCount - 1 - $column;
+
+            $buckets[$target][] = $entrant;
+        }
+
+        foreach ($groups as $group) {
+            $this->buildGroupFixtures($group, $buckets[$group->position], $doubleRoundRobin);
+        }
+    }
+
+    /**
+     * Build (or rebuild) a group's round-robin fixtures from an ordered list of
+     * entrants. Fixtures are laid out matchday-first: `round` is the matchday
+     * and `position` is the fixture index within it. A group with fewer than two
+     * entrants keeps its group row but has no fixtures.
+     *
+     * @param  array<int, TournamentRegistration>  $entrants
+     */
+    private function buildGroupFixtures(BracketGroup $group, array $entrants, ?bool $doubleRoundRobin = null): void
+    {
+        $group->slots()->delete();
+
+        $count = count($entrants);
+
+        if ($count < 2) {
+            return;
+        }
+
+        $double = $doubleRoundRobin ?? $group->double_round_robin;
+        $schedule = (new RoundRobinScheduler)->schedule($count, $double);
+
+        foreach ($schedule as $matchdayIndex => $fixtures) {
+            foreach ($fixtures as $fixtureIndex => [$sideA, $sideB, $leg]) {
+                BracketSlot::create([
+                    'bracket_id' => $group->bracket_id,
+                    'bracket_group_id' => $group->id,
+                    'bracket_scope' => $group->id,
+                    'round' => $matchdayIndex + 1,
+                    'position' => $fixtureIndex,
+                    'leg' => $leg,
+                    'entrant_a_id' => $entrants[$sideA]->id,
+                    'entrant_b_id' => $entrants[$sideB]->id,
+                ]);
+            }
+        }
     }
 
     /**
@@ -442,6 +582,16 @@ class BracketService
         }
 
         $bracket->slots()->delete();
+    }
+
+    /**
+     * Discard a group stage's ties, matches, and group rows so it can be
+     * regenerated cleanly.
+     */
+    private function purgeGroupStructure(Bracket $bracket): void
+    {
+        $this->purgeStructure($bracket);
+        $bracket->groups()->delete();
     }
 
     /**

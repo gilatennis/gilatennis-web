@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BracketGenerateRequest;
+use App\Http\Requests\Admin\BracketGroupGenerateRequest;
 use App\Http\Requests\Admin\BracketRubberStoreRequest;
 use App\Http\Requests\Admin\BracketSeedRequest;
 use App\Http\Requests\Admin\BracketSlotStartRequest;
@@ -32,6 +33,29 @@ class BracketController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Bracket generated.']);
+
+        return $this->redirectToDivisionBracket($tournament, $division);
+    }
+
+    /**
+     * Create (or regenerate) the round-robin group stage for a division. This
+     * lives alongside the knockout bracket rather than replacing it.
+     */
+    public function storeGroups(BracketGroupGenerateRequest $request, Tournament $tournament, Division $division): RedirectResponse
+    {
+        try {
+            $this->brackets->generateGroups(
+                $division,
+                $request->integer('group_count'),
+                $request->validated('advance_counts'),
+                (bool) $request->boolean('double_round_robin'),
+                $request->validated('seeding_mode'),
+            );
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['bracket' => $e->getMessage()]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Group stage generated.']);
 
         return $this->redirectToDivisionBracket($tournament, $division);
     }
