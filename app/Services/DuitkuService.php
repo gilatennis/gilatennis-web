@@ -6,6 +6,7 @@ use App\DTOs\DuitkuInvoiceResponse;
 use App\Models\TournamentRegistration;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class DuitkuService
 {
@@ -101,7 +102,8 @@ class DuitkuService
         $paymentUrl = $data['paymentUrl'] ?? '';
 
         if ($statusCode !== '00' || empty($paymentUrl)) {
-            \Log::error('Duitku invoice creation failed', [
+            Log::channel('payments')->error('Duitku invoice creation failed', [
+                'merchant_order_id' => $merchantOrderId,
                 'http_status' => $response->status(),
                 'response' => $data,
             ]);
@@ -114,13 +116,21 @@ class DuitkuService
         $reference = $data['reference'] ?? self::parseReferenceFromUrl($paymentUrl) ?? '';
 
         if ($reference === '') {
-            \Log::error('Duitku invoice missing reference', [
+            Log::channel('payments')->error('Duitku invoice missing reference', [
+                'merchant_order_id' => $merchantOrderId,
                 'http_status' => $response->status(),
                 'response' => $data,
             ]);
 
             throw new \RuntimeException('Duitku invoice response missing reference');
         }
+
+        Log::channel('payments')->info('Duitku invoice created', [
+            'merchant_order_id' => $merchantOrderId,
+            'reference' => $reference,
+            'amount' => $paymentAmount,
+            'status_code' => $statusCode,
+        ]);
 
         return new DuitkuInvoiceResponse(
             merchantCode: $data['merchantCode'] ?? '',
@@ -129,6 +139,27 @@ class DuitkuService
             statusCode: $statusCode,
             statusMessage: $data['statusMessage'] ?? '',
         );
+    }
+
+    /**
+     * Duitku POP callback signature per the docs:
+     * HMAC_SHA256(merchantCode + amount + merchantOrderId, merchantKey).
+     *
+     * Note: our merchant account (sandbox, verified) actually sends the legacy
+     * MD5 signature — see {@see legacyCallbackSignature()}. Both are accepted.
+     */
+    public function callbackSignature(string $merchantCode, string $amount, string $merchantOrderId): string
+    {
+        return hash_hmac('sha256', $merchantCode.$amount.$merchantOrderId, $this->apiKey);
+    }
+
+    /**
+     * Legacy v1 callback signature still used by our merchant account:
+     * md5(merchantCode + amount + merchantOrderId + apiKey).
+     */
+    public function legacyCallbackSignature(string $merchantCode, string $amount, string $merchantOrderId): string
+    {
+        return md5($merchantCode.$amount.$merchantOrderId.$this->apiKey);
     }
 
     public static function parseReferenceFromUrl(string $url): ?string

@@ -218,9 +218,23 @@ If the target contains the host's `/Users/kevin/...` (Mac) or another non-contai
 End-to-end check that FrankenPHP can serve uploaded files:
 
 ```sh
-curl -sI https://prod.gilatennis.com/storage/.gitignore
+curl -sI https://gilatennis.com/storage/.gitignore
 # Expected: 200 OK (the placeholder file created by `storage:link`)
 ```
+
+End-to-end check that the Duitku callback endpoint reaches the app. It must **not** return 419 — 419 means CSRF is blocking callbacks (the bug that silently dropped settled payments):
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' -X POST -H 'Accept: application/json' https://gilatennis.com/webhooks/duitku/callback
+# Expected: 422 (validation error). 419 = CSRF still blocking the webhook.
+```
+
+Payment diagnostics:
+- `docker compose exec app tail -f storage/logs/payments.log` — structured payment trail (dedicated `payments` log channel, daily rotation).
+- `make logs` mirrors the same events to stderr.
+- Every callback/return/admin override is also appended to the `payment_events` table.
+- Admin → Tournament → Registrations → **Stuck** filter lists unsettled registrations older than 30 minutes (candidates for "paid but not updated").
+- Manual sandbox end-to-end: `php artisan payments:sandbox-checkout` (requires the app to be publicly reachable + sandbox creds in `.env`).
 
 ## Storage
 

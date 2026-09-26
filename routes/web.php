@@ -36,8 +36,7 @@ Route::get('registration/{registration:confirmation_code}/failed', [TournamentRe
     ->name('tournaments.register.failed');
 
 Route::post('webhooks/duitku/callback', [DuitkuWebhookController::class, 'handle'])
-    ->name('webhooks.duitku')
-    ->withoutMiddleware(['csrf']);
+    ->name('webhooks.duitku');
 
 Route::get('payments/duitku/return', [DuitkuReturnController::class, 'handle'])
     ->name('payments.duitku.return');

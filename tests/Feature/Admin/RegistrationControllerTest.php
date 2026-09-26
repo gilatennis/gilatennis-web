@@ -131,6 +131,61 @@ describe('Admin Registration Management', function () {
         expect($registration->paid_at)->not->toBeNull();
     });
 
+    it('filters registrations that are stuck in an unsettled state', function () {
+        $tournament = Tournament::factory()->create();
+
+        $stuck = TournamentRegistration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'payment_status' => 'processing',
+        ]);
+        $stuck->forceFill(['created_at' => now()->subMinutes(45)])->save();
+
+        TournamentRegistration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'payment_status' => 'processing',
+        ])->forceFill(['created_at' => now()->subMinutes(5)])->save();
+
+        TournamentRegistration::factory()->paid()->create([
+            'tournament_id' => $tournament->id,
+        ])->forceFill(['created_at' => now()->subMinutes(45)])->save();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.registrations.index', [
+                'tournament' => $tournament,
+                'stuck' => 1,
+            ]))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->has('registrations.data', 1)
+                ->where('registrations.data.0.id', $stuck->id)
+                ->where('stats.stuck', 1)
+                ->where('filters.stuck', true)
+            );
+    });
+
+    it('records an admin audit event when overriding payment status', function () {
+        $tournament = Tournament::factory()->create();
+        $registration = TournamentRegistration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'payment_status' => 'processing',
+            'amount_cents' => 45000,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.registrations.payment', [
+                'tournament' => $tournament,
+                'registration' => $registration,
+            ]), ['status' => 'paid'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('payment_events', [
+            'tournament_registration_id' => $registration->id,
+            'source' => 'admin',
+            'status_before' => 'processing',
+            'status_after' => 'paid',
+        ]);
+    });
+
     it('admin can mark registration as refunded', function () {
         $tournament = Tournament::factory()->create();
         $registration = TournamentRegistration::factory()->create([

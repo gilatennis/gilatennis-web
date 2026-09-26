@@ -73,6 +73,22 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Dedicated payment/diagnostics trail: rotates daily in the storage
+        // volume and mirrors to stderr so `docker compose logs -f app` shows it.
+        'payments' => [
+            'driver' => 'stack',
+            'channels' => ['payments_file', 'stderr'],
+            'ignore_exceptions' => false,
+        ],
+
+        'payments_file' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/payments.log'),
+            'level' => env('PAYMENTS_LOG_LEVEL', 'info'),
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

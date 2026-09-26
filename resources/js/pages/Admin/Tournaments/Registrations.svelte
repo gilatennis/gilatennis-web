@@ -41,11 +41,18 @@
             pending: number;
             failed: number;
             refunded: number;
+            stuck: number;
         };
-        filters: { status?: string; division_id?: string; search?: string };
+        filters: {
+            status?: string;
+            division_id?: string;
+            search?: string;
+            stuck?: boolean;
+        };
     } = $props();
 
     let statusFilter = $state(filters.status ?? '');
+    let stuckFilter = $state(filters.stuck ?? false);
     let divisionFilter = $state(filters.division_id ?? '');
     let selectedReg = $state<Registration | null>(null);
 
@@ -56,6 +63,7 @@
 
     $effect(() => {
         statusFilter = filters.status ?? '';
+        stuckFilter = filters.stuck ?? false;
         divisionFilter = filters.division_id ?? '';
     });
 
@@ -63,6 +71,7 @@
         router.visit(window.location.pathname, {
             data: {
                 status: statusFilter || undefined,
+                stuck: stuckFilter || undefined,
                 division_id: divisionFilter || undefined,
                 search: searchHandler.search || undefined,
             },
@@ -75,6 +84,7 @@
         router.visit(window.location.pathname, {
             data: {
                 status: statusFilter || undefined,
+                stuck: stuckFilter || undefined,
                 division_id: divisionFilter || undefined,
                 search: searchHandler.search || undefined,
                 page,
@@ -143,10 +153,11 @@
                     type="button"
                     onclick={() => {
                         statusFilter = s;
+                        stuckFilter = false;
                         applyFilters();
                     }}
                     class={`h-8 px-3 text-[11px] font-bold uppercase tracking-[0.15em] transition-colors ${
-                        statusFilter === s
+                        statusFilter === s && !stuckFilter
                             ? 'bg-neutral-900 text-white'
                             : 'border border-black/12 text-neutral-600 hover:border-black/25'
                     }`}
@@ -154,6 +165,22 @@
                     {s || 'All'}
                 </button>
             {/each}
+            <button
+                type="button"
+                onclick={() => {
+                    stuckFilter = !stuckFilter;
+                    statusFilter = '';
+                    applyFilters();
+                }}
+                class={`h-8 px-3 text-[11px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                    stuckFilter
+                        ? 'bg-amber-500 text-white'
+                        : 'border border-amber-300 text-amber-700 hover:border-amber-500'
+                }`}
+                title="Unsettled registrations older than 30 minutes"
+            >
+                Stuck{stats.stuck ? ` (${stats.stuck})` : ''}
+            </button>
         </div>
 
         <div class="relative">

@@ -87,7 +87,7 @@ Reference: `docs/Gilatennis/register/reg-form.jsx`
 ```php
 public function create(Tournament $tournament)
 {
-    abort_if($tournament->spots_left <= 0, 403, 'Tournament is sold out.');
+    abort_if(! $tournament->divisions()->hasAvailableSpots()->exists(), 403, 'Tournament is sold out.');
 
     return Inertia::render('Tournaments/Register', [
         'tournament' => $tournament,
@@ -214,8 +214,6 @@ Server-side validation is authoritative (FormRequest).
 
 ## 4.3 — Duitku Payment Integration
 
-Reference: `/Users/kevin/code/gilatennis/web-app/third_party/duitku/api.go`
-
 ### Service: `App\Services\DuitkuService`
 
 Port the Go implementation to PHP:
@@ -320,60 +318,68 @@ class DuitkuInvoiceResponse
 
 ### Controller: `DuitkuWebhookController`
 
-```php
-public function handle(Request $request)
-{
-    // 1. Verify signature (same SHA-256 scheme)
-    // 2. Find registration by merchantOrderId
-    // 3. Update payment status based on resultCode
-    // 4. Decrement tournament spots_left if successful
-    // 5. Dispatch events (PaymentCompleted / PaymentFailed)
+The callback endpoint (`POST /webhooks/duitku/callback`) is CSRF-exempt via
+`bootstrap/app.php` → `validateCsrfTokens(except: [...])` (the old
+`withoutMiddleware(['csrf'])` never matched in Laravel 11+, which caused Duitku
+callbacks to be rejected with HTTP 419).
 
-    $registration = TournamentRegistration::where('confirmation_code', $request->merchantOrderId)
-        ->firstOrFail();
+Verification and settlement:
+- signature is accepted under **either** scheme:
+  - `HMAC_SHA256(merchantCode . amount . merchantOrderId, merchantKey)` (per the docs), or
+  - `md5(merchantCode . amount . merchantOrderId . merchantKey)` (legacy v1).
+    Verified offline against a real sandbox callback: our merchant account sends
+    **MD5**, despite the docs describing HMAC — so both are accepted, and the
+    matched scheme is logged/audited. Comparison uses `hash_equals()`.
+- optional callback IP allowlist via `DUITKU_CALLBACK_IPS` (sandbox callback came from `182.23.85.12`).
+- callback `amount` must equal `registration.amount_cents / 100` (whole rupiah).
+- settlement goes through the single idempotent `TournamentPaymentService`
+  (`markPaid` / `markFailed`), which dispatches `PaymentCompleted` / `PaymentFailed`
+  once and appends a `payment_events` audit row (incl. `signature_scheme`).
+- already-paid registrations short-circuit with `already processed` and are not re-settled.
+- returns JSON `{"status": "..."}`; Duitku expects HTTP 200.
 
-    if ($request->resultCode === '00') {
-        $registration->markAsPaid();
-        $registration->tournament->decrement('spots_left');
-        event(new PaymentCompleted($registration));
-    } else {
-        $registration->markAsFailed();
-        event(new PaymentFailed($registration));
-    }
+> **Production incident root cause:** the webhook was blocked by CSRF (HTTP 419)
+> before reaching the controller. The original MD5 signature was actually correct;
+> the only fix required for settlement was exempting the callback path from CSRF.
 
-    return response()->json(['status' => 'ok']);
-}
-```
+
+There is no `spots_left` column; availability is derived from division capacity
+(`Division::hasAvailableSpots()`), so the webhook does not mutate counts.
 
 ---
 
 ## 4.5 — Return URL Handler
 
-After Duitku payment, user is redirected to `returnUrl`.
+After Duitku payment, the user is redirected to `returnUrl` (public `GET`).
 
 ### Controller: `DuitkuReturnController`
 
-```php
-public function handle(Request $request)
-{
-    $registration = TournamentRegistration::where('confirmation_code', $request->merchantOrderId)
-        ->firstOrFail();
+Per the Duitku POP docs the redirect only carries `merchantOrderId`, `reference`
+and `resultCode`, has **no signature**, and the URL can be edited by the
+customer — so it must never change payment status. The handler is read-only:
+it records an audit row and reflects the settled status (success / failed /
+pending). Settlement is owned exclusively by the signed webhook.
 
-    // Webhook may not have arrived yet — check status
-    if ($registration->payment_status === 'paid') {
-        return redirect()->route('tournaments.register.success', $registration->confirmation_code);
-    }
+> **Resolved:** the previous implementation called `markAsPaid()` from this
+> unauthenticated redirect (C1 payment-bypass). It was fixed by moving all
+> settlement behind the verified webhook; forged `?resultCode=00` hits are inert
+> and logged as warnings.
 
-    if ($registration->payment_status === 'failed') {
-        return redirect()->route('tournaments.register.failed', $registration->confirmation_code);
-    }
+## 4.5b — Payment diagnostics
 
-    // Still processing — poll or show waiting state
-    return Inertia::render('Tournaments/PaymentPending', [
-        'registration' => $registration,
-    ]);
-}
-```
+- Dedicated log channel `payments` → `storage/logs/payments.log` (daily) and stderr
+  (`docker compose logs -f app`). Configured in `config/logging.php`.
+- Every callback/return/override appends to the `payment_events` table
+  (`source`, `raw_payload`, `signature_valid`, `result_code`, `status_before/after`, ip).
+- Admin registrations list has a **Stuck** filter: unsettled (`pending`/`processing`)
+  registrations older than 30 minutes — these are the "paid but not updated" candidates.
+- Manual end-to-end sandbox test:
+  `php artisan payments:sandbox-checkout` — creates a throwaway tournament +
+  registration, creates a real Duitku sandbox invoice, prints the payment URL,
+  then waits for the webhook and verifies the settlement + audit trail.
+  Requires the app to be publicly reachable (the `dev.gilatennis.com` tunnel points
+  at the local machine) and sandbox credentials in `.env`.
+
 
 ---
 
@@ -476,7 +482,7 @@ tests/Feature/TournamentRegistrationTest.php
 9. `test_registration_validates_rating_range` — out-of-range rating
 10. `test_duitku_webhook_marks_payment_as_paid` — POST webhook with resultCode=00
 11. `test_duitku_webhook_marks_payment_as_failed` — POST webhook with error code
-12. `test_duitku_webhook_decrements_spots` — spots_left goes down after success
+12. `test_duitku_webhook_is_idempotent` — replayed webhook does not double-process
 13. `test_success_page_loads_with_valid_code` — GET success page
 14. `test_failed_page_loads_with_valid_code` — GET failed page
 15. `test_guest_user_can_upgrade_to_registered` — Fortify registration upgrades guest

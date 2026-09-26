@@ -32,6 +32,8 @@ return [
         'merchant_code' => env('DUITKU_MERCHANT_CODE'),
         'api_key' => env('DUITKU_API_KEY'),
         'api_url' => env('DUITKU_API_URL', 'https://api-sandbox.duitku.com'),
+        // Comma-separated allowlist for the public callback endpoint. Empty = allow all.
+        'callback_ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('DUITKU_CALLBACK_IPS', ''))))),
     ],
 
     'slack' => [

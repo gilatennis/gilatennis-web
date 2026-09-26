@@ -58,6 +58,11 @@ class TournamentRegistration extends Model
         return $this->hasMany(TournamentRegistrationPlayer::class, 'tournament_registration_id')->orderBy('sort_order');
     }
 
+    public function paymentEvents(): HasMany
+    {
+        return $this->hasMany(PaymentEvent::class, 'tournament_registration_id')->latest('id');
+    }
+
     public function markAsPaid(?string $reference = null): void
     {
         $attributes = [

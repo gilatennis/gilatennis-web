@@ -441,6 +441,7 @@ describe('Registration Validation', function () {
 describe('Duitku Webhook', function () {
     beforeEach(function () {
         config(['services.duitku.api_key' => 'testapikey']);
+        app()->forgetInstance(DuitkuService::class);
     });
 
     it('marks payment as paid on resultCode 00', function () {
@@ -455,11 +456,11 @@ describe('Duitku Webhook', function () {
 
         $this->post(route('webhooks.duitku'), [
             'merchantCode' => 'TESTMERCHANT',
-            'amount' => '5000',
+            'amount' => '50',
             'merchantOrderId' => 'GO-2026-TEST',
             'resultCode' => '00',
             'reference' => 'DK-PAID-REF',
-            'signature' => md5('TESTMERCHANT'.'5000'.'GO-2026-TEST'.'testapikey'),
+            'signature' => hash_hmac('sha256', 'TESTMERCHANT'.'50'.'GO-2026-TEST', 'testapikey'),
         ])->assertOk();
 
         $reg->refresh();
@@ -479,10 +480,10 @@ describe('Duitku Webhook', function () {
 
         $this->post(route('webhooks.duitku'), [
             'merchantCode' => 'TESTMERCHANT',
-            'amount' => '5000',
+            'amount' => '50',
             'merchantOrderId' => 'GO-2026-TEST2',
             'resultCode' => '01',
-            'signature' => md5('TESTMERCHANT'.'5000'.'GO-2026-TEST2'.'testapikey'),
+            'signature' => hash_hmac('sha256', 'TESTMERCHANT'.'50'.'GO-2026-TEST2', 'testapikey'),
         ])->assertOk();
 
         $reg->refresh();
@@ -503,10 +504,10 @@ describe('Duitku Webhook', function () {
 
         $this->post(route('webhooks.duitku'), [
             'merchantCode' => 'TESTMERCHANT',
-            'amount' => '5000',
+            'amount' => '50',
             'merchantOrderId' => 'GO-2026-TEST3',
             'resultCode' => '00',
-            'signature' => md5('TESTMERCHANT'.'5000'.'GO-2026-TEST3'.'testapikey'),
+            'signature' => hash_hmac('sha256', 'TESTMERCHANT'.'50'.'GO-2026-TEST3', 'testapikey'),
         ])->assertOk();
 
         $div->refresh();
@@ -731,6 +732,25 @@ describe('Duitku Return Controller', function () {
         $this->get('/payments/duitku/return?merchantOrderId='.$reg->confirmation_code)
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Tournaments/PaymentPending'));
+    });
+
+    it('does not settle payment from a forged resultCode=00 return url', function () {
+        $reg = TournamentRegistration::factory()->create(['payment_status' => 'processing']);
+
+        $this->get('/payments/duitku/return?merchantOrderId='.$reg->confirmation_code.'&resultCode=00&reference=FORGED')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Tournaments/PaymentPending'));
+
+        $reg->refresh();
+        expect($reg->payment_status)->toBe('processing');
+        expect($reg->payment_reference)->not->toBe('FORGED');
+
+        $this->assertDatabaseHas('payment_events', [
+            'tournament_registration_id' => $reg->id,
+            'source' => 'return',
+            'signature_valid' => false,
+            'result_code' => '00',
+        ]);
     });
 });
 
