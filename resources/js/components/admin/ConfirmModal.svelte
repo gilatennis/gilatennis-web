@@ -88,6 +88,7 @@
                 <Button variant="outline" onclick={requestClose}>Cancel</Button>
                 <Button
                     variant={destructive ? 'destructive' : 'coral'}
+                    data-testid="confirm-modal-accept"
                     onclick={() => {
                         onConfirm?.();
                         requestClose();

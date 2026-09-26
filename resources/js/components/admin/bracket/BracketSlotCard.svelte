@@ -186,6 +186,7 @@
                 {:else}
                     <button
                         type="button"
+                        data-testid="start-slot-{slot.id}"
                         onclick={() => onStart(slot)}
                         class="h-7 inline-flex items-center justify-center gap-1.5 bg-neutral-900 text-white text-[10px] font-bold uppercase tracking-[0.12em] hover:opacity-90"
                     >
@@ -205,6 +206,7 @@
                         {@const entrant = row.entrant}
                         <button
                             type="button"
+                            data-testid="advance-slot-{slot.id}-side-{row.side}"
                             onclick={() => onAdvance(slot, entrant)}
                             class="h-6 inline-flex items-center justify-center gap-1 border text-[9px] font-bold uppercase tracking-[0.08em] truncate px-1 {leadingSide ===
                             row.side
