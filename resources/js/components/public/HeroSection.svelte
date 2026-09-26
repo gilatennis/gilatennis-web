@@ -200,7 +200,7 @@
                                     <span
                                         class="flex items-center gap-0.5 text-coral"
                                     >
-                                        {#each [1, 2, 3, 4, 5] as _}
+                                        {#each [1, 2, 3, 4, 5] as _ (_)}
                                             <Star
                                                 size={11}
                                                 fill="currentColor"
@@ -222,7 +222,7 @@
 
             <!-- Sidebar stack -->
             <aside class="lg:col-span-4 flex flex-col gap-6">
-                {#each sideStories as story}
+                {#each sideStories as story (story.title)}
                     <SideStory {...story} />
                 {/each}
             </aside>

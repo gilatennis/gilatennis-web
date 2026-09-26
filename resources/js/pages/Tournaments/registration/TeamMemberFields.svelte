@@ -272,7 +272,7 @@
                                         {player.level || 'Select level'}
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {#each levelOptions as opt}
+                                        {#each levelOptions as opt (opt)}
                                             <SelectItem
                                                 value={opt}
                                                 label={opt}

@@ -19,7 +19,7 @@
 </script>
 
 <div class="flex items-center gap-0 mb-10">
-    {#each steps as label, i}
+    {#each steps as label, i (label)}
         {@const done = i < step}
         {@const active = i === step}
 

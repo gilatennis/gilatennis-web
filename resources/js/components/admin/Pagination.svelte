@@ -35,7 +35,7 @@
         >
             <ChevronLeft class="size-3.5" />
         </button>
-        {#each Array.from({ length: lastPage }, (_, i) => i + 1) as p}
+        {#each Array.from({ length: lastPage }, (_, i) => i + 1) as p (p)}
             <button
                 type="button"
                 onclick={() => onPage(p)}

@@ -64,7 +64,7 @@
                 </p>
                 -->
                 <div class="mt-6 flex gap-2">
-                    {#each social as s}
+                    {#each social as s (s)}
                         <a
                             href="#"
                             class="h-10 w-10 grid place-items-center border border-white/20 text-xs font-bold hover:bg-coral hover:border-coral transition-colors"
@@ -74,7 +74,7 @@
                     {/each}
                 </div>
             </div>
-            {#each cols as col}
+            {#each cols as col (col.h)}
                 <div class="lg:col-span-2">
                     <div
                         class="text-[11px] font-bold uppercase tracking-[0.25em] text-coral mb-4"
@@ -82,7 +82,7 @@
                         {col.h}
                     </div>
                     <ul class="space-y-2.5">
-                        {#each col.links as link}
+                        {#each col.links as link (link)}
                             <li>
                                 <a
                                     href="#"

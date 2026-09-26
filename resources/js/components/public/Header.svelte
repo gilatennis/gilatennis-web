@@ -72,7 +72,7 @@
         <nav
             class="hidden lg:flex items-center gap-7 text-[13.5px] font-medium"
         >
-            {#each categories as cat}
+            {#each categories as cat (cat)}
                 <a
                     href="#"
                     class="relative py-2 hover:text-coral transition-colors"
@@ -81,7 +81,7 @@
                 </a>
             {/each}
             <span class="w-px h-4 bg-black/15 dark:bg-white/15"></span>
-            {#each navLinks as link}
+            {#each navLinks as link (link.href ?? link.label)}
                 <a href={link.href} class="py-2 hover:text-coral"
                     >{link.label}</a
                 >
@@ -158,7 +158,7 @@
                         class="text-[11px] uppercase tracking-[0.2em] text-neutral-500 mr-2 self-center"
                         >Trending</span
                     >
-                    {#each trendingSearches as trend}
+                    {#each trendingSearches as trend (trend)}
                         <button
                             class="px-3 py-1.5 rounded-full border border-black/15 dark:border-white/15 text-xs hover:border-coral hover:text-coral"
                         >
@@ -196,11 +196,11 @@
                 <nav
                     class="flex flex-col gap-4 text-lg font-display font-semibold text-black dark:text-white"
                 >
-                    {#each categories as cat}
+                    {#each categories as cat (cat)}
                         <a href="#" class="hover:text-coral">{cat}</a>
                     {/each}
                     <hr class="border-black/10 dark:border-white/10" />
-                    {#each navLinks as link}
+                    {#each navLinks as link (link.href ?? link.label)}
                         <a href={link.href} class="hover:text-coral"
                             >{link.label}</a
                         >

@@ -33,7 +33,7 @@
 
             <!-- Surface pills -->
             <div class="flex items-center gap-2 overflow-x-auto">
-                {#each surfaces as surf}
+                {#each surfaces as surf (surf)}
                     <button
                         class="shrink-0 px-4 h-12 text-xs uppercase tracking-[0.18em] font-bold border border-input hover:border-foreground hover:bg-foreground hover:text-background transition-colors rounded-md"
                     >

@@ -75,7 +75,7 @@
 
     <div class="max-w-[900px]">
         <div class="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
-            {#each [tournament.dates, tournament.city, tournament.venue, tournament.surface_label, tournament.venue_type_label, tournament.ball_type] as v, i}
+            {#each [tournament.dates, tournament.city, tournament.venue, tournament.surface_label, tournament.venue_type_label, tournament.ball_type] as v, i (i)}
                 {#if v}
                     <span
                         class="text-[12px] text-neutral-500 flex items-center gap-1.5"
@@ -112,7 +112,7 @@
 
             <div class="p-6">
                 <div class="grid grid-cols-4 gap-3 mb-5">
-                    {#each [{ label: 'Total', value: registrationStats.total, cls: '' }, { label: 'Paid', value: registrationStats.paid, cls: 'text-emerald-700' }, { label: 'Pending', value: registrationStats.pending, cls: 'text-amber-600' }, { label: 'Failed', value: registrationStats.failed, cls: 'text-red-600' }] as stat}
+                    {#each [{ label: 'Total', value: registrationStats.total, cls: '' }, { label: 'Paid', value: registrationStats.paid, cls: 'text-emerald-700' }, { label: 'Pending', value: registrationStats.pending, cls: 'text-amber-600' }, { label: 'Failed', value: registrationStats.failed, cls: 'text-red-600' }] as stat (stat.label)}
                         <div class="border border-black/8 p-4 bg-neutral-50/50">
                             <div
                                 class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-1"
@@ -305,7 +305,7 @@
                                 Perks
                             </div>
                             <div class="space-y-1">
-                                {#each tournament.perks as p, i}
+                                {#each tournament.perks as p, i (i)}
                                     <div
                                         class="flex items-center gap-2 text-[13px]"
                                     >

@@ -97,7 +97,7 @@
             Division
         </Label>
         <div class="flex flex-col gap-2">
-            {#each divisions as div}
+            {#each divisions as div (div.id)}
                 {@const soldOut = (div.spots_available ?? 0) <= 0}
                 <button
                     type="button"

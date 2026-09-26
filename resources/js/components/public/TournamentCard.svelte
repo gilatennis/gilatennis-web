@@ -191,7 +191,7 @@
             </ul>
         {:else if tournament.perks?.length}
             <ul class="mt-6 space-y-2 text-sm opacity-80">
-                {#each tournament.perks as perk}
+                {#each tournament.perks as perk (perk)}
                     <li class="flex items-start gap-2">
                         <span class="mt-1.5 h-1 w-3 bg-coral shrink-0"></span>
                         {perk}

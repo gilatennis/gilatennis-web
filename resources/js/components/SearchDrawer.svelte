@@ -177,7 +177,7 @@
                         Trending searches
                     </h3>
                     <div class="flex flex-wrap gap-2">
-                        {#each TRENDING_TERMS as term}
+                        {#each TRENDING_TERMS as term (term)}
                             <button
                                 class="px-3 py-1.5 text-xs bg-accent hover:bg-accent/80 rounded-full transition-colors"
                                 onclick={() => {
@@ -208,7 +208,7 @@
                                 Tournaments
                             </h3>
                             <div class="space-y-1">
-                                {#each results.tournaments as result, i}
+                                {#each results.tournaments as result, i (result.id ?? i)}
                                     <a
                                         href={result.url}
                                         class="flex items-center gap-3 px-3 py-2.5 hover:bg-accent rounded-md transition-colors {selectedIndex ===
@@ -254,7 +254,7 @@
                                 Articles
                             </h3>
                             <div class="space-y-1">
-                                {#each results.articles as result, i}
+                                {#each results.articles as result (result.id)}
                                     <a
                                         href={result.url}
                                         class="flex items-center gap-3 px-3 py-2.5 hover:bg-accent rounded-md transition-colors"
@@ -297,7 +297,7 @@
                                 Courts
                             </h3>
                             <div class="space-y-1">
-                                {#each results.courts as result, i}
+                                {#each results.courts as result (result.id)}
                                     <a
                                         href={result.url}
                                         class="flex items-center gap-3 px-3 py-2.5 hover:bg-accent rounded-md transition-colors"

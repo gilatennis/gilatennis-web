@@ -670,7 +670,7 @@
                         name="division_id"
                         value={selectedDivisionId ?? ''}
                     />
-                    {#each computedPlayers as player, i}
+                    {#each computedPlayers as player, i (player.email || i)}
                         <input
                             type="hidden"
                             name="players[{i}][name]"

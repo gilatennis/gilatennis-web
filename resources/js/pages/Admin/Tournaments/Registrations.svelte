@@ -146,7 +146,7 @@
 
     <div class="flex flex-wrap items-center gap-3 mb-5">
         <div class="flex items-center gap-1">
-            {#each ['', 'pending', 'processing', 'paid', 'failed', 'refunded'] as s}
+            {#each ['', 'pending', 'processing', 'paid', 'failed', 'refunded'] as s (s)}
                 <button
                     type="button"
                     onclick={() => {

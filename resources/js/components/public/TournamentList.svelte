@@ -80,7 +80,7 @@
             <div
                 class="flex items-center gap-1.5 overflow-x-auto -mx-6 px-6 mb-8 lg:mb-10"
             >
-                {#each surfaces as surf}
+                {#each surfaces as surf (surf)}
                     <button
                         onclick={() => (activeFilter = surf)}
                         class="shrink-0 px-4 h-9 text-xs uppercase tracking-[0.18em] font-bold transition-colors {activeFilter ===
@@ -96,7 +96,7 @@
 
         <!-- Tournament list (table-style rows) -->
         <div class="border-t border-border">
-            {#each filtered as t}
+            {#each filtered as t (t.slug ?? t.name ?? t)}
                 <Link
                     href={`/tournaments/${t.slug}`}
                     class="group grid grid-cols-1 md:grid-cols-12 items-center gap-4 py-5 border-b border-border hover:bg-muted/30 transition-colors px-4 -mx-4"

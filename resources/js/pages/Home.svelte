@@ -170,7 +170,7 @@
             <div class="grid lg:grid-cols-12 gap-6">
                 <!-- Left: Tournament list -->
                 <div class="lg:col-span-7 flex flex-col">
-                    {#each featuredTournaments as tournament, i}
+                    {#each featuredTournaments as tournament, i (tournament.slug)}
                         <TournamentRow
                             {tournament}
                             isSelected={selectedTournamentIndex === i}

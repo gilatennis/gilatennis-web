@@ -258,7 +258,7 @@
             </div>
             {#if tournament?.rules?.length}
                 <ul class="space-y-3">
-                    {#each tournament.rules as rule}
+                    {#each tournament.rules as rule (rule.id ?? rule)}
                         <li class="flex items-start gap-2 text-sm">
                             <span class="mt-2 h-1 w-3 bg-coral shrink-0"></span>
                             <span

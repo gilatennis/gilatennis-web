@@ -143,7 +143,7 @@
                             <div
                                 class="absolute top-full left-0 mt-1 w-56 bg-white text-black shadow-2xl z-20"
                             >
-                                {#each calendarOptions as opt}
+                                {#each calendarOptions as opt (opt.label)}
                                     {#if opt.url}
                                         <a
                                             href={opt.url}
@@ -289,7 +289,7 @@
                     >
                         {isTeam ? 'Team Roster' : 'Players'}
                     </div>
-                    {#each players as player, i}
+                    {#each players as player, i (player.email || i)}
                         <div
                             class="px-6 py-3 border-b border-white/5 last:border-0 flex items-center justify-between"
                         >

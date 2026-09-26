@@ -1512,7 +1512,7 @@
                         {:else}
                             <div class="space-y-5">
                                 <div class="grid grid-cols-4 gap-3">
-                                    {#each [{ label: 'Total', value: tournament.registrationStats.total, cls: '' }, { label: 'Paid', value: tournament.registrationStats.paid, cls: 'text-emerald-700' }, { label: 'Pending', value: tournament.registrationStats.pending, cls: 'text-amber-600' }, { label: 'Failed', value: tournament.registrationStats.failed, cls: 'text-red-600' }] as stat}
+                                    {#each [{ label: 'Total', value: tournament.registrationStats.total, cls: '' }, { label: 'Paid', value: tournament.registrationStats.paid, cls: 'text-emerald-700' }, { label: 'Pending', value: tournament.registrationStats.pending, cls: 'text-amber-600' }, { label: 'Failed', value: tournament.registrationStats.failed, cls: 'text-red-600' }] as stat (stat.label)}
                                         <div
                                             class="border border-black/8 p-4 bg-neutral-50/50"
                                         >
@@ -1536,7 +1536,7 @@
                                         By Division
                                     </p>
                                     <div class="space-y-1">
-                                        {#each tournament.registrationStats.by_division as d, i}
+                                        {#each tournament.registrationStats.by_division as d, i (d.division_id)}
                                             <Link
                                                 href={`/admin/tournaments/${tournament.id}/divisions/${d.division_id}`}
                                                 class="w-full flex items-center justify-between px-4 h-11 border border-black/8 bg-neutral-50/50 hover:bg-neutral-100 group transition-colors"
@@ -1556,7 +1556,7 @@
                                                         class="size-3.5 text-neutral-400 group-hover:text-neutral-700"
                                                     />
                                                 </div>
-                                                {#each getDivisionErrors(i) as divErr}
+                                                {#each getDivisionErrors(i) as divErr (divErr)}
                                                     <div
                                                         class="px-3 py-1.5 text-red-600 text-[10px] border-b border-red-100 bg-red-50/50"
                                                     >
