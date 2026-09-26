@@ -24,11 +24,7 @@
         <SidebarMenuItem>
             <DropdownMenu class="w-full">
                 <DropdownMenuTrigger asChild>
-                    {#snippet children(props: {
-                        onclick?: (e: Event) => void;
-                        'aria-expanded'?: boolean | 'true' | 'false';
-                        'data-state'?: 'open' | 'closed';
-                    })}
+                    {#snippet children(props)}
                         <SidebarMenuButton
                             size="lg"
                             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"

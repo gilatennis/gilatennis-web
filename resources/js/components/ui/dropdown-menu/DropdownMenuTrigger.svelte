@@ -5,7 +5,7 @@
 
     type TriggerProps = {
         onclick?: (event: MouseEvent) => void;
-        'aria-expanded'?: boolean;
+        'aria-expanded'?: boolean | 'true' | 'false';
         'data-state'?: 'open' | 'closed';
         [key: string]: any;
     };

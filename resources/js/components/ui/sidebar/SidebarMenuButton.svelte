@@ -47,8 +47,8 @@
         return cn(base, sizeClasses[size], activeClasses, className);
     };
 
-    function handleClick() {
-        if (onclick)  onclick();
+    function handleClick(event: MouseEvent) {
+        onclick?.(event);
         if (closeOnMobileClick && $isMobile) {
             setOpenMobile(false);
         }
