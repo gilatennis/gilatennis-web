@@ -202,7 +202,7 @@
             return;
         }
 
-        router.post(slotsRoute.start.url({ ...args, slot: slot.id }), {});
+        router.post(slotsRoute.match.store.url({ ...args, slot: slot.id }), {});
     }
 
     function addRubber(payload: RubberPayload) {
@@ -211,7 +211,7 @@
         }
 
         router.post(
-            slotsRoute.start.url({ ...args, slot: rubbersSlot.id }),
+            slotsRoute.rubbers.store.url({ ...args, slot: rubbersSlot.id }),
             payload,
             { preserveScroll: true },
         );

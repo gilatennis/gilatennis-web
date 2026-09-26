@@ -196,7 +196,7 @@ describe('Admin Bracket Progression', function () {
         $slot = $bracket->slots()->where('round', 1)->orderBy('position')->firstOrFail();
 
         $this->actingAs($this->admin)
-            ->post(route('admin.tournaments.divisions.bracket.slots.start', [
+            ->post(route('admin.tournaments.divisions.bracket.slots.match.store', [
                 'tournament' => $division->tournament_id,
                 'division' => $division->id,
                 'slot' => $slot->id,
@@ -223,7 +223,7 @@ describe('Admin Bracket Progression', function () {
         $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
         $slot = $bracket->slots()->where('round', 1)->orderBy('position')->firstOrFail();
 
-        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.slots.start', [
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.slots.match.store', [
             'tournament' => $division->tournament_id,
             'division' => $division->id,
             'slot' => $slot->id,
@@ -479,7 +479,7 @@ describe('Admin Bracket Cleanup', function () {
         $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
         $slot = $bracket->slots()->where('round', 1)->firstOrFail();
 
-        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.slots.start', [
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.slots.match.store', [
             'tournament' => $division->tournament_id,
             'division' => $division->id,
             'slot' => $slot->id,
@@ -552,7 +552,7 @@ describe('Admin Team Rubber Formats', function () {
         $slot = $bracket->slots()->where('round', 1)->firstOrFail();
 
         $this->actingAs($this->admin)
-            ->post(route('admin.tournaments.divisions.bracket.slots.start', [
+            ->post(route('admin.tournaments.divisions.bracket.slots.rubbers.store', [
                 'tournament' => $division->tournament_id,
                 'division' => $division->id,
                 'slot' => $slot->id,
@@ -595,7 +595,7 @@ describe('Admin Team Rubber Formats', function () {
         $slot = $bracket->slots()->where('round', 1)->firstOrFail();
 
         $this->actingAs($this->admin)
-            ->post(route('admin.tournaments.divisions.bracket.slots.start', [
+            ->post(route('admin.tournaments.divisions.bracket.slots.rubbers.store', [
                 'tournament' => $division->tournament_id,
                 'division' => $division->id,
                 'slot' => $slot->id,
@@ -610,6 +610,52 @@ describe('Admin Team Rubber Formats', function () {
             ->and($match->games_to_win)->toBe(6)
             ->and($match->extend_at_tie)->toBeFalse()
             ->and($match->tiebreak_to)->toBe(7);
+    });
+
+    it('refuses to add a rubber to a singles division', function () {
+        $division = bracketTestDivision(4);
+        bracketTestEntrants($division, 4);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $slot = Bracket::where('division_id', $division->id)->firstOrFail()
+            ->slots()->where('round', 1)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.slots.rubbers.store', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'slot' => $slot->id,
+            ]), ['side_a_name' => 'Ana', 'side_b_name' => 'Cara'])
+            ->assertSessionHasErrors('slot');
+
+        expect(TennisMatch::count())->toBe(0);
+    });
+
+    it('refuses to start a single match on a team division', function () {
+        $division = bracketTestDivision(2, 'team');
+        bracketTestEntrants($division, 2);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $slot = Bracket::where('division_id', $division->id)->firstOrFail()
+            ->slots()->where('round', 1)->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.slots.match.store', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'slot' => $slot->id,
+            ]))
+            ->assertSessionHasErrors('slot');
+
+        expect(TennisMatch::count())->toBe(0);
     });
 });
 
@@ -627,7 +673,7 @@ describe('Admin Bracket Advancement', function () {
         $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
         $slot = $bracket->slots()->where('round', 1)->orderBy('position')->firstOrFail();
 
-        test()->actingAs(test()->admin)->post(route('admin.tournaments.divisions.bracket.slots.start', [
+        test()->actingAs(test()->admin)->post(route('admin.tournaments.divisions.bracket.slots.match.store', [
             'tournament' => $division->tournament_id,
             'division' => $division->id,
             'slot' => $slot->id,
@@ -850,7 +896,7 @@ describe('Admin Bracket Advancement', function () {
             ]);
 
         $this->actingAs($this->admin)
-            ->post(route('admin.tournaments.divisions.bracket.slots.start', advanceArgs($division, $round2->id)));
+            ->post(route('admin.tournaments.divisions.bracket.slots.match.store', advanceArgs($division, $round2->id)));
 
         expect($round2->matches()->count())->toBe(1);
 

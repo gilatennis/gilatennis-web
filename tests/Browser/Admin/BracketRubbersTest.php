@@ -55,7 +55,7 @@ function startTeamRubber(
     string $sideA = 'Ana / Bea',
     string $sideB = 'Cara / Dana',
 ): TennisMatch {
-    test()->actingAs($admin)->post(route('admin.tournaments.divisions.bracket.slots.start', [
+    test()->actingAs($admin)->post(route('admin.tournaments.divisions.bracket.slots.rubbers.store', [
         'tournament' => $division->tournament_id,
         'division' => $division->id,
         'slot' => rubberBracketSlot($division),

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BracketGenerateRequest;
+use App\Http\Requests\Admin\BracketRubberStoreRequest;
 use App\Http\Requests\Admin\BracketSeedRequest;
 use App\Http\Requests\Admin\BracketSlotStartRequest;
 use App\Http\Requests\Admin\BracketSlotUpdateRequest;
@@ -13,6 +14,7 @@ use App\Models\Division;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Services\BracketService;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use InvalidArgumentException;
@@ -60,27 +62,52 @@ class BracketController extends Controller
         return $this->redirectToDivisionBracket($tournament, $division);
     }
 
-    public function startSlot(
+    /**
+     * Start the single match that decides a singles/doubles tie, then send the
+     * admin straight to its scoreboard. Team divisions play individual rubbers
+     * instead and must use {@see self::addRubber()}.
+     */
+    public function startMatch(
         BracketSlotStartRequest $request,
         Tournament $tournament,
         Division $division,
         int $slot,
     ): RedirectResponse {
+        if ($division->participation_category === 'team') {
+            return back()->withErrors(['slot' => 'Team ties are played as individual rubbers. Add a rubber instead.']);
+        }
+
         $bracketSlot = $this->slotOrFail($division, $slot);
 
-        $overrides = array_filter(
-            $request->validated(),
-            fn ($value) => $value !== null,
-        );
-
         try {
-            $match = $this->brackets->startSlot($bracketSlot, $overrides);
+            $match = $this->brackets->startSlot($bracketSlot, $this->slotOverrides($request));
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['slot' => $e->getMessage()]);
         }
 
+        return redirect()->route('admin.tennis-matches.show', $match);
+    }
+
+    /**
+     * Append one rubber (an individual match) to a team tie. A tie may carry
+     * several rubbers, so this keeps the admin on the bracket to add more.
+     */
+    public function addRubber(
+        BracketRubberStoreRequest $request,
+        Tournament $tournament,
+        Division $division,
+        int $slot,
+    ): RedirectResponse {
         if ($division->participation_category !== 'team') {
-            return redirect()->route('admin.tennis-matches.show', $match);
+            return back()->withErrors(['slot' => 'Rubbers are only used for team ties.']);
+        }
+
+        $bracketSlot = $this->slotOrFail($division, $slot);
+
+        try {
+            $this->brackets->startSlot($bracketSlot, $this->slotOverrides($request));
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['slot' => $e->getMessage()]);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Team rubber added.']);
@@ -142,6 +169,17 @@ class BracketController extends Controller
     private function slotOrFail(Division $division, int $slot): BracketSlot
     {
         return $this->bracketOrFail($division)->slots()->findOrFail($slot);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function slotOverrides(FormRequest $request): array
+    {
+        return array_filter(
+            $request->validated(),
+            fn ($value) => $value !== null,
+        );
     }
 
     private function redirectToDivisionBracket(Tournament $tournament, Division $division): RedirectResponse
