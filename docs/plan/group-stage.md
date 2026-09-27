@@ -1,6 +1,6 @@
 # Group Stage (Round-Robin) — Working Plan
 
-Status: **in progress**. Phases 1–7 committed. Next: Phase 8 (e2e + browser polish).
+Status: **complete**. Phases 1–8 committed. `composer ci:check` green (504 tests).
 
 ## Locked decisions
 
@@ -27,6 +27,7 @@ Status: **in progress**. Phases 1–7 committed. Next: Phase 8 (e2e + browser po
 | 5 | `85e69af` | Group membership pivot (`bracket_group_entrants`) as source of truth; `addEntrant`/`moveEntrant`/`setGroupDoubleRoundRobin`; endpoints + routes; `groupOrFail`/`bracketOrFail`/`slotOrFail` fixes; tests |
 | 6 | pending | `bracket_groups.winner_entrant_ids`; `setGroupWinners` + `promoteToKnockout`; endpoints + requests; bye warning; tests |
 | 7 | pending | `ShapesBracket` branch; `Division` bracket relations; TS types; `GroupStageView`/`GroupCard`/`StandingsTable`/dialogs; browser tests |
+| 8 | pending | End-to-end lifecycle (feature) + full UI journey (browser); `composer ci:check` |
 
 Full suite after Phase 3: 468 passed. Phase 4 added 5 green tests. Full suite after Phase 5: 485 passed. Full suite after Phase 6: 496 passed.
 
@@ -104,11 +105,14 @@ still uses the ambiguous `$division->bracket`.
 
 Full suite after Phase 7: 502 passed (includes browser).
 
-## Phase 8 — e2e + browser polish
+## Phase 8 — e2e + browser (DONE)
 
-- Feature e2e: paid entrants → groups → play matchdays → standings → pick winners → promote → knockout champion.
-- Browser test: group→knockout through the UI (log in once; `npm run build` first).
-- `composer ci:check`.
+- `tests/Feature/EndToEnd/GroupStageLifecycleTest.php`: public registration → payment → group
+  generation → every matchday played through the slot/match endpoints → live standings →
+  winner picks → promotion → knockout champion (92 assertions).
+- `tests/Browser/Admin/GroupStageTest.php`: generate via dialog, pick winners from the standings
+  table, promote through the UI, assert the knockout renders; plus locked-assignment check.
+- `composer ci:check` green: eslint, prettier, svelte-check, pint, 504 tests.
 
 ## Commands
 

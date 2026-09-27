@@ -116,3 +116,44 @@ it('locks entrant assignment once a group has started', function () {
 
     $page->assertDontSeeIn('@group-card-'.$group->id, 'Add entrant');
 });
+
+it('carries a group stage through to a promoted knockout from the UI', function () {
+    [$admin, $tournament, $division] = groupStageSetup();
+
+    $page = openGroupStage($admin, $tournament, $division);
+
+    // Generate two groups through the dialog.
+    $page->click('Generate Groups')
+        ->wait(1)
+        ->click('@generate-groups')
+        ->wait(3);
+
+    $bracket = Bracket::where('division_id', $division->id)
+        ->where('type', Bracket::TYPE_GROUP_STAGE)
+        ->firstOrFail();
+
+    // Pick the top entrant from each group's standings table.
+    foreach ($bracket->groups as $group) {
+        $leader = $group->fresh()->entrantIds()->first();
+        $page->click('@pick-winner-'.$leader)->wait(2);
+    }
+
+    // Promote — the button enables once every group has its winner.
+    $page->click('@open-promote')
+        ->wait(1)
+        ->assertSee('Promote Winners')
+        ->click('@promote-winners')
+        ->wait(3);
+
+    $knockout = Bracket::where('division_id', $division->id)
+        ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+        ->firstOrFail();
+
+    expect($knockout->size)->toBe(2);
+
+    $final = $knockout->finalSlot();
+
+    $page->assertSee('Final')
+        ->assertPresent('@advance-slot-'.$final->id.'-side-1')
+        ->assertPresent('@advance-slot-'.$final->id.'-side-2');
+});
