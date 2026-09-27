@@ -44,17 +44,20 @@ class BracketGroup extends Model
     }
 
     /**
-     * The entrants currently placed in this group, derived from its ties and
-     * returned in first-seen order.
+     * The membership rows for this group, ordered by assignment position.
+     */
+    public function entrants(): HasMany
+    {
+        return $this->hasMany(BracketGroupEntrant::class)->orderBy('position');
+    }
+
+    /**
+     * The entrant ids currently placed in this group, in assignment order.
      *
      * @return Collection<int, int>
      */
     public function entrantIds(): Collection
     {
-        return $this->slots
-            ->flatMap(fn (BracketSlot $slot) => [$slot->entrant_a_id, $slot->entrant_b_id])
-            ->filter(fn (?int $id) => $id !== null)
-            ->unique()
-            ->values();
+        return $this->entrants()->pluck('tournament_registration_id');
     }
 }

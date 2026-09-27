@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\MatchStatus;
 use App\Models\Bracket;
 use App\Models\BracketGroup;
+use App\Models\BracketGroupEntrant;
 use App\Models\BracketSlot;
 use App\Models\Division;
 use App\Models\TennisMatch;
@@ -85,15 +86,134 @@ class BracketService
                 ]));
 
             if ($seedingMode === self::SEEDING_AUTO) {
-                $this->distributeEntrants($groups, $entrants->values()->all(), $doubleRoundRobin);
-            } else {
-                foreach ($groups as $group) {
-                    $this->buildGroupFixtures($group, []);
-                }
+                $this->distributeEntrants($groups, $entrants->values()->all());
             }
 
             return $bracket->fresh(['groups.slots']);
         });
+    }
+
+    /**
+     * Whether any tie in the group has been started or decided. Once a group is
+     * live its membership and format are frozen so recorded results stay valid.
+     */
+    public function groupHasStarted(BracketGroup $group): bool
+    {
+        $slotIds = $group->slots()->pluck('id');
+
+        if ($slotIds->isEmpty()) {
+            return false;
+        }
+
+        if ($group->slots()->whereNotNull('winner_entrant_id')->exists()) {
+            return true;
+        }
+
+        return TennisMatch::whereIn('bracket_slot_id', $slotIds)->exists();
+    }
+
+    /**
+     * Add a paid entrant to a group, rebuilding its fixtures. Blocked once the
+     * group has started.
+     */
+    public function addEntrant(BracketGroup $group, TournamentRegistration $entrant): void
+    {
+        $group->load('bracket');
+
+        $this->assertGroupEditable($group);
+
+        if ($entrant->division_id !== $group->bracket->division_id) {
+            throw new InvalidArgumentException('That entrant belongs to a different division.');
+        }
+
+        $placed = BracketGroupEntrant::whereIn(
+            'bracket_group_id',
+            $group->bracket->groups()->pluck('id'),
+        )->where('tournament_registration_id', $entrant->id)->exists();
+
+        if ($placed) {
+            throw new InvalidArgumentException('That entrant is already placed in this group stage.');
+        }
+
+        DB::transaction(function () use ($group, $entrant) {
+            $this->placeEntrants($group, [$entrant], append: true);
+        });
+    }
+
+    /**
+     * Move an entrant from one group to another, rebuilding both fixtures.
+     * Blocked when either group has started.
+     */
+    public function moveEntrant(BracketGroup $from, BracketGroup $to, TournamentRegistration $entrant): void
+    {
+        if ($from->id === $to->id) {
+            throw new InvalidArgumentException('The entrant is already in that group.');
+        }
+
+        if ($from->bracket_id !== $to->bracket_id) {
+            throw new InvalidArgumentException('Groups must belong to the same group stage.');
+        }
+
+        $this->assertGroupEditable($from);
+        $this->assertGroupEditable($to);
+
+        DB::transaction(function () use ($from, $to, $entrant) {
+            $membership = BracketGroupEntrant::where('bracket_group_id', $from->id)
+                ->where('tournament_registration_id', $entrant->id)
+                ->first();
+
+            if ($membership === null) {
+                throw new InvalidArgumentException('That entrant is not in the source group.');
+            }
+
+            $membership->delete();
+
+            $this->placeEntrants($to, [$entrant], append: true);
+            $this->buildGroupFixtures($from);
+        });
+    }
+
+    /**
+     * Rebuild the group's fixtures under a different round-robin length.
+     * Blocked once the group has started.
+     */
+    public function setGroupDoubleRoundRobin(BracketGroup $group, bool $doubleRoundRobin): void
+    {
+        $this->assertGroupEditable($group);
+
+        DB::transaction(function () use ($group, $doubleRoundRobin) {
+            $group->update(['double_round_robin' => $doubleRoundRobin]);
+
+            $this->buildGroupFixtures($group);
+        });
+    }
+
+    private function assertGroupEditable(BracketGroup $group): void
+    {
+        if ($this->groupHasStarted($group)) {
+            throw new InvalidArgumentException('This group has already started; its fixtures are locked.');
+        }
+    }
+
+    /**
+     * Write membership rows for a group, then (re)build its fixtures. Membership
+     * is the source of truth, so this works before any fixture can exist.
+     *
+     * @param  array<int, TournamentRegistration>  $entrants
+     */
+    private function placeEntrants(BracketGroup $group, array $entrants, bool $append = false): void
+    {
+        $offset = $append ? (int) $group->entrants()->max('position') + 1 : 0;
+
+        foreach (array_values($entrants) as $index => $entrant) {
+            BracketGroupEntrant::create([
+                'bracket_group_id' => $group->id,
+                'tournament_registration_id' => $entrant->id,
+                'position' => $offset + $index,
+            ]);
+        }
+
+        $this->buildGroupFixtures($group);
     }
 
     /**
@@ -292,6 +412,7 @@ class BracketService
     public function standings(BracketGroup $group): Collection
     {
         $group->loadMissing([
+            'entrants.registration.team',
             'slots.entrantA.team',
             'slots.entrantB.team',
             'slots.matches.state',
@@ -299,20 +420,18 @@ class BracketService
 
         $entrants = [];
 
+        foreach ($group->entrants as $membership) {
+            $registration = $membership->registration;
+
+            if ($registration !== null && ! isset($entrants[$registration->id])) {
+                $entrants[$registration->id] = $this->standingRow($registration);
+            }
+        }
+
         foreach ($group->slots as $slot) {
             foreach ([$slot->entrantA, $slot->entrantB] as $entrant) {
                 if ($entrant !== null && ! isset($entrants[$entrant->id])) {
-                    $entrants[$entrant->id] = [
-                        'entrant_id' => $entrant->id,
-                        'name' => $entrant->team?->name ?? $entrant->name,
-                        'played' => 0,
-                        'wins' => 0,
-                        'losses' => 0,
-                        'sets_for' => 0,
-                        'sets_against' => 0,
-                        'games_for' => 0,
-                        'games_against' => 0,
-                    ];
+                    $entrants[$entrant->id] = $this->standingRow($entrant);
                 }
             }
         }
@@ -362,6 +481,26 @@ class BracketService
 
             return $row;
         });
+    }
+
+    /**
+     * A zeroed standings row for an entrant.
+     *
+     * @return array<string, mixed>
+     */
+    private function standingRow(TournamentRegistration $entrant): array
+    {
+        return [
+            'entrant_id' => $entrant->id,
+            'name' => $entrant->team?->name ?? $entrant->name,
+            'played' => 0,
+            'wins' => 0,
+            'losses' => 0,
+            'sets_for' => 0,
+            'sets_against' => 0,
+            'games_for' => 0,
+            'games_against' => 0,
+        ];
     }
 
     /**
@@ -449,7 +588,7 @@ class BracketService
      * @param  Collection<int, BracketGroup>  $groups
      * @param  array<int, TournamentRegistration>  $entrants
      */
-    private function distributeEntrants(Collection $groups, array $entrants, bool $doubleRoundRobin): void
+    private function distributeEntrants(Collection $groups, array $entrants): void
     {
         $groupCount = $groups->count();
         $buckets = array_fill(0, $groupCount, []);
@@ -463,21 +602,27 @@ class BracketService
         }
 
         foreach ($groups as $group) {
-            $this->buildGroupFixtures($group, $buckets[$group->position], $doubleRoundRobin);
+            $this->placeEntrants($group, $buckets[$group->position]);
         }
     }
 
     /**
-     * Build (or rebuild) a group's round-robin fixtures from an ordered list of
-     * entrants. Fixtures are laid out matchday-first: `round` is the matchday
-     * and `position` is the fixture index within it. A group with fewer than two
-     * entrants keeps its group row but has no fixtures.
-     *
-     * @param  array<int, TournamentRegistration>  $entrants
+     * Build (or rebuild) a group's round-robin fixtures from its membership.
+     * Fixtures are laid out matchday-first: `round` is the matchday and
+     * `position` is the fixture index within it. A group with fewer than two
+     * entrants keeps its members but has no fixtures.
      */
-    private function buildGroupFixtures(BracketGroup $group, array $entrants, ?bool $doubleRoundRobin = null): void
+    private function buildGroupFixtures(BracketGroup $group): void
     {
         $group->slots()->delete();
+
+        $entrants = $group->entrants()
+            ->with('registration')
+            ->get()
+            ->map(fn (BracketGroupEntrant $membership) => $membership->registration)
+            ->filter()
+            ->values()
+            ->all();
 
         $count = count($entrants);
 
@@ -485,8 +630,7 @@ class BracketService
             return;
         }
 
-        $double = $doubleRoundRobin ?? $group->double_round_robin;
-        $schedule = (new RoundRobinScheduler)->schedule($count, $double);
+        $schedule = (new RoundRobinScheduler)->schedule($count, $group->double_round_robin);
 
         foreach ($schedule as $matchdayIndex => $fixtures) {
             foreach ($fixtures as $fixtureIndex => [$sideA, $sideB, $leg]) {

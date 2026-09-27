@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BracketGenerateRequest;
+use App\Http\Requests\Admin\BracketGroupEntrantRequest;
 use App\Http\Requests\Admin\BracketGroupGenerateRequest;
+use App\Http\Requests\Admin\BracketGroupSettingsRequest;
 use App\Http\Requests\Admin\BracketRubberStoreRequest;
 use App\Http\Requests\Admin\BracketSeedRequest;
 use App\Http\Requests\Admin\BracketSlotStartRequest;
 use App\Http\Requests\Admin\BracketSlotUpdateRequest;
 use App\Models\Bracket;
+use App\Models\BracketGroup;
 use App\Models\BracketSlot;
 use App\Models\Division;
 use App\Models\Tournament;
@@ -56,6 +59,84 @@ class BracketController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Group stage generated.']);
+
+        return $this->redirectToDivisionBracket($tournament, $division);
+    }
+
+    /**
+     * Add a paid entrant to a group, rebuilding its round-robin fixtures.
+     */
+    public function addGroupEntrant(
+        BracketGroupEntrantRequest $request,
+        Tournament $tournament,
+        Division $division,
+        int $group,
+    ): RedirectResponse {
+        $bracketGroup = $this->groupOrFail($division, $group);
+        $entrant = TournamentRegistration::where('division_id', $division->id)
+            ->findOrFail($request->integer('entrant_id'));
+
+        try {
+            $this->brackets->addEntrant($bracketGroup, $entrant);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['entrant_id' => $e->getMessage()]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Entrant added to group.']);
+
+        return $this->redirectToDivisionBracket($tournament, $division);
+    }
+
+    /**
+     * Move an entrant from one group to another, rebuilding both fixtures.
+     */
+    public function moveGroupEntrant(
+        BracketGroupEntrantRequest $request,
+        Tournament $tournament,
+        Division $division,
+        int $group,
+    ): RedirectResponse {
+        if ($request->validated('to_group_id') === null) {
+            return back()->withErrors(['to_group_id' => 'Choose the destination group.']);
+        }
+
+        $from = $this->groupOrFail($division, $group);
+        $to = $this->groupOrFail($division, $request->integer('to_group_id'));
+        $entrant = TournamentRegistration::where('division_id', $division->id)
+            ->findOrFail($request->integer('entrant_id'));
+
+        try {
+            $this->brackets->moveEntrant($from, $to, $entrant);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['entrant_id' => $e->getMessage()]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Entrant moved.']);
+
+        return $this->redirectToDivisionBracket($tournament, $division);
+    }
+
+    /**
+     * Toggle a group between single and double round-robin, rebuilding fixtures.
+     */
+    public function updateGroupSettings(
+        BracketGroupSettingsRequest $request,
+        Tournament $tournament,
+        Division $division,
+        int $group,
+    ): RedirectResponse {
+        $bracketGroup = $this->groupOrFail($division, $group);
+
+        try {
+            $this->brackets->setGroupDoubleRoundRobin(
+                $bracketGroup,
+                $request->boolean('double_round_robin'),
+            );
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['group' => $e->getMessage()]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Group updated.']);
 
         return $this->redirectToDivisionBracket($tournament, $division);
     }
@@ -187,12 +268,25 @@ class BracketController extends Controller
 
     private function bracketOrFail(Division $division): Bracket
     {
-        return $division->bracket ?? abort(404);
+        return Bracket::where('division_id', $division->id)
+            ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+            ->first() ?? abort(404);
     }
 
     private function slotOrFail(Division $division, int $slot): BracketSlot
     {
-        return $this->bracketOrFail($division)->slots()->findOrFail($slot);
+        $bracketIds = Bracket::where('division_id', $division->id)->pluck('id');
+
+        return BracketSlot::whereIn('bracket_id', $bracketIds)->findOrFail($slot);
+    }
+
+    private function groupOrFail(Division $division, int $group): BracketGroup
+    {
+        $bracket = Bracket::where('division_id', $division->id)
+            ->where('type', Bracket::TYPE_GROUP_STAGE)
+            ->first();
+
+        return $bracket?->groups()->findOrFail($group) ?? abort(404);
     }
 
     /**

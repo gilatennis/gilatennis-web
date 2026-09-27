@@ -2,6 +2,7 @@
 
 use App\Models\Bracket;
 use App\Models\BracketGroup;
+use App\Models\BracketGroupEntrant;
 use App\Models\BracketSlot;
 use App\Models\Division;
 use App\Models\Role;
@@ -129,16 +130,11 @@ describe('Bracket group model', function () {
         $group = BracketGroup::factory()->forBracket($bracket)->named('Group A', 0)->create();
         [$a, $b, $c] = groupStageEntrants($bracket, 3);
 
-        BracketSlot::factory()->inGroup($group)->round(1, 0)->create([
-            'entrant_a_id' => $a->id,
-            'entrant_b_id' => $b->id,
-        ]);
-        BracketSlot::factory()->inGroup($group)->round(1, 1)->create([
-            'entrant_a_id' => $b->id,
-            'entrant_b_id' => $c->id,
-        ]);
+        BracketGroupEntrant::factory()->inGroup($group)->forEntrant($a, 0)->create();
+        BracketGroupEntrant::factory()->inGroup($group)->forEntrant($b, 1)->create();
+        BracketGroupEntrant::factory()->inGroup($group)->forEntrant($c, 2)->create();
 
-        expect($group->fresh()->load('slots')->entrantIds()->all())
+        expect($group->fresh()->entrantIds()->all())
             ->toBe([$a->id, $b->id, $c->id]);
     });
 });
@@ -271,5 +267,229 @@ describe('Group stage generation', function () {
 
         expect($bracket->groups)->toHaveCount(2)
             ->and($bracket->slots()->count())->toBe(12);
+    });
+});
+
+describe('Group entrant management', function () {
+    it('adds entrants to an empty group and rebuilds its fixtures', function () {
+        $division = groupTestDivision(8, 'singles');
+        $entrants = groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups(
+            $division, 2, [1, 1], false, BracketService::SEEDING_MANUAL,
+        );
+        $group = $bracket->groups->firstWhere('position', 0);
+
+        expect($group->slots)->toHaveCount(0);
+
+        $service = app(BracketService::class);
+        $service->addEntrant($group, $entrants[0]);
+        $service->addEntrant($group, $entrants[1]);
+        $service->addEntrant($group, $entrants[2]);
+
+        expect($group->fresh()->entrantIds()->all())
+            ->toBe([$entrants[0]->id, $entrants[1]->id, $entrants[2]->id])
+            ->and($group->slots()->count())->toBe(3);
+    });
+
+    it('rejects adding an entrant already placed in the group stage', function () {
+        $division = groupTestDivision(8, 'singles');
+        $entrants = groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $group = $bracket->groups->firstWhere('position', 0);
+
+        expect(fn () => app(BracketService::class)->addEntrant($group, $entrants[0]))
+            ->toThrow(InvalidArgumentException::class, 'already placed');
+    });
+
+    it('moves an entrant between groups and rebuilds both', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $groupA = $bracket->groups->firstWhere('position', 0);
+        $groupB = $bracket->groups->firstWhere('position', 1);
+
+        $mover = TournamentRegistration::find($groupA->entrantIds()->first());
+
+        app(BracketService::class)->moveEntrant($groupA, $groupB, $mover);
+
+        expect($groupA->fresh()->entrantIds())->toHaveCount(3)
+            ->and($groupA->slots()->count())->toBe(3)
+            ->and($groupB->fresh()->entrantIds())->toHaveCount(5)
+            ->and($groupB->slots()->count())->toBe(10);
+    });
+
+    it('blocks moves once a group has started', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $groupA = $bracket->groups->firstWhere('position', 0);
+        $groupB = $bracket->groups->firstWhere('position', 1);
+
+        $slot = $groupA->slots->first();
+        $slot->update(['winner_entrant_id' => $slot->entrant_a_id]);
+
+        $mover = TournamentRegistration::find($groupA->entrantIds()->first());
+
+        expect(fn () => app(BracketService::class)->moveEntrant($groupA, $groupB, $mover))
+            ->toThrow(InvalidArgumentException::class, 'already started');
+    });
+
+    it('toggles a single group to a double round robin and rebuilds it', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $groupA = $bracket->groups->firstWhere('position', 0);
+        $groupB = $bracket->groups->firstWhere('position', 1);
+
+        expect($groupA->slots)->toHaveCount(6);
+
+        app(BracketService::class)->setGroupDoubleRoundRobin($groupA, true);
+
+        expect($groupA->fresh()->double_round_robin)->toBeTrue()
+            ->and($groupA->slots()->count())->toBe(12)
+            ->and($groupA->slots()->where('leg', 2)->count())->toBe(6)
+            ->and($groupB->slots()->count())->toBe(6);
+    });
+
+    it('blocks the round-robin toggle once a group has started', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $groupA = $bracket->groups->firstWhere('position', 0);
+
+        $slot = $groupA->slots->first();
+        $slot->update(['winner_entrant_id' => $slot->entrant_a_id]);
+
+        expect(fn () => app(BracketService::class)->setGroupDoubleRoundRobin($groupA, true))
+            ->toThrow(InvalidArgumentException::class, 'already started');
+    });
+
+    it('adds an entrant through the admin endpoint', function () {
+        $division = groupTestDivision(8, 'singles');
+        $entrants = groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups(
+            $division, 2, [1, 1], false, BracketService::SEEDING_MANUAL,
+        );
+        $group = $bracket->groups->firstWhere('position', 0);
+
+        $route = route('admin.tournaments.divisions.bracket.groups.entrants.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+            'group' => $group->id,
+        ]);
+
+        $this->actingAs($this->admin)->post($route, ['entrant_id' => $entrants[0]->id])->assertRedirect();
+        $this->actingAs($this->admin)->post($route, ['entrant_id' => $entrants[1]->id])->assertRedirect();
+
+        expect($group->fresh()->entrantIds())->toHaveCount(2)
+            ->and($group->slots()->count())->toBe(1);
+    });
+
+    it('validates the entrant id when adding', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups(
+            $division, 2, [1, 1], false, BracketService::SEEDING_MANUAL,
+        );
+        $group = $bracket->groups->firstWhere('position', 0);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.groups.entrants.store', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'group' => $group->id,
+            ]), [])
+            ->assertSessionHasErrors('entrant_id');
+    });
+
+    it('moves an entrant through the admin endpoint and requires a target group', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $groupA = $bracket->groups->firstWhere('position', 0);
+        $groupB = $bracket->groups->firstWhere('position', 1);
+        $entrant = TournamentRegistration::find($groupA->entrantIds()->first());
+
+        $route = route('admin.tournaments.divisions.bracket.groups.entrants.move', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+            'group' => $groupA->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post($route, ['entrant_id' => $entrant->id])
+            ->assertSessionHasErrors('to_group_id');
+
+        $this->actingAs($this->admin)
+            ->post($route, ['entrant_id' => $entrant->id, 'to_group_id' => $groupB->id])
+            ->assertRedirect();
+
+        expect($groupA->fresh()->entrantIds())->not->toContain($entrant->id)
+            ->and($groupB->fresh()->entrantIds())->toContain($entrant->id);
+    });
+
+    it('updates a group setting through the admin endpoint', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $groupA = $bracket->groups->firstWhere('position', 0);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.groups.settings.update', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'group' => $groupA->id,
+            ]), ['double_round_robin' => true])
+            ->assertRedirect();
+
+        expect($groupA->fresh()->double_round_robin)->toBeTrue()
+            ->and($groupA->slots()->count())->toBe(12);
+    });
+
+    it('returns 404 for a group outside the division', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+        app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+
+        $other = groupTestDivision(8, 'singles');
+        groupTestEntrants($other, 8);
+        $foreignGroup = app(BracketService::class)->generateGroups($other, 2, [1, 1])
+            ->groups->firstWhere('position', 0);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.groups.entrants.store', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'group' => $foreignGroup->id,
+            ]), ['entrant_id' => $division->registrations()->value('id')])
+            ->assertNotFound();
+    });
+
+    it('decides a group tie through the shared slot endpoint', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $slot = $bracket->groups->firstWhere('position', 0)->slots->first();
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.slots.update', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'slot' => $slot->id,
+            ]), ['winner_entrant_id' => $slot->entrant_a_id])
+            ->assertRedirect();
+
+        expect($slot->fresh()->winner_entrant_id)->toBe($slot->entrant_a_id);
     });
 });

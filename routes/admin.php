@@ -54,6 +54,18 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.groups.store');
 
+    Route::post('tournaments/{tournament}/divisions/{division}/bracket/groups/{group}/entrants', [BracketController::class, 'addGroupEntrant'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.groups.entrants.store');
+
+    Route::post('tournaments/{tournament}/divisions/{division}/bracket/groups/{group}/entrants/move', [BracketController::class, 'moveGroupEntrant'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.groups.entrants.move');
+
+    Route::patch('tournaments/{tournament}/divisions/{division}/bracket/groups/{group}/settings', [BracketController::class, 'updateGroupSettings'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.groups.settings.update');
+
     Route::delete('tournaments/{tournament}/divisions/{division}/bracket', [BracketController::class, 'destroy'])
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.destroy');
