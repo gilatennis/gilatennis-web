@@ -1,6 +1,6 @@
 # Group Stage (Round-Robin) — Working Plan
 
-Status: **in progress**. Phases 1–6 committed. Next: Phase 7 (shaping + frontend).
+Status: **in progress**. Phases 1–7 committed. Next: Phase 8 (e2e + browser polish).
 
 ## Locked decisions
 
@@ -26,6 +26,7 @@ Status: **in progress**. Phases 1–6 committed. Next: Phase 7 (shaping + fronte
 | 4 | `18d9c88` | `BracketService::standings` + tests |
 | 5 | `85e69af` | Group membership pivot (`bracket_group_entrants`) as source of truth; `addEntrant`/`moveEntrant`/`setGroupDoubleRoundRobin`; endpoints + routes; `groupOrFail`/`bracketOrFail`/`slotOrFail` fixes; tests |
 | 6 | pending | `bracket_groups.winner_entrant_ids`; `setGroupWinners` + `promoteToKnockout`; endpoints + requests; bye warning; tests |
+| 7 | pending | `ShapesBracket` branch; `Division` bracket relations; TS types; `GroupStageView`/`GroupCard`/`StandingsTable`/dialogs; browser tests |
 
 Full suite after Phase 3: 468 passed. Phase 4 added 5 green tests. Full suite after Phase 5: 485 passed. Full suite after Phase 6: 496 passed.
 
@@ -83,15 +84,27 @@ Winners are the **picked qualifiers**, stored on the group (not derived from sta
 Still open: `syncStatus` can flip a group bracket `completed` (Phase 7 concern); `destroy()`
 still uses the ambiguous `$division->bracket`.
 
-## Phase 7 — shaping + frontend
+## Phase 7 — shaping + frontend (DONE)
 
-- `ShapesBracket`: branch on `bracket.type`; `group_stage` → `groups[]` with `matchdays[]` + `standings[]`; `single_elimination` → existing `rounds[]`.
-- Svelte: `GroupStageView`, `GroupCard`, `StandingsTable`, `GenerateGroupsDialog` (count, advance counts, single/double, auto/manual), `EntrantAssignmentPanel` (add/move; disabled when started), `GroupMatchdays`, `PromoteWinnersDialog` (bye warning).
-- `BracketView` dispatches on `bracket.type`.
-- TS types: `BracketGroup`, `GroupStanding`; extend `BracketType` with `'group_stage'`.
-- `php artisan wayfinder:generate` after routes.
+- `ShapesBracket` branches on `bracket.type`: `shapeKnockout()` (rounds) and
+  `shapeGroupStage()`/`shapeGroup()` (groups → `matchdays[]` + `standings[]` + `entrants[]` +
+  `winner_entrant_ids`).
+- `Division` model: `bracket()` is now the knockout (type-filtered), `groupStage()` the
+  group stage, plus `brackets()`; both are loaded and shaped on the division page
+  (`bracket` + `groupStage` props). `destroy()` takes `?type=` (default knockout).
+- TS types (`types/bracket.ts`): `BracketType` gains `'group_stage'`; new `BracketGroup`,
+  `GroupMatchday`, `GroupStanding`, `KnockoutBracket`, `GroupStageBracket`; `Bracket` carries
+  both `rounds` and `groups`.
+- Svelte: `GroupStageView` (generate/promote/delete + entrant management wiring +
+  shared advance/undo/rubbers flow), `GroupCard`, `StandingsTable` (with winner picking),
+  `GenerateGroupsDialog`, `PromoteWinnersDialog` (bye warning). `Division.svelte` renders the
+  group stage above the knockout on the Matches tab.
+- Tests: group-stage payload shaping + type-scoped delete (feature);
+  `tests/Browser/Admin/GroupStageTest.php` (generate via UI, promote, locked assignment).
 
-## Phase 8 — e2e + browser
+Full suite after Phase 7: 502 passed (includes browser).
+
+## Phase 8 — e2e + browser polish
 
 - Feature e2e: paid entrants → groups → play matchdays → standings → pick winners → promote → knockout champion.
 - Browser test: group→knockout through the UI (log in once; `npm run build` first).

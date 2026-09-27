@@ -9,6 +9,7 @@ use App\Models\TennisMatch;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
+use App\Services\BracketService;
 
 beforeEach(function () {
     $this->admin = User::factory()->create();
@@ -535,6 +536,74 @@ describe('Admin Division Bracket Payload', function () {
             ]))
             ->assertStatus(200)
             ->assertInertia(fn ($page) => $page->where('bracket', null));
+    });
+});
+
+describe('Admin Group Stage Payload', function () {
+    it('shapes the group stage alongside the knockout bracket', function () {
+        $division = bracketTestDivision(8);
+        bracketTestEntrants($division, 8);
+
+        app(BracketService::class)->generateGroups($division, 2, [2, 2]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.divisions.show', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+            ]))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Tournaments/Division')
+                ->where('groupStage.type', 'group_stage')
+                ->has('groupStage.groups', 2)
+                ->has('groupStage.groups.0.matchdays', 3)
+                ->has('groupStage.groups.0.standings', 4)
+                ->has('groupStage.groups.0.entrants', 4)
+                ->where('groupStage.groups.0.advance_count', 2)
+                ->where('bracket', null)
+            );
+    });
+
+    it('keeps group ties out of the knockout rounds payload', function () {
+        $division = bracketTestDivision(8);
+        bracketTestEntrants($division, 8);
+
+        $service = app(BracketService::class);
+        $service->generate($division);
+        $service->generateGroups($division, 2, [2, 2]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.divisions.show', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+            ]))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->where('bracket.type', 'single_elimination')
+                ->has('bracket.rounds', 3)
+                ->has('groupStage.groups', 2)
+            );
+    });
+
+    it('deletes only the group stage when its type is targeted', function () {
+        $division = bracketTestDivision(8);
+        bracketTestEntrants($division, 8);
+
+        $service = app(BracketService::class);
+        $service->generate($division);
+        $service->generateGroups($division, 2, [2, 2]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.destroy', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'type' => 'group_stage',
+            ]))
+            ->assertRedirect();
+
+        expect(Bracket::where('division_id', $division->id)->count())->toBe(1)
+            ->and(Bracket::where('division_id', $division->id)->where('type', Bracket::TYPE_GROUP_STAGE)->exists())->toBeFalse()
+            ->and(Bracket::where('division_id', $division->id)->where('type', Bracket::TYPE_SINGLE_ELIMINATION)->exists())->toBeTrue();
     });
 });
 

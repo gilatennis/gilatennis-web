@@ -6,6 +6,7 @@
     import X from 'lucide-svelte/icons/x';
     import AdminPage from '@/components/admin/AdminPage.svelte';
     import BracketView from '@/components/admin/bracket/BracketView.svelte';
+    import GroupStageView from '@/components/admin/bracket/GroupStageView.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import RegistrantsTable from '@/components/admin/RegistrantsTable.svelte';
     import AppHead from '@/components/AppHead.svelte';
@@ -25,6 +26,7 @@
         registrations,
         stats,
         bracket,
+        groupStage,
         bracketEntrants,
         filters,
     }: {
@@ -67,6 +69,7 @@
             draw: number;
         };
         bracket: Bracket | null;
+        groupStage: Bracket | null;
         bracketEntrants: BracketEntrantOption[];
         filters: { status?: string; search?: string; tab?: string };
     } = $props();
@@ -376,12 +379,23 @@
             </div>
         {/if}
     {:else if tab === 'matches'}
-        <BracketView
-            {bracket}
-            {division}
-            {tournament}
-            entrants={bracketEntrants}
-        />
+        <div class="flex flex-col gap-8">
+            <GroupStageView
+                {groupStage}
+                {division}
+                {tournament}
+                entrants={bracketEntrants}
+            />
+
+            {#if bracket || groupStage}
+                <BracketView
+                    {bracket}
+                    {division}
+                    {tournament}
+                    entrants={bracketEntrants}
+                />
+            {/if}
+        </div>
     {:else if tab === 'schedule'}
         <div
             class="flex flex-col items-center justify-center py-24 text-center"

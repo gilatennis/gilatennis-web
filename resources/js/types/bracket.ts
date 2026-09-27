@@ -1,6 +1,6 @@
 export type BracketStatus = 'draft' | 'active' | 'completed';
 
-export type BracketType = 'single_elimination';
+export type BracketType = 'single_elimination' | 'group_stage';
 
 export type SeedingMode = 'auto' | 'manual';
 
@@ -57,12 +57,61 @@ export interface BracketRound {
     slots: BracketSlot[];
 }
 
+export interface GroupMatchday {
+    round: number;
+    slots: BracketSlot[];
+}
+
+export interface GroupStanding {
+    entrant_id: number;
+    name: string;
+    played: number;
+    wins: number;
+    losses: number;
+    sets_for: number;
+    sets_against: number;
+    games_for: number;
+    games_against: number;
+    set_diff: number;
+    game_diff: number;
+    rank: number;
+}
+
+export interface BracketGroup {
+    id: number;
+    name: string;
+    position: number;
+    advance_count: number;
+    double_round_robin: boolean;
+    winner_entrant_ids: number[];
+    entrants: BracketEntrant[];
+    matchdays: GroupMatchday[];
+    standings: GroupStanding[];
+}
+
+export interface KnockoutBracket {
+    id: number;
+    type: 'single_elimination';
+    status: BracketStatus;
+    size: number;
+    rounds: BracketRound[];
+}
+
+export interface GroupStageBracket {
+    id: number;
+    type: 'group_stage';
+    status: BracketStatus;
+    size: number;
+    groups: BracketGroup[];
+}
+
 export interface Bracket {
     id: number;
     type: BracketType;
     status: BracketStatus;
     size: number;
     rounds: BracketRound[];
+    groups: BracketGroup[];
 }
 
 export interface BracketEntrantOption {

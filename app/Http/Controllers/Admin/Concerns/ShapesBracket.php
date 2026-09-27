@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin\Concerns;
 
 use App\Models\Bracket;
+use App\Models\BracketGroup;
 use App\Models\BracketSlot;
 use App\Models\TennisMatch;
 use App\Models\TournamentRegistration;
+use App\Services\BracketService;
 
 trait ShapesBracket
 {
@@ -15,6 +17,18 @@ trait ShapesBracket
             return null;
         }
 
+        return $bracket->isGroupStage()
+            ? self::shapeGroupStage($bracket)
+            : self::shapeKnockout($bracket);
+    }
+
+    /**
+     * Shape a single-elimination bracket into rounds of slots.
+     *
+     * @return array<string, mixed>
+     */
+    private static function shapeKnockout(Bracket $bracket): array
+    {
         $bracket->loadMissing([
             'slots.entrantA.team',
             'slots.entrantA.players',
@@ -45,6 +59,75 @@ trait ShapesBracket
             'status' => $bracket->status,
             'size' => $bracket->size,
             'rounds' => $rounds,
+        ];
+    }
+
+    /**
+     * Shape a round-robin group stage into groups, each carrying its matchdays
+     * and live standings.
+     *
+     * @return array<string, mixed>
+     */
+    private static function shapeGroupStage(Bracket $bracket): array
+    {
+        $bracket->loadMissing([
+            'groups.entrants.registration.team',
+            'groups.entrants.registration.players',
+            'groups.slots.entrantA.team',
+            'groups.slots.entrantA.players',
+            'groups.slots.entrantB.team',
+            'groups.slots.entrantB.players',
+            'groups.slots.winnerEntrant.team',
+            'groups.slots.winnerEntrant.players',
+            'groups.slots.matches.state',
+        ]);
+
+        $standings = app(BracketService::class);
+
+        $groups = $bracket->groups
+            ->map(fn (BracketGroup $group) => self::shapeGroup($group, $standings))
+            ->values();
+
+        return [
+            'id' => $bracket->id,
+            'type' => $bracket->type,
+            'status' => $bracket->status,
+            'size' => $bracket->size,
+            'groups' => $groups,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function shapeGroup(BracketGroup $group, BracketService $standings): array
+    {
+        $matchdays = $group->slots
+            ->groupBy('round')
+            ->sortKeys()
+            ->map(fn ($slots, $round) => [
+                'round' => (int) $round,
+                'slots' => $slots
+                    ->sortBy('position')
+                    ->values()
+                    ->map(fn (BracketSlot $slot) => self::shapeSlot($slot))
+                    ->values(),
+            ])
+            ->values();
+
+        return [
+            'id' => $group->id,
+            'name' => $group->name,
+            'position' => $group->position,
+            'advance_count' => $group->advance_count,
+            'double_round_robin' => $group->double_round_robin,
+            'winner_entrant_ids' => $group->winnerIds(),
+            'entrants' => $group->entrants
+                ->map(fn ($membership) => self::shapeEntrant($membership->registration))
+                ->filter()
+                ->values(),
+            'matchdays' => $matchdays,
+            'standings' => $standings->standings($group)->values(),
         ];
     }
 

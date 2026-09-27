@@ -22,6 +22,7 @@ use App\Models\TournamentRegistration;
 use App\Services\BracketService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use InvalidArgumentException;
 
@@ -193,10 +194,24 @@ class BracketController extends Controller
         return $this->redirectToDivisionBracket($tournament, $division);
     }
 
-    public function destroy(Tournament $tournament, Division $division): RedirectResponse
+    /**
+     * Delete one of the division's brackets. Defaults to the knockout bracket;
+     * pass `?type=group_stage` to remove the round-robin stage instead.
+     */
+    public function destroy(Request $request, Tournament $tournament, Division $division): RedirectResponse
     {
-        if ($division->bracket !== null) {
-            $this->brackets->delete($division->bracket);
+        $type = $request->query('type', Bracket::TYPE_SINGLE_ELIMINATION);
+
+        if (! in_array($type, [Bracket::TYPE_SINGLE_ELIMINATION, Bracket::TYPE_GROUP_STAGE], true)) {
+            abort(404);
+        }
+
+        $bracket = Bracket::where('division_id', $division->id)
+            ->where('type', $type)
+            ->first();
+
+        if ($bracket !== null) {
+            $this->brackets->delete($bracket);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Bracket removed.']);

@@ -23,7 +23,7 @@ class DivisionController extends Controller
 
     public function show(Tournament $tournament, Division $division)
     {
-        $division->load(['prizes', 'playerFieldRequirements', 'bracket']);
+        $division->load(['prizes', 'playerFieldRequirements', 'bracket', 'groupStage']);
 
         $query = $division->registrations()
             ->with(['division', 'team', 'players.assessment']);
@@ -114,6 +114,7 @@ class DivisionController extends Controller
             'registrations' => $registrations,
             'stats' => $stats,
             'bracket' => self::shapeBracket($division->bracket),
+            'groupStage' => self::shapeBracket($division->groupStage),
             'bracketEntrants' => $bracketEntrants,
             'filters' => [
                 'status' => $status,

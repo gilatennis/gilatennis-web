@@ -52,9 +52,21 @@ class Division extends Model
         return $this->hasMany(TournamentRegistration::class);
     }
 
+    public function brackets(): HasMany
+    {
+        return $this->hasMany(Bracket::class);
+    }
+
     public function bracket(): HasOne
     {
-        return $this->hasOne(Bracket::class);
+        return $this->hasOne(Bracket::class)
+            ->where('type', Bracket::TYPE_SINGLE_ELIMINATION);
+    }
+
+    public function groupStage(): HasOne
+    {
+        return $this->hasOne(Bracket::class)
+            ->where('type', Bracket::TYPE_GROUP_STAGE);
     }
 
     public function paidRegistrations(): HasMany
