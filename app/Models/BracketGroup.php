@@ -20,12 +20,14 @@ class BracketGroup extends Model
         'position',
         'advance_count',
         'double_round_robin',
+        'winner_entrant_ids',
     ];
 
     protected $casts = [
         'position' => 'integer',
         'advance_count' => 'integer',
         'double_round_robin' => 'boolean',
+        'winner_entrant_ids' => 'array',
     ];
 
     public function bracket(): BelongsTo
@@ -59,5 +61,16 @@ class BracketGroup extends Model
     public function entrantIds(): Collection
     {
         return $this->entrants()->pluck('tournament_registration_id');
+    }
+
+    /**
+     * The entrants picked to advance from this group, in seed order. Empty until
+     * the admin records the picks.
+     *
+     * @return array<int, int>
+     */
+    public function winnerIds(): array
+    {
+        return array_map('intval', $this->winner_entrant_ids ?? []);
     }
 }

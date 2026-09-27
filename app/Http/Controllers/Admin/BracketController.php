@@ -7,6 +7,8 @@ use App\Http\Requests\Admin\BracketGenerateRequest;
 use App\Http\Requests\Admin\BracketGroupEntrantRequest;
 use App\Http\Requests\Admin\BracketGroupGenerateRequest;
 use App\Http\Requests\Admin\BracketGroupSettingsRequest;
+use App\Http\Requests\Admin\BracketGroupWinnerRequest;
+use App\Http\Requests\Admin\BracketPromoteRequest;
 use App\Http\Requests\Admin\BracketRubberStoreRequest;
 use App\Http\Requests\Admin\BracketSeedRequest;
 use App\Http\Requests\Admin\BracketSlotStartRequest;
@@ -137,6 +139,56 @@ class BracketController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Group updated.']);
+
+        return $this->redirectToDivisionBracket($tournament, $division);
+    }
+
+    /**
+     * Record the entrants picked to advance from a group, in seed order.
+     */
+    public function setGroupWinners(
+        BracketGroupWinnerRequest $request,
+        Tournament $tournament,
+        Division $division,
+        int $group,
+    ): RedirectResponse {
+        $bracketGroup = $this->groupOrFail($division, $group);
+
+        try {
+            $this->brackets->setGroupWinners($bracketGroup, $request->validated('winner_ids'));
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['winner_ids' => $e->getMessage()]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Advancing winners saved.']);
+
+        return $this->redirectToDivisionBracket($tournament, $division);
+    }
+
+    /**
+     * Seed the division's knockout bracket from the picked group winners. A
+     * non-power-of-two field is allowed and surfaces as a bye warning.
+     */
+    public function promote(
+        BracketPromoteRequest $request,
+        Tournament $tournament,
+        Division $division,
+    ): RedirectResponse {
+        try {
+            $bracket = $this->brackets->promoteToKnockout(
+                $division,
+                $request->validated('winner_ids'),
+                $request->boolean('seed_pairs_apart', true),
+            );
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['bracket' => $e->getMessage()]);
+        }
+
+        $byes = $bracket->slots()->where('round', 1)->where('bye', true)->count();
+
+        Inertia::flash('toast', $byes > 0
+            ? ['type' => 'warning', 'message' => "Winners promoted. {$byes} entrant(s) enter the knockout with a bye."]
+            : ['type' => 'success', 'message' => 'Winners promoted to the knockout.']);
 
         return $this->redirectToDivisionBracket($tournament, $division);
     }

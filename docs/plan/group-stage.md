@@ -1,6 +1,6 @@
 # Group Stage (Round-Robin) — Working Plan
 
-Status: **in progress**. Phases 1–5 committed. Next: Phase 6 (winners + promotion).
+Status: **in progress**. Phases 1–6 committed. Next: Phase 7 (shaping + frontend).
 
 ## Locked decisions
 
@@ -25,8 +25,9 @@ Status: **in progress**. Phases 1–5 committed. Next: Phase 6 (winners + promot
 | 3 | `22f0aa8` | `BracketService::generateGroups` (snake distribution, fixtures) + endpoint + tests |
 | 4 | `18d9c88` | `BracketService::standings` + tests |
 | 5 | `85e69af` | Group membership pivot (`bracket_group_entrants`) as source of truth; `addEntrant`/`moveEntrant`/`setGroupDoubleRoundRobin`; endpoints + routes; `groupOrFail`/`bracketOrFail`/`slotOrFail` fixes; tests |
+| 6 | pending | `bracket_groups.winner_entrant_ids`; `setGroupWinners` + `promoteToKnockout`; endpoints + requests; bye warning; tests |
 
-Full suite after Phase 3: 468 passed. Phase 4 added 5 green tests. Full suite after Phase 5: 485 passed.
+Full suite after Phase 3: 468 passed. Phase 4 added 5 green tests. Full suite after Phase 5: 485 passed. Full suite after Phase 6: 496 passed.
 
 ## Key schema notes
 
@@ -60,13 +61,27 @@ manual group is bootstrapped. Switched to a membership pivot (option 2):
 Deferred: `destroy()` still uses the ambiguous `$division->bracket`; `syncStatus` can mark
 a group bracket `completed` when the graph's `final` slot is decided (Phase 6 concern).
 
-## Phase 6 — winners + promotion
+## Phase 6 — winners + promotion (DONE)
 
-- `BracketService::setGroupWinners(BracketGroup, array $winnerIds)` (thin wrapper on `setWinner`; round-robin slots have no parents/children).
-- `BracketService::promoteToKnockout(Division, array $winnerIdsInSeedOrder, bool $seedPairsApart = true)`; requires every group fully decided (advance_count winners each); creates/updates the `single_elimination` bracket via existing `generate()`; bye warning path.
-- Endpoints: `POST .../groups/{group}/winners`, `POST .../bracket/promote`.
-- Requests: `BracketGroupWinnerRequest`, `BracketPromoteRequest` (with division/type class docblocks).
-- Tests.
+Winners are the **picked qualifiers**, stored on the group (not derived from standings):
+
+- Migration: `bracket_groups.winner_entrant_ids` (JSON, nullable) + `BracketGroup::winnerIds()`/cast.
+- `BracketService::setGroupWinners(BracketGroup, array $winnerIds)` — validates the picks are
+  distinct group members and exactly `advance_count` of them; stores them in seed order.
+- `BracketService::promoteToKnockout(Division, array $winnerIdsInSeedOrder, bool $seedPairsApart = true)`
+  — requires every group to have recorded its winners; when `seedPairsApart` the seed order is
+  taken from the group picks (top seeds split across halves, so group-mates meet late), otherwise
+  the caller's order is honoured. Delegates to a new `writeSingleElimination()` helper (also used
+  by `generate()`), so the knockout is created/regenerated with a fresh slot tree.
+- Endpoints: `POST .../groups/{group}/winners` (validate `winner_ids`), `POST .../bracket/promote`
+  (`winner_ids`, optional `seed_pairs_apart`). Promotion emits a **warning** toast when the field
+  is not a power of two (byes), else a success toast.
+- Requests: `BracketGroupWinnerRequest`, `BracketPromoteRequest`.
+- Tests: `tests/Feature/Admin/BracketGroupPromotionTest.php` (11 tests) — record/reject picks,
+  seed order, group-mate split, bye field, endpoint coverage.
+
+Still open: `syncStatus` can flip a group bracket `completed` (Phase 7 concern); `destroy()`
+still uses the ambiguous `$division->bracket`.
 
 ## Phase 7 — shaping + frontend
 

@@ -66,6 +66,14 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.groups.settings.update');
 
+    Route::post('tournaments/{tournament}/divisions/{division}/bracket/groups/{group}/winners', [BracketController::class, 'setGroupWinners'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.groups.winners.store');
+
+    Route::post('tournaments/{tournament}/divisions/{division}/bracket/promote', [BracketController::class, 'promote'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.promote');
+
     Route::delete('tournaments/{tournament}/divisions/{division}/bracket', [BracketController::class, 'destroy'])
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.destroy');

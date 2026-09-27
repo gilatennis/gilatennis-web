@@ -188,6 +188,99 @@ class BracketService
         });
     }
 
+    /**
+     * Record the entrants picked to advance from a group, in seed order. Picks
+     * must be group members and must match the group's advance count.
+     *
+     * @param  array<int, int>  $winnerIds
+     */
+    public function setGroupWinners(BracketGroup $group, array $winnerIds): void
+    {
+        $winnerIds = array_values(array_map('intval', $winnerIds));
+
+        if (count(array_unique($winnerIds)) !== count($winnerIds)) {
+            throw new InvalidArgumentException('Each advancing winner may only be picked once.');
+        }
+
+        if (count($winnerIds) !== $group->advance_count) {
+            throw new InvalidArgumentException("Pick exactly {$group->advance_count} advancing winner(s) for {$group->name}.");
+        }
+
+        $members = $group->entrantIds()->all();
+
+        foreach ($winnerIds as $winnerId) {
+            if (! in_array($winnerId, $members, true)) {
+                throw new InvalidArgumentException('Every picked winner must be a member of the group.');
+            }
+        }
+
+        $group->update(['winner_entrant_ids' => $winnerIds]);
+    }
+
+    /**
+     * Promote the picked group winners into the division's single-elimination
+     * bracket, seeded in the given order. Requires every group to have recorded
+     * its advancing winners. A non-power-of-two qualifier count is allowed; the
+     * resulting byes are reported by the caller as a warning.
+     *
+     * @param  array<int, int>  $winnerIdsInSeedOrder
+     */
+    public function promoteToKnockout(
+        Division $division,
+        array $winnerIdsInSeedOrder,
+        bool $seedPairsApart = true,
+    ): Bracket {
+        $groupBracket = Bracket::where('division_id', $division->id)
+            ->where('type', Bracket::TYPE_GROUP_STAGE)
+            ->first();
+
+        if ($groupBracket === null) {
+            throw new InvalidArgumentException('Generate a group stage before promoting winners.');
+        }
+
+        $groups = $groupBracket->groups()->get();
+        $qualified = [];
+
+        foreach ($groups as $group) {
+            $winners = $group->winnerIds();
+
+            if (count($winners) !== $group->advance_count) {
+                throw new InvalidArgumentException("Pick the advancing winners for {$group->name} first.");
+            }
+
+            foreach ($winners as $winnerId) {
+                $qualified[] = $winnerId;
+            }
+        }
+
+        $provided = array_values(array_map('intval', $winnerIdsInSeedOrder));
+        $sortedQualified = $qualified;
+        $sortedProvided = $provided;
+
+        sort($sortedQualified);
+        sort($sortedProvided);
+
+        if ($sortedQualified !== $sortedProvided) {
+            throw new InvalidArgumentException('The promoted winners must match the winners picked from every group.');
+        }
+
+        $seedOrder = $seedPairsApart ? $qualified : $provided;
+
+        $entrants = $this->paidEntrants($division)->keyBy('id');
+
+        $ordered = collect($seedOrder)
+            ->map(fn (int $id) => $entrants->get($id))
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        if ($ordered->count() < 2) {
+            throw new InvalidArgumentException('At least two advancing winners are required to build the knockout bracket.');
+        }
+
+        return $this->writeSingleElimination($division, $ordered->all(), true);
+    }
+
     private function assertGroupEditable(BracketGroup $group): void
     {
         if ($this->groupHasStarted($group)) {
@@ -236,13 +329,30 @@ class BracketService
             throw new InvalidArgumentException('Paid entrants exceed the configured draw size.');
         }
 
-        $size = $this->capacityFor($count);
+        return $this->writeSingleElimination(
+            $division,
+            $entrants->values()->all(),
+            $seedingMode === self::SEEDING_AUTO,
+        );
+    }
 
-        return DB::transaction(function () use ($division, $size, $entrants, $seedingMode) {
+    /**
+     * Create (or regenerate) the division's single-elimination bracket with a
+     * fresh slot tree, seeding the given entrants in order when asked.
+     *
+     * @param  array<int, TournamentRegistration>  $entrants
+     */
+    private function writeSingleElimination(Division $division, array $entrants, bool $assign): Bracket
+    {
+        $size = $this->capacityFor(count($entrants));
+
+        return DB::transaction(function () use ($division, $entrants, $size, $assign) {
             $bracket = Bracket::updateOrCreate(
-                ['division_id' => $division->id],
                 [
+                    'division_id' => $division->id,
                     'type' => Bracket::TYPE_SINGLE_ELIMINATION,
+                ],
+                [
                     'status' => Bracket::STATUS_DRAFT,
                     'size' => $size,
                 ],
@@ -251,8 +361,8 @@ class BracketService
             $this->purgeStructure($bracket);
             $this->createSlots($bracket, $size);
 
-            if ($seedingMode === self::SEEDING_AUTO) {
-                $this->assignEntrants($bracket, $entrants->values()->all());
+            if ($assign) {
+                $this->assignEntrants($bracket, $entrants);
             }
 
             return $bracket->fresh(['slots']);
