@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BracketStatus;
 use App\Models\Bracket;
 use App\Models\Division;
 use App\Models\TennisMatch;
@@ -146,7 +147,7 @@ describe('end to end tournament through the admin UI', function () {
         $bracket->refresh();
 
         expect($final->fresh()->winner_entrant_id)->toBe($final->entrant_a_id)
-            ->and($bracket->status)->toBe(Bracket::STATUS_COMPLETED)
+            ->and($bracket->status)->toBe(BracketStatus::Completed)
             ->and(TennisMatch::where('status', 'completed')->count())->toBe(3);
     });
 

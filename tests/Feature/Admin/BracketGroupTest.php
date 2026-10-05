@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\BracketStatus;
+use App\Enums\BracketType;
 use App\Models\Bracket;
 use App\Models\BracketGroup;
 use App\Models\BracketGroupEntrant;
@@ -26,7 +28,7 @@ function groupStageBracket(): Bracket
     ]);
 
     return Bracket::factory()->forDivision($division)->create([
-        'type' => Bracket::TYPE_GROUP_STAGE,
+        'type' => BracketType::GroupStage,
     ]);
 }
 
@@ -115,10 +117,10 @@ describe('Bracket group model', function () {
         ]);
 
         Bracket::factory()->forDivision($division)->create([
-            'type' => Bracket::TYPE_GROUP_STAGE,
+            'type' => BracketType::GroupStage,
         ]);
         Bracket::factory()->forDivision($division)->create([
-            'type' => Bracket::TYPE_SINGLE_ELIMINATION,
+            'type' => BracketType::SingleElimination,
         ]);
 
         expect($division->fresh()->bracket)->not->toBeNull()
@@ -170,7 +172,7 @@ describe('Group stage generation', function () {
 
         $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 2], false, BracketService::SEEDING_AUTO);
 
-        expect($bracket->type)->toBe(Bracket::TYPE_GROUP_STAGE)
+        expect($bracket->type)->toBe(BracketType::GroupStage)
             ->and($bracket->isGroupStage())->toBeTrue()
             ->and($bracket->groups)->toHaveCount(2)
             ->and($bracket->groups->pluck('name')->all())->toBe(['Group A', 'Group B'])
@@ -239,7 +241,7 @@ describe('Group stage generation', function () {
             ->assertRedirect();
 
         $bracket = Bracket::where('division_id', $division->id)
-            ->where('type', Bracket::TYPE_GROUP_STAGE)
+            ->where('type', BracketType::GroupStage)
             ->firstOrFail();
 
         expect($bracket->groups)->toHaveCount(2)
@@ -254,8 +256,8 @@ describe('Group stage generation', function () {
         app(BracketService::class)->generateGroups($division, 2, [1, 1]);
 
         expect(Bracket::where('division_id', $division->id)->count())->toBe(2)
-            ->and(Bracket::where('division_id', $division->id)->where('type', Bracket::TYPE_SINGLE_ELIMINATION)->exists())->toBeTrue()
-            ->and(Bracket::where('division_id', $division->id)->where('type', Bracket::TYPE_GROUP_STAGE)->exists())->toBeTrue();
+            ->and(Bracket::where('division_id', $division->id)->where('type', BracketType::SingleElimination)->exists())->toBeTrue()
+            ->and(Bracket::where('division_id', $division->id)->where('type', BracketType::GroupStage)->exists())->toBeTrue();
     });
 
     it('regenerates a group stage without duplicating groups', function () {
@@ -512,6 +514,6 @@ describe('Group entrant management', function () {
         }
 
         // A group stage is only completed by promotion, never by a decided tie.
-        expect($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE);
+        expect($bracket->fresh()->status)->toBe(BracketStatus::Active);
     });
 });

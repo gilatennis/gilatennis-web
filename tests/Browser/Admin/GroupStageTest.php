@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BracketType;
 use App\Models\Bracket;
 use App\Models\Division;
 use App\Models\Tournament;
@@ -64,7 +65,7 @@ it('generates groups from the UI and renders the standings', function () {
         ->wait(3);
 
     $bracket = Bracket::where('division_id', $division->id)
-        ->where('type', Bracket::TYPE_GROUP_STAGE)
+        ->where('type', BracketType::GroupStage)
         ->firstOrFail();
 
     expect($bracket->groups)->toHaveCount(2);
@@ -100,7 +101,7 @@ it('promotes the picked group winners into the knockout bracket', function () {
         ->wait(3);
 
     expect(Bracket::where('division_id', $division->id)
-        ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+        ->where('type', BracketType::SingleElimination)
         ->exists())->toBeTrue();
 });
 
@@ -129,7 +130,7 @@ it('carries a group stage through to a promoted knockout from the UI', function 
         ->wait(3);
 
     $bracket = Bracket::where('division_id', $division->id)
-        ->where('type', Bracket::TYPE_GROUP_STAGE)
+        ->where('type', BracketType::GroupStage)
         ->firstOrFail();
 
     // Pick the top entrant from each group's standings table.
@@ -146,7 +147,7 @@ it('carries a group stage through to a promoted knockout from the UI', function 
         ->wait(3);
 
     $knockout = Bracket::where('division_id', $division->id)
-        ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+        ->where('type', BracketType::SingleElimination)
         ->firstOrFail();
 
     expect($knockout->size)->toBe(2);
@@ -175,7 +176,7 @@ it('promotes a non-power-of-two field as a bye through the UI', function () {
         ->wait(3);
 
     $bracket = Bracket::where('division_id', $division->id)
-        ->where('type', Bracket::TYPE_GROUP_STAGE)
+        ->where('type', BracketType::GroupStage)
         ->firstOrFail();
 
     expect($bracket->groups)->toHaveCount(3);
@@ -194,7 +195,7 @@ it('promotes a non-power-of-two field as a bye through the UI', function () {
         ->wait(3);
 
     $knockout = Bracket::where('division_id', $division->id)
-        ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+        ->where('type', BracketType::SingleElimination)
         ->firstOrFail();
 
     $firstRound = $knockout->slots()->where('round', 1)->orderBy('position')->get();

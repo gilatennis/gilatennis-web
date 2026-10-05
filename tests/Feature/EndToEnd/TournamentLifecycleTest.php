@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BracketStatus;
 use App\Enums\MatchStatus;
 use App\Enums\PaymentEventSource;
 use App\Models\Bracket;
@@ -68,7 +69,7 @@ describe('Tournament lifecycle end to end', function () {
         $bracket = Bracket::where('division_id', $this->division->id)->firstOrFail();
 
         expect($bracket->size)->toBe(4)
-            ->and($bracket->status)->toBe(Bracket::STATUS_DRAFT)
+            ->and($bracket->status)->toBe(BracketStatus::Draft)
             ->and($bracket->slots()->count())->toBe(3);
 
         $round1 = $bracket->slots()->where('round', 1)->orderBy('position')->get();
@@ -84,7 +85,7 @@ describe('Tournament lifecycle end to end', function () {
             $match = e2ePlaySlot($this->admin, $this->division, $slot->id, winningSide: 1);
 
             expect($match->status)->toBe(MatchStatus::Completed)
-                ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE);
+                ->and($bracket->fresh()->status)->toBe(BracketStatus::Active);
 
             // Completion alone must NOT advance anyone.
             expect($slot->fresh()->winner_entrant_id)->toBeNull();
@@ -114,7 +115,7 @@ describe('Tournament lifecycle end to end', function () {
         $bracket->refresh();
 
         expect($final->fresh()->winner_entrant_id)->toBe($champion)
-            ->and($bracket->status)->toBe(Bracket::STATUS_COMPLETED)
+            ->and($bracket->status)->toBe(BracketStatus::Completed)
             ->and(TennisMatch::count())->toBe(3)
             ->and(TennisMatch::where('status', MatchStatus::Completed)->count())->toBe(3)
             ->and(TournamentRegistration::where('payment_status', 'processing')->count())->toBe(0)

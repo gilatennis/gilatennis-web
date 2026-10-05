@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\BracketStatus;
+use App\Enums\BracketType;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,8 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property int $division_id
- * @property string $type
- * @property string $status
+ * @property BracketType $type
+ * @property BracketStatus $status
  * @property int $size
  * @property-read Division $division
  * @property-read Collection<int, BracketSlot> $slots
@@ -21,16 +23,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Bracket extends Model
 {
     use HasFactory;
-
-    public const TYPE_SINGLE_ELIMINATION = 'single_elimination';
-
-    public const TYPE_GROUP_STAGE = 'group_stage';
-
-    public const STATUS_DRAFT = 'draft';
-
-    public const STATUS_ACTIVE = 'active';
-
-    public const STATUS_COMPLETED = 'completed';
 
     protected $fillable = [
         'division_id',
@@ -41,6 +33,8 @@ class Bracket extends Model
 
     protected $casts = [
         'size' => 'integer',
+        'type' => BracketType::class,
+        'status' => BracketStatus::class,
     ];
 
     /**
@@ -72,7 +66,7 @@ class Bracket extends Model
 
     public function isGroupStage(): bool
     {
-        return $this->type === self::TYPE_GROUP_STAGE;
+        return $this->type === BracketType::GroupStage;
     }
 
     public function finalSlot(): ?BracketSlot

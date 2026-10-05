@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\BracketStatus;
+use App\Enums\BracketType;
 use App\Models\Bracket;
 use App\Models\Division;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -17,8 +19,8 @@ class BracketFactory extends Factory
     {
         return [
             'division_id' => Division::factory(),
-            'type' => Bracket::TYPE_SINGLE_ELIMINATION,
-            'status' => Bracket::STATUS_DRAFT,
+            'type' => BracketType::SingleElimination,
+            'status' => BracketStatus::Draft,
             'size' => 8,
         ];
     }

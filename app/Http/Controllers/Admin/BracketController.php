@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\BracketType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BracketGenerateRequest;
 use App\Http\Requests\Admin\BracketGroupEntrantRequest;
@@ -198,11 +199,8 @@ class BracketController extends Controller
      */
     public function destroy(Request $request, Tournament $tournament, Division $division): RedirectResponse
     {
-        $type = $request->query('type', Bracket::TYPE_SINGLE_ELIMINATION);
-
-        if (! in_array($type, [Bracket::TYPE_SINGLE_ELIMINATION, Bracket::TYPE_GROUP_STAGE], true)) {
-            abort(404);
-        }
+        $type = BracketType::tryFrom((string) $request->query('type', BracketType::SingleElimination->value))
+            ?? abort(404);
 
         $bracket = Bracket::where('division_id', $division->id)
             ->where('type', $type)
@@ -331,7 +329,7 @@ class BracketController extends Controller
     private function bracketOrFail(Division $division): Bracket
     {
         return Bracket::where('division_id', $division->id)
-            ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+            ->where('type', BracketType::SingleElimination)
             ->first() ?? abort(404);
     }
 
@@ -380,7 +378,7 @@ class BracketController extends Controller
     private function groupOrFail(Division $division, int $group): BracketGroup
     {
         $bracket = Bracket::where('division_id', $division->id)
-            ->where('type', Bracket::TYPE_GROUP_STAGE)
+            ->where('type', BracketType::GroupStage)
             ->first();
 
         return $bracket?->groups()->findOrFail($group) ?? abort(404);

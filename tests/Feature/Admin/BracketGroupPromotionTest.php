@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BracketType;
 use App\Models\Bracket;
 use App\Models\Division;
 use App\Models\Role;
@@ -131,7 +132,7 @@ describe('Group promotion', function () {
 
         $knockout = $service->promoteToKnockout($division, $order, true);
 
-        expect($knockout->type)->toBe(Bracket::TYPE_SINGLE_ELIMINATION)
+        expect($knockout->type)->toBe(BracketType::SingleElimination)
             ->and($knockout->size)->toBe(4)
             ->and($knockout->slots()->count())->toBe(3)
             ->and(Bracket::where('division_id', $division->id)->count())->toBe(2);
@@ -289,7 +290,7 @@ describe('Group promotion', function () {
             ->assertRedirect();
 
         expect(Bracket::where('division_id', $division->id)
-            ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+            ->where('type', BracketType::SingleElimination)
             ->exists())->toBeTrue();
     });
 });

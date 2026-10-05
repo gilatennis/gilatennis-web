@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\BracketStatus;
+use App\Enums\BracketType;
 use App\Enums\MatchStatus;
 use App\Enums\PaymentEventSource;
 use App\Models\Bracket;
@@ -51,7 +53,7 @@ function groupE2eSettlePaid(Tournament $tournament, Division $division, array $n
 function groupE2eGroupBracket(Division $division): Bracket
 {
     return Bracket::where('division_id', $division->id)
-        ->where('type', Bracket::TYPE_GROUP_STAGE)
+        ->where('type', BracketType::GroupStage)
         ->firstOrFail();
 }
 
@@ -133,7 +135,7 @@ describe('Group stage lifecycle end to end', function () {
         ])->assertRedirect();
 
         $knockout = Bracket::where('division_id', $this->division->id)
-            ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+            ->where('type', BracketType::SingleElimination)
             ->firstOrFail();
 
         expect(Bracket::where('division_id', $this->division->id)->count())->toBe(2)
@@ -154,7 +156,7 @@ describe('Group stage lifecycle end to end', function () {
         $knockout->refresh();
 
         expect($final->fresh()->winner_entrant_id)->toBe($champion)
-            ->and($knockout->status)->toBe(Bracket::STATUS_COMPLETED)
+            ->and($knockout->status)->toBe(BracketStatus::Completed)
             ->and(TennisMatch::where('status', MatchStatus::Completed)->count())->toBe(3);
     });
 
@@ -236,7 +238,7 @@ describe('Group stage lifecycle end to end', function () {
         ])->assertRedirect();
 
         $knockout = Bracket::where('division_id', $division->id)
-            ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+            ->where('type', BracketType::SingleElimination)
             ->firstOrFail();
 
         expect($knockout->size)->toBe(4)
@@ -267,7 +269,7 @@ describe('Group stage lifecycle end to end', function () {
         $knockout->refresh();
 
         expect($final->fresh()->winner_entrant_id)->toBe($champion)
-            ->and($knockout->status)->toBe(Bracket::STATUS_COMPLETED)
+            ->and($knockout->status)->toBe(BracketStatus::Completed)
             ->and(TennisMatch::where('status', MatchStatus::Completed)->count())->toBe(15);
     });
 
@@ -331,7 +333,7 @@ describe('Group stage lifecycle end to end', function () {
         ])->assertRedirect();
 
         $knockout = Bracket::where('division_id', $division->id)
-            ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+            ->where('type', BracketType::SingleElimination)
             ->firstOrFail();
 
         $firstRound = $knockout->slots()->where('round', 1)->orderBy('position')->get();
@@ -368,7 +370,7 @@ describe('Group stage lifecycle end to end', function () {
         $knockout->refresh();
 
         expect($final->fresh()->winner_entrant_id)->toBe($champion)
-            ->and($knockout->status)->toBe(Bracket::STATUS_COMPLETED)
+            ->and($knockout->status)->toBe(BracketStatus::Completed)
             // three group ties + one semifinal + one final
             ->and(TennisMatch::where('status', MatchStatus::Completed)->count())->toBe(5);
     });

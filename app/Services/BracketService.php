@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\BracketStatus;
+use App\Enums\BracketType;
 use App\Enums\MatchStatus;
 use App\Models\Bracket;
 use App\Models\BracketGroup;
@@ -66,10 +68,10 @@ class BracketService
             $bracket = Bracket::updateOrCreate(
                 [
                     'division_id' => $division->id,
-                    'type' => Bracket::TYPE_GROUP_STAGE,
+                    'type' => BracketType::GroupStage,
                 ],
                 [
-                    'status' => Bracket::STATUS_DRAFT,
+                    'status' => BracketStatus::Draft,
                     'size' => $entrants->count(),
                 ],
             );
@@ -231,7 +233,7 @@ class BracketService
         bool $seedPairsApart = true,
     ): Bracket {
         $groupBracket = Bracket::where('division_id', $division->id)
-            ->where('type', Bracket::TYPE_GROUP_STAGE)
+            ->where('type', BracketType::GroupStage)
             ->first();
 
         if ($groupBracket === null) {
@@ -334,7 +336,7 @@ class BracketService
     public function firstRoundGroupMateClashes(Bracket $knockout, Division $division): int
     {
         $groupBracket = Bracket::where('division_id', $division->id)
-            ->where('type', Bracket::TYPE_GROUP_STAGE)
+            ->where('type', BracketType::GroupStage)
             ->first();
 
         if ($groupBracket === null) {
@@ -432,10 +434,10 @@ class BracketService
             $bracket = Bracket::updateOrCreate(
                 [
                     'division_id' => $division->id,
-                    'type' => Bracket::TYPE_SINGLE_ELIMINATION,
+                    'type' => BracketType::SingleElimination,
                 ],
                 [
-                    'status' => Bracket::STATUS_DRAFT,
+                    'status' => BracketStatus::Draft,
                     'size' => $size,
                 ],
             );
@@ -510,8 +512,8 @@ class BracketService
             $overrides,
         ));
 
-        if ($slot->bracket->status === Bracket::STATUS_DRAFT) {
-            $slot->bracket->update(['status' => Bracket::STATUS_ACTIVE]);
+        if ($slot->bracket->status === BracketStatus::Draft) {
+            $slot->bracket->update(['status' => BracketStatus::Active]);
         }
 
         return $match;
@@ -1040,21 +1042,21 @@ class BracketService
         // promotion into the knockout — so a decided matchday must not mark the
         // group bracket complete.
         if (! $bracket->isGroupStage() && $final !== null && $final->winner_entrant_id !== null) {
-            $bracket->update(['status' => Bracket::STATUS_COMPLETED]);
+            $bracket->update(['status' => BracketStatus::Completed]);
 
             return;
         }
 
-        if ($bracket->status === Bracket::STATUS_COMPLETED) {
-            $bracket->update(['status' => Bracket::STATUS_ACTIVE]);
+        if ($bracket->status === BracketStatus::Completed) {
+            $bracket->update(['status' => BracketStatus::Active]);
 
             return;
         }
 
-        if ($bracket->status === Bracket::STATUS_DRAFT && $graph['slots']->contains(
+        if ($bracket->status === BracketStatus::Draft && $graph['slots']->contains(
             fn (BracketSlot $slot) => $slot->winner_entrant_id !== null,
         )) {
-            $bracket->update(['status' => Bracket::STATUS_ACTIVE]);
+            $bracket->update(['status' => BracketStatus::Active]);
         }
     }
 

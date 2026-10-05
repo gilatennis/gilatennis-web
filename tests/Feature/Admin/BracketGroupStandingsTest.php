@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BracketType;
 use App\Enums\MatchStatus;
 use App\Models\Bracket;
 use App\Models\BracketGroup;
@@ -94,7 +95,7 @@ function decideTie(BracketSlot $slot, int $winnerId, array $sets): void
 function groupStageWithFour(Division $division): BracketGroup
 {
     $bracket = Bracket::factory()->forDivision($division)->create([
-        'type' => Bracket::TYPE_GROUP_STAGE,
+        'type' => BracketType::GroupStage,
     ]);
 
     return BracketGroup::factory()->forBracket($bracket)->named('Group A', 0)->create();

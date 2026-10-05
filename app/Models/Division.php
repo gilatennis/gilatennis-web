@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BracketType;
 use App\Enums\TennisLevel;
 use App\Enums\TournamentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -75,7 +76,7 @@ class Division extends Model
     public function bracket(): HasOne
     {
         return $this->hasOne(Bracket::class)
-            ->where('type', Bracket::TYPE_SINGLE_ELIMINATION);
+            ->where('type', BracketType::SingleElimination);
     }
 
     /**
@@ -84,7 +85,7 @@ class Division extends Model
     public function groupStage(): HasOne
     {
         return $this->hasOne(Bracket::class)
-            ->where('type', Bracket::TYPE_GROUP_STAGE);
+            ->where('type', BracketType::GroupStage);
     }
 
     /**

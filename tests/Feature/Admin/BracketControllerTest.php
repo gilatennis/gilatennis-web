@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\BracketStatus;
+use App\Enums\BracketType;
 use App\Enums\MatchStatus;
 use App\Models\Bracket;
 use App\Models\BracketSlot;
@@ -54,7 +56,7 @@ describe('Admin Bracket Generation', function () {
         $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
 
         expect($bracket->size)->toBe(8)
-            ->and($bracket->type)->toBe(Bracket::TYPE_SINGLE_ELIMINATION)
+            ->and($bracket->type)->toBe(BracketType::SingleElimination)
             ->and($bracket->slots()->count())->toBe(7);
 
         $round1 = $bracket->slots()->where('round', 1)->orderBy('position')->get();
@@ -209,7 +211,7 @@ describe('Admin Bracket Progression', function () {
         expect($match->bracket_slot_id)->toBe($slot->id)
             ->and($match->entrant_a_id)->toBe($slot->entrant_a_id)
             ->and($match->status)->toBe(MatchStatus::Pending)
-            ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE);
+            ->and($bracket->fresh()->status)->toBe(BracketStatus::Active);
     });
 
     it('does not auto-advance a slot when a bracket match completes', function () {
@@ -284,7 +286,7 @@ describe('Admin Bracket Progression', function () {
 
         expect($semi->fresh()->winner_entrant_id)->toBe($winnerId)
             ->and($final->fresh()->entrant_a_id)->toBe($winnerId)
-            ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE);
+            ->and($bracket->fresh()->status)->toBe(BracketStatus::Active);
     });
 
     it('propagates winners through multiple rounds of a larger draw', function () {
@@ -322,12 +324,12 @@ describe('Admin Bracket Progression', function () {
         $award($semi->fresh(), $semi->fresh()->entrant_a_id);
 
         expect($final->fresh()->entrant_a_id)->toBe($roundOne[0]->entrant_a_id)
-            ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE);
+            ->and($bracket->fresh()->status)->toBe(BracketStatus::Active);
 
         $award($final->fresh(), $final->fresh()->entrant_a_id);
 
         expect($final->fresh()->winner_entrant_id)->toBe($roundOne[0]->entrant_a_id)
-            ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_COMPLETED);
+            ->and($bracket->fresh()->status)->toBe(BracketStatus::Completed);
     });
 
     it('clears downstream entrants when a winner is reset', function () {
@@ -359,7 +361,7 @@ describe('Admin Bracket Progression', function () {
             ['winner_entrant_id' => $final->fresh()->entrant_a_id],
         );
 
-        expect($bracket->fresh()->status)->toBe(Bracket::STATUS_COMPLETED);
+        expect($bracket->fresh()->status)->toBe(BracketStatus::Completed);
 
         $this->actingAs($this->admin)->patch(
             route('admin.tournaments.divisions.bracket.slots.update', $updateArgs($semi->id)),
@@ -369,7 +371,7 @@ describe('Admin Bracket Progression', function () {
         expect($semi->fresh()->winner_entrant_id)->toBeNull()
             ->and($final->fresh()->entrant_a_id)->toBeNull()
             ->and($final->fresh()->winner_entrant_id)->toBeNull()
-            ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE);
+            ->and($bracket->fresh()->status)->toBe(BracketStatus::Active);
     });
 
     it('awards a slot manually and completes the bracket at the final', function () {
@@ -393,7 +395,7 @@ describe('Admin Bracket Progression', function () {
             ->assertRedirect();
 
         expect($final->fresh()->winner_entrant_id)->toBe($entrants[0]->id)
-            ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_COMPLETED);
+            ->and($bracket->fresh()->status)->toBe(BracketStatus::Completed);
     });
 
     it('resolves and completes a multi-round bracket at the correct final slot', function () {
@@ -431,7 +433,7 @@ describe('Admin Bracket Progression', function () {
 
         expect($final->fresh()->entrant_a_id)->not->toBeNull()
             ->and($final->fresh()->entrant_b_id)->not->toBeNull()
-            ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE);
+            ->and($bracket->fresh()->status)->toBe(BracketStatus::Active);
 
         $this->actingAs($this->admin)->patch(
             route('admin.tournaments.divisions.bracket.slots.update', $updateArgs($final->id)),
@@ -439,7 +441,7 @@ describe('Admin Bracket Progression', function () {
         );
 
         expect($final->fresh()->winner_entrant_id)->not->toBeNull()
-            ->and($bracket->fresh()->status)->toBe(Bracket::STATUS_COMPLETED);
+            ->and($bracket->fresh()->status)->toBe(BracketStatus::Completed);
     });
 
     it('rejects manually awarding an entrant from another division', function () {
@@ -602,8 +604,8 @@ describe('Admin Group Stage Payload', function () {
             ->assertRedirect();
 
         expect(Bracket::where('division_id', $division->id)->count())->toBe(1)
-            ->and(Bracket::where('division_id', $division->id)->where('type', Bracket::TYPE_GROUP_STAGE)->exists())->toBeFalse()
-            ->and(Bracket::where('division_id', $division->id)->where('type', Bracket::TYPE_SINGLE_ELIMINATION)->exists())->toBeTrue();
+            ->and(Bracket::where('division_id', $division->id)->where('type', BracketType::GroupStage)->exists())->toBeFalse()
+            ->and(Bracket::where('division_id', $division->id)->where('type', BracketType::SingleElimination)->exists())->toBeTrue();
     });
 });
 
@@ -907,13 +909,13 @@ describe('Admin Bracket Advancement', function () {
                 'winner_entrant_id' => $final->entrant_a_id,
             ]);
 
-        expect($bracket->fresh()->status)->toBe(Bracket::STATUS_COMPLETED);
+        expect($bracket->fresh()->status)->toBe(BracketStatus::Completed);
 
         $this->actingAs($this->admin)
             ->delete(route('admin.tournaments.divisions.bracket.slots.undo', advanceArgs($division, $final->id)))
             ->assertRedirect();
 
-        expect($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE)
+        expect($bracket->fresh()->status)->toBe(BracketStatus::Active)
             ->and($final->fresh()->winner_entrant_id)->toBeNull();
     });
 
