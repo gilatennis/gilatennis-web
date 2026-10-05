@@ -127,10 +127,34 @@ Full suite after Phase 7: 502 passed (includes browser).
   cohort and that `standings()` order drives the picks.
 - `composer ci:check` green: eslint, prettier, svelte-check, pint, full suite.
 
+## Phase 9 — code-quality pass (DONE)
+
+- **Static analysis**: Larastan (PHPStan level 5) wired in. `phpstan.neon.dist` +
+  `phpstan-baseline.neon`; `composer analyse` added to `ci:check`. The bracket-feature errors
+  were fixed (relation generics + property docblocks on the bracket models), the rest baselined.
+- **Duplication**: `BracketController`'s ten `try/catch + flash + redirect` blocks collapsed into
+  `failureOrNull()`/`attempt()`. Entrant display name centralised as
+  `TournamentRegistration::display_name`.
+- **Correctness**: `syncStatus()` no longer marks a group-stage bracket `completed` from a decided
+  matchday (regression test added).
+- **Promotion contract**: `promoteToKnockout()` now treats the caller's order as authoritative;
+  `seedPairsApart` only reorders within it (interleaving groups), and first-round group-mate
+  clashes are detected and surfaced as a warning.
+- **Enums**: `BracketType` and `BracketStatus` backed enums cast on `Bracket` (JSON values
+  unchanged, so the Svelte types stay as-is).
+- **Structure**: `BracketService` (was ~1100 lines) split into `GroupStageService`,
+  `KnockoutBracketService`, `GroupStandingsCalculator`, and a shared `BracketStructure`; the
+  original `BracketService` is now a thin facade keeping the public API.
+- **Routing**: `{group}`/`{slot}` resolve via scoped route-model binding through new
+  `Division::groups()`/`slots()` relations; the manual `groupOrFail`/`slotOrFail`/`bracketOrFail`
+  helpers are gone.
+- **Validation**: the group-count/advance-counts coupling is enforced at the request layer.
+
 ## Commands
 
 - Tests: `php artisan test --compact <file>`
 - Full gate: `composer ci:check`
+- Static analysis: `composer analyse` (or `PAO_DISABLE=1 vendor/bin/phpstan analyse`)
 - Format PHP: `vendor/bin/pint --dirty --format agent`
 - Wayfinder: `php artisan wayfinder:generate`
 - Browser: `npm run build && php artisan test tests/Browser/...`
@@ -140,3 +164,5 @@ Full suite after Phase 7: 502 passed (includes browser).
 - Stale `bootstrap/cache` can make `runningUnitTests()` false → spurious 419 in feature tests. Fix: `php artisan optimize:clear`.
 - Lazy loading is disabled globally in tests — eager-load relations in assertions.
 - `standard()` test helpers and `@testid` selectors per project conventions.
+- Under an agent, `laravel/pao` captures CLI output; run PHPStan directly with `PAO_DISABLE=1` to see raw output (`composer analyse` prints a compact summary).
+- PHPStan's invariant `Collection` generic flags `standings()`'s `array<string, mixed>` vs the inferred `non-empty-array`; it is baselined as a false positive.
