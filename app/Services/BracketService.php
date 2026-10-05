@@ -954,7 +954,10 @@ class BracketService
     {
         $final = $graph['final'];
 
-        if ($final !== null && $final->winner_entrant_id !== null) {
+        // A group stage is never won by a single tie — it is only completed by
+        // promotion into the knockout — so a decided matchday must not mark the
+        // group bracket complete.
+        if (! $bracket->isGroupStage() && $final !== null && $final->winner_entrant_id !== null) {
             $bracket->update(['status' => Bracket::STATUS_COMPLETED]);
 
             return;

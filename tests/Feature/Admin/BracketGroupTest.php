@@ -492,4 +492,26 @@ describe('Group entrant management', function () {
 
         expect($slot->fresh()->winner_entrant_id)->toBe($slot->entrant_a_id);
     });
+
+    it('never completes a group stage when its ties are decided', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+
+        foreach ($bracket->groups as $group) {
+            $slot = $group->slots->first();
+
+            $this->actingAs($this->admin)
+                ->patch(route('admin.tournaments.divisions.bracket.slots.update', [
+                    'tournament' => $division->tournament_id,
+                    'division' => $division->id,
+                    'slot' => $slot->id,
+                ]), ['winner_entrant_id' => $slot->entrant_a_id])
+                ->assertRedirect();
+        }
+
+        // A group stage is only completed by promotion, never by a decided tie.
+        expect($bracket->fresh()->status)->toBe(Bracket::STATUS_ACTIVE);
+    });
 });
