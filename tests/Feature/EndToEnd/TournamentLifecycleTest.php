@@ -1,17 +1,11 @@
 <?php
 
-use App\DTOs\DuitkuInvoiceResponse;
 use App\Enums\MatchStatus;
 use App\Enums\PaymentEventSource;
 use App\Models\Bracket;
-use App\Models\Division;
 use App\Models\PaymentEvent;
-use App\Models\Role;
 use App\Models\TennisMatch;
-use App\Models\Tournament;
 use App\Models\TournamentRegistration;
-use App\Models\User;
-use App\Services\DuitkuService;
 use App\Services\TournamentPaymentService;
 
 /**
@@ -21,131 +15,9 @@ use App\Services\TournamentPaymentService;
  *
  * Draw size 4 keeps the path complete but minimal: two opening rubbers feed a
  * single final, and the final produces the winner.
+ *
+ * The shared helpers live in tests/Feature/EndToEnd/EndToEndHelpers.php.
  */
-function e2eAdmin(): User
-{
-    $admin = User::factory()->create();
-    $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);
-    $admin->roles()->syncWithoutDetaching([$role->id]);
-
-    return $admin;
-}
-
-/**
- * @return array{tournament: Tournament, division: Division}
- */
-function e2eTournament(): array
-{
-    $tournament = Tournament::factory()->create(['status' => 'open']);
-
-    $division = Division::factory()->forTournament($tournament)->singles()->create([
-        'draw_size' => 4,
-        'fee' => 50000,
-        'sort_order' => 0,
-    ]);
-
-    return ['tournament' => $tournament, 'division' => $division];
-}
-
-function e2eFakeInvoiceService(): void
-{
-    test()->swap(DuitkuService::class, new class extends DuitkuService
-    {
-        public function __construct() {}
-
-        public function createInvoice($registration): DuitkuInvoiceResponse
-        {
-            return new DuitkuInvoiceResponse(
-                merchantCode: 'DEMO0001',
-                reference: 'DK-E2E'.strtoupper(substr(md5($registration->email), 0, 6)),
-                paymentUrl: 'https://sandbox.duitku.com/pay/E2E',
-                statusCode: '00',
-                statusMessage: 'Invoice created',
-            );
-        }
-    });
-}
-
-function e2eRegister(Tournament $tournament, Division $division, string $name, string $email): TournamentRegistration
-{
-    test()->post(route('tournaments.register.store', $tournament), [
-        'division_id' => $division->id,
-        'name' => $name,
-        'email' => $email,
-        'phone' => '+62 812 000 0000',
-        'date_of_birth' => '1990-01-01',
-        'waiver_accepted' => true,
-        'players' => [
-            [
-                'name' => $name,
-                'email' => $email,
-                'phone' => '+62 812 000 0000',
-                'gender' => 'male',
-                'date_of_birth' => '1990-01-01',
-                'rating_type' => 'UTR',
-                'rating_value' => '8.0',
-            ],
-        ],
-    ])->assertRedirect();
-
-    return TournamentRegistration::where('email', $email)->firstOrFail();
-}
-
-/**
- * Start the slot's match, win it for the given side with a Fast4 set, confirm
- * the result, and return the completed match.
- */
-function e2ePlaySlot(User $admin, Division $division, int $slotId, int $winningSide): TennisMatch
-{
-    $args = [
-        'tournament' => $division->tournament_id,
-        'division' => $division->id,
-        'slot' => $slotId,
-    ];
-
-    test()->actingAs($admin)->post(route('admin.tournaments.divisions.bracket.slots.match.store', $args))
-        ->assertRedirect();
-
-    $match = TennisMatch::where('bracket_slot_id', $slotId)->latest('id')->firstOrFail();
-
-    // Table tennis is Fast4: first to 4 games, single set decides.
-    test()->actingAs($admin)->patch(route('admin.tennis-matches.update', $match), [
-        'sets_to_win' => 1,
-        'games_to_win' => 4,
-        'extend_at_tie' => false,
-    ])->assertRedirect();
-
-    test()->actingAs($admin)
-        ->postJson(route('admin.tennis-matches.server', $match), ['side' => $winningSide])
-        ->assertOk();
-
-    for ($i = 0; $i < 16; $i++) {
-        test()->actingAs($admin)
-            ->postJson(route('admin.tennis-matches.points', $match), ['side' => $winningSide])
-            ->assertOk();
-    }
-
-    $match->refresh();
-    expect($match->state->win)->toBe($winningSide);
-
-    test()->actingAs($admin)->patch(route('admin.tennis-matches.update', $match), [
-        'status' => 'completed',
-    ])->assertRedirect();
-
-    return $match->refresh();
-}
-
-function e2eAdvance(User $admin, Division $division, int $slotId, int $winnerEntrantId): void
-{
-    test()->actingAs($admin)
-        ->patch(route('admin.tournaments.divisions.bracket.slots.update', [
-            'tournament' => $division->tournament_id,
-            'division' => $division->id,
-            'slot' => $slotId,
-        ]), ['winner_entrant_id' => $winnerEntrantId])
-        ->assertRedirect();
-}
-
 describe('Tournament lifecycle end to end', function () {
     beforeEach(function () {
         $this->admin = e2eAdmin();
@@ -183,7 +55,7 @@ describe('Tournament lifecycle end to end', function () {
         // A bracket may only be generated from paid entrants.
         expect($this->division->orderedPaidRegistrations()->count())->toBe(4);
 
-        // --- 3. Generate the bracket ---------------------------------------
+        // --- 3. Generate the bracket ----------------------------------------
         $bracketArgs = [
             'tournament' => $this->tournament->id,
             'division' => $this->division->id,
@@ -228,7 +100,7 @@ describe('Tournament lifecycle end to end', function () {
             ->and($final->entrant_b_id)->toBe($r1Winners[1])
             ->and($final->isReady())->toBeTrue();
 
-        // --- 5. Play the final ---------------------------------------------
+        // --- 5. Play the final ----------------------------------------------
         $finalMatch = e2ePlaySlot($this->admin, $this->division, $final->id, winningSide: 2);
 
         expect($finalMatch->status)->toBe(MatchStatus::Completed)
@@ -237,7 +109,7 @@ describe('Tournament lifecycle end to end', function () {
         $champion = $final->entrant_b_id;
         e2eAdvance($this->admin, $this->division, $final->id, $champion ?? 0);
 
-        // --- 6. Crowning assertions ----------------------------------------
+        // --- 6. Crowning assertions -----------------------------------------
         $championRegistration = TournamentRegistration::findOrFail($champion);
         $bracket->refresh();
 

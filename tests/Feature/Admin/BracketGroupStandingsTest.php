@@ -10,6 +10,25 @@ use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Services\BracketService;
 
+/*
+|--------------------------------------------------------------------------
+| Group standings
+|--------------------------------------------------------------------------
+|
+| A standings table is just its entrants sorted by the ranking comparator, and
+| that comparator *is* the tie-break chain:
+|
+|     wins → set difference → game difference → head-to-head → name
+|
+| So this file pins each link of that chain rather than treating "standings" and
+| "tie-breaks" as separate features: wins ordering, the set/game counters the
+| tie-breaks consume, set-difference and head-to-head resolution, and the
+| undecided-tie gate. The full lifecycle e2e
+| (tests/Feature/EndToEnd/GroupStageLifecycleTest.php) asserts only the wins
+| cohort and delegates ordering to this file.
+|
+*/
+
 function standingsDivision(int $drawSize = 8): Division
 {
     $tournament = Tournament::factory()->create();

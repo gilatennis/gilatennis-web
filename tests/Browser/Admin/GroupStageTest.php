@@ -13,7 +13,7 @@ beforeEach(fn () => Vite::useHotFile(sys_get_temp_dir().'/vite-hot-file-disabled
 /**
  * @return array{0: User, 1: Tournament, 2: Division}
  */
-function groupStageSetup(): array
+function groupStageSetup(int $players = 8, int $drawSize = 8): array
 {
     $admin = User::factory()->admin()->create();
 
@@ -22,10 +22,10 @@ function groupStageSetup(): array
     $division = Division::factory()->create([
         'tournament_id' => $tournament->id,
         'participation_category' => 'singles',
-        'draw_size' => 8,
+        'draw_size' => $drawSize,
     ]);
 
-    foreach (range(1, 8) as $i) {
+    foreach (range(1, $players) as $i) {
         TournamentRegistration::factory()->paid()->create([
             'tournament_id' => $tournament->id,
             'division_id' => $division->id,
@@ -156,4 +156,59 @@ it('carries a group stage through to a promoted knockout from the UI', function 
     $page->assertSee('Final')
         ->assertPresent('@advance-slot-'.$final->id.'-side-1')
         ->assertPresent('@advance-slot-'.$final->id.'-side-2');
+});
+
+it('promotes a non-power-of-two field as a bye through the UI', function () {
+    [$admin, $tournament, $division] = groupStageSetup(players: 6, drawSize: 6);
+
+    $page = openGroupStage($admin, $tournament, $division);
+
+    // Three groups of two, one winner advancing from each.
+    $page->click('Generate Groups')
+        ->wait(1)
+        ->click('@groups-inc')
+        ->wait(1)
+        ->fill('@advance-count-0', '1')
+        ->fill('@advance-count-1', '1')
+        ->fill('@advance-count-2', '1')
+        ->click('@generate-groups')
+        ->wait(3);
+
+    $bracket = Bracket::where('division_id', $division->id)
+        ->where('type', Bracket::TYPE_GROUP_STAGE)
+        ->firstOrFail();
+
+    expect($bracket->groups)->toHaveCount(3);
+
+    foreach ($bracket->groups as $group) {
+        $leader = $group->fresh()->entrantIds()->first();
+        $page->click('@pick-winner-'.$leader)->wait(2);
+    }
+
+    // The promote dialog flags the single bye before confirming.
+    $page->click('@open-promote')
+        ->wait(1)
+        ->assertSee('Promote Winners')
+        ->assertPresent('@bye-warning')
+        ->click('@promote-winners')
+        ->wait(3);
+
+    $knockout = Bracket::where('division_id', $division->id)
+        ->where('type', Bracket::TYPE_SINGLE_ELIMINATION)
+        ->firstOrFail();
+
+    $firstRound = $knockout->slots()->where('round', 1)->orderBy('position')->get();
+    $byeSlot = $firstRound->firstWhere('bye', true);
+    $liveSlot = $firstRound->firstWhere('bye', false);
+
+    expect($knockout->size)->toBe(4)
+        ->and($firstRound->where('bye', true))->toHaveCount(1)
+        ->and($byeSlot->winner_entrant_id)->not->toBeNull();
+
+    // A "Semifinal" round renders; the live tie offers its advance controls
+    // while the resolved bye tie does not.
+    $page->assertSee('Semifinal')
+        ->assertPresent('@advance-slot-'.$liveSlot->id.'-side-1');
+
+    $page->assertMissing('@advance-slot-'.$byeSlot->id.'-side-1');
 });

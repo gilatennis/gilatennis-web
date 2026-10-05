@@ -107,12 +107,25 @@ Full suite after Phase 7: 502 passed (includes browser).
 
 ## Phase 8 — e2e + browser (DONE)
 
-- `tests/Feature/EndToEnd/GroupStageLifecycleTest.php`: public registration → payment → group
-  generation → every matchday played through the slot/match endpoints → live standings →
-  winner picks → promotion → knockout champion (92 assertions).
-- `tests/Browser/Admin/GroupStageTest.php`: generate via dialog, pick winners from the standings
-  table, promote through the UI, assert the knockout renders; plus locked-assignment check.
-- `composer ci:check` green: eslint, prettier, svelte-check, pint, 504 tests.
+- Shared e2e helpers live in `tests/Feature/EndToEnd/EndToEndHelpers.php` (global functions,
+  loaded from `tests/Pest.php`): `e2eAdmin`, `e2eTournament`, `e2eFakeInvoiceService`,
+  `e2eRegister`, `e2ePlaySlot`, `e2eAdvance`, `e2ePlayAndAdvance`. Both lifecycle test files
+  use them, so the group and knockout e2e no longer duplicate helpers.
+- `tests/Feature/EndToEnd/GroupStageLifecycleTest.php` covers three shapes end to end:
+  - **4 paid, 2 groups × 2, top 1** — the minimal promotion path (single Final).
+  - **8 paid, 2 groups × 4, top 2** — a full 12-tie group stage, standings ranked 1–4, four
+    qualifiers promoted without byes, group-mates seeded into opposite halves, then a
+    three-match knockout to a champion.
+  - **6 paid, 3 groups × 2, top 1** — three qualifiers into a four-draw with a single bye; the
+    bye entrant is pre-resolved into a semifinal, the one live tie is played, then the final.
+- `tests/Browser/Admin/GroupStageTest.php` additionally drives the bye path through the UI:
+  6 paid, bump to 3 groups via `@groups-inc`, set per-group advance counts, pick winners,
+  assert the `@bye-warning` in the promote dialog, then the `Semifinal` round renders with the
+  bye tie resolved (no advance controls) and the live tie playable.
+- Tie-break ordering (wins → set diff → game diff → head-to-head → name) is owned by
+  `tests/Feature/Admin/BracketGroupStandingsTest.php`; the lifecycle e2e asserts only the wins
+  cohort and that `standings()` order drives the picks.
+- `composer ci:check` green: eslint, prettier, svelte-check, pint, full suite.
 
 ## Commands
 
