@@ -9,6 +9,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
+/**
+ * @property int $id
+ * @property int $bracket_id
+ * @property string $name
+ * @property int $position
+ * @property int $advance_count
+ * @property bool $double_round_robin
+ * @property array<int, int>|null $winner_entrant_ids
+ * @property-read Bracket $bracket
+ * @property-read Collection<int, BracketSlot> $slots
+ * @property-read Collection<int, BracketGroupEntrant> $entrants
+ */
 class BracketGroup extends Model
 {
     /** @use HasFactory<BracketGroupFactory> */
@@ -30,6 +42,9 @@ class BracketGroup extends Model
         'winner_entrant_ids' => 'array',
     ];
 
+    /**
+     * @return BelongsTo<Bracket, $this>
+     */
     public function bracket(): BelongsTo
     {
         return $this->belongsTo(Bracket::class);
@@ -37,6 +52,8 @@ class BracketGroup extends Model
 
     /**
      * Every tie played inside this group, ordered by matchday then fixture.
+     *
+     * @return HasMany<BracketSlot, $this>
      */
     public function slots(): HasMany
     {
@@ -47,6 +64,8 @@ class BracketGroup extends Model
 
     /**
      * The membership rows for this group, ordered by assignment position.
+     *
+     * @return HasMany<BracketGroupEntrant, $this>
      */
     public function entrants(): HasMany
     {

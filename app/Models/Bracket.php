@@ -2,11 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $division_id
+ * @property string $type
+ * @property string $status
+ * @property int $size
+ * @property-read Division $division
+ * @property-read Collection<int, BracketSlot> $slots
+ * @property-read Collection<int, BracketGroup> $groups
+ */
 class Bracket extends Model
 {
     use HasFactory;
@@ -32,11 +43,17 @@ class Bracket extends Model
         'size' => 'integer',
     ];
 
+    /**
+     * @return BelongsTo<Division, $this>
+     */
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class);
     }
 
+    /**
+     * @return HasMany<BracketSlot, $this>
+     */
     public function slots(): HasMany
     {
         return $this->hasMany(BracketSlot::class)
@@ -44,6 +61,9 @@ class Bracket extends Model
             ->orderBy('position');
     }
 
+    /**
+     * @return HasMany<BracketGroup, $this>
+     */
     public function groups(): HasMany
     {
         return $this->hasMany(BracketGroup::class)

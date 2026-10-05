@@ -169,7 +169,7 @@ trait ShapesBracket
 
         return [
             'id' => $entrant->id,
-            'name' => $entrant->team?->name ?? $entrant->name,
+            'name' => $entrant->display_name,
             'team' => $entrant->team ? [
                 'id' => $entrant->team->id,
                 'name' => $entrant->team->name,

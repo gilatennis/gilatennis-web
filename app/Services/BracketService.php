@@ -421,8 +421,8 @@ class BracketService
                 'bracket_slot_id' => $slot->id,
                 'entrant_a_id' => $slot->entrant_a_id,
                 'entrant_b_id' => $slot->entrant_b_id,
-                'side_a_name' => $slot->entrantA?->name ?? 'Side A',
-                'side_b_name' => $slot->entrantB?->name ?? 'Side B',
+                'side_a_name' => $slot->entrantA->name ?? 'Side A',
+                'side_b_name' => $slot->entrantB->name ?? 'Side B',
                 'status' => MatchStatus::Pending,
             ],
             $overrides,
@@ -584,13 +584,15 @@ class BracketService
 
         $rank = 1;
 
-        return collect($rows)->map(function (array $row) use (&$rank) {
+        $ranked = array_map(function (array $row) use (&$rank): array {
             $row['set_diff'] = $row['sets_for'] - $row['sets_against'];
             $row['game_diff'] = $row['games_for'] - $row['games_against'];
             $row['rank'] = $rank++;
 
             return $row;
-        });
+        }, $rows);
+
+        return collect($ranked);
     }
 
     /**
@@ -602,7 +604,7 @@ class BracketService
     {
         return [
             'entrant_id' => $entrant->id,
-            'name' => $entrant->team?->name ?? $entrant->name,
+            'name' => $entrant->display_name,
             'played' => 0,
             'wins' => 0,
             'losses' => 0,

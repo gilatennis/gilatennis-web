@@ -37,44 +37,68 @@ class Division extends Model
 
     protected $appends = ['spots_available', 'is_sold_out', 'category_label', 'gender_label'];
 
+    /**
+     * @return BelongsTo<Tournament, $this>
+     */
     public function tournament(): BelongsTo
     {
         return $this->belongsTo(Tournament::class);
     }
 
+    /**
+     * @return HasMany<TournamentPrize, $this>
+     */
     public function prizes(): HasMany
     {
         return $this->hasMany(TournamentPrize::class)->orderBy('sort_order');
     }
 
+    /**
+     * @return HasMany<TournamentRegistration, $this>
+     */
     public function registrations(): HasMany
     {
         return $this->hasMany(TournamentRegistration::class);
     }
 
+    /**
+     * @return HasMany<Bracket, $this>
+     */
     public function brackets(): HasMany
     {
         return $this->hasMany(Bracket::class);
     }
 
+    /**
+     * @return HasOne<Bracket, $this>
+     */
     public function bracket(): HasOne
     {
         return $this->hasOne(Bracket::class)
             ->where('type', Bracket::TYPE_SINGLE_ELIMINATION);
     }
 
+    /**
+     * @return HasOne<Bracket, $this>
+     */
     public function groupStage(): HasOne
     {
         return $this->hasOne(Bracket::class)
             ->where('type', Bracket::TYPE_GROUP_STAGE);
     }
 
+    /**
+     * @return HasMany<TournamentRegistration, $this>
+     */
     public function paidRegistrations(): HasMany
     {
         return $this->hasMany(TournamentRegistration::class)
             ->where('payment_status', 'paid');
     }
 
+    /**
+     * @return HasMany<TournamentRegistration, $this>
+     */
     public function orderedPaidRegistrations(): HasMany
     {
         return $this->paidRegistrations()
@@ -82,6 +106,9 @@ class Division extends Model
             ->orderBy('id');
     }
 
+    /**
+     * @return HasMany<DivisionPlayerFieldRequirement, $this>
+     */
     public function playerFieldRequirements(): HasMany
     {
         return $this->hasMany(DivisionPlayerFieldRequirement::class);
@@ -103,7 +130,7 @@ class Division extends Model
         foreach (DivisionPlayerFieldRequirement::FIELDS as $key => $meta) {
             $config[$key] = $key === 'name'
                 ? true
-                : (bool) ($byKey[$key]?->required ?? $meta['default']);
+                : (bool) ($byKey[$key]->required ?? $meta['default']);
         }
 
         return $config;

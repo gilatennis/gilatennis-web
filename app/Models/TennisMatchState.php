@@ -7,6 +7,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $tennis_match_id
+ * @property int|null $server
+ * @property int|null $first_server
+ * @property int $set_a
+ * @property int $set_b
+ * @property int $game_a
+ * @property int $game_b
+ * @property bool $tiebreak
+ * @property int $tb_a
+ * @property int $tb_b
+ * @property int|null $tb_first
+ * @property array<int, array{a: int, b: int}>|null $sets
+ * @property int|null $win
+ * @property-read TennisMatch $tennisMatch
+ */
 class TennisMatchState extends Model
 {
     /** @use HasFactory<TennisMatchStateFactory> */
@@ -43,6 +60,9 @@ class TennisMatchState extends Model
         'win' => 'integer',
     ];
 
+    /**
+     * @return BelongsTo<TennisMatch, $this>
+     */
     public function tennisMatch(): BelongsTo
     {
         return $this->belongsTo(TennisMatch::class);

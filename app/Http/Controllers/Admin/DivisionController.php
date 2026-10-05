@@ -70,7 +70,7 @@ class DivisionController extends Controller
             ->get()
             ->map(fn (TournamentRegistration $r) => [
                 'id' => $r->id,
-                'name' => $r->team?->name ?? $r->name,
+                'name' => $r->display_name,
             ])
             ->values();
 
