@@ -909,6 +909,7 @@
                                 <Button
                                     size="sm"
                                     disabled={paymentPending}
+                                    data-testid="confirm-payment"
                                     onclick={() =>
                                         confirmingPayment &&
                                         overridePayment(confirmingPayment)}
@@ -922,6 +923,7 @@
                             {#if registration.payment_status !== 'paid'}
                                 <Button
                                     variant="coral"
+                                    data-testid="mark-paid"
                                     onclick={() => (confirmingPayment = 'paid')}
                                 >
                                     <Check class="size-3.5 mr-1.5" />

@@ -59,6 +59,7 @@
     {#snippet row(reg)}
         <button
             type="button"
+            data-testid="registrant-row-{reg.id}"
             onclick={() => onRowClick?.(reg)}
             class="contents w-full text-left"
         >

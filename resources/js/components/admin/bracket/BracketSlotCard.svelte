@@ -147,6 +147,7 @@
             <button
                 type="button"
                 data-testid="rubbers"
+                data-slot={slot.id}
                 onclick={() => onRubbers(slot)}
                 class="ml-auto shrink-0 text-[9px] font-bold uppercase tracking-[0.1em] text-coral hover:opacity-80"
             >

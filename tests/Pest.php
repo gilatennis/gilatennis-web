@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Vite;
 use Tests\TestCase;
 
 /*
@@ -38,6 +39,21 @@ pest()->browser()
 
 /*
 |--------------------------------------------------------------------------
+| Browser Setup
+|--------------------------------------------------------------------------
+|
+| Browser tests must not depend on a running Vite dev server, and each one
+| starts with no reused journey page from a previous test.
+|
+*/
+
+pest()->beforeEach(function (): void {
+    Vite::useHotFile(sys_get_temp_dir().'/vite-hot-file-disabled');
+    teamJourneyReset();
+})->in('Browser');
+
+/*
+|--------------------------------------------------------------------------
 | Functions
 |--------------------------------------------------------------------------
 |
@@ -53,3 +69,4 @@ function something()
 }
 
 require_once __DIR__.'/Feature/EndToEnd/EndToEndHelpers.php';
+require_once __DIR__.'/Browser/EndToEnd/BrowserJourneyHelpers.php';

@@ -7,9 +7,6 @@ use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
 use App\Services\BracketService;
-use Illuminate\Support\Facades\Vite;
-
-beforeEach(fn () => Vite::useHotFile(sys_get_temp_dir().'/vite-hot-file-disabled'));
 
 /**
  * @return array{0: User, 1: Tournament, 2: Division}

@@ -7,9 +7,6 @@ use App\Models\TennisMatch;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
-use Illuminate\Support\Facades\Vite;
-
-beforeEach(fn () => Vite::useHotFile(sys_get_temp_dir().'/vite-hot-file-disabled'));
 
 function rubberBracketSetup(): array
 {

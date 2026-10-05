@@ -5,7 +5,6 @@ use App\Models\Division;
 use App\Models\DivisionPlayerFieldRequirement;
 use App\Models\Tournament;
 use App\Services\DuitkuService;
-use Illuminate\Support\Facades\Vite;
 
 function browserSinglesDivision(array $divAttrs = []): Division
 {
@@ -66,8 +65,6 @@ function setBrowserPfrConfig(Division $division, array $overrides): void
         );
     }
 }
-
-beforeEach(fn () => Vite::useHotFile(sys_get_temp_dir().'/vite-hot-file-disabled'));
 
 describe('registration form validation display', function () {
     it('shows inline gender validation error when captain gender is missing', function () {

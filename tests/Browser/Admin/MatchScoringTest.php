@@ -2,9 +2,6 @@
 
 use App\Models\TennisMatch;
 use App\Models\User;
-use Illuminate\Support\Facades\Vite;
-
-beforeEach(fn () => Vite::useHotFile(sys_get_temp_dir().'/vite-hot-file-disabled'));
 
 const SAVE_WAIT_S = 2;
 

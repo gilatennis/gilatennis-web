@@ -249,7 +249,11 @@
     <div class="grid grid-cols-3 gap-3">
         <label class="flex flex-col gap-1">
             <span class="text-[10px] text-neutral-500">Sets to win</span>
-            <select bind:value={setsToWin} class={inputClass}>
+            <select
+                bind:value={setsToWin}
+                class={inputClass}
+                data-testid="rubber-sets-to-win"
+            >
                 <option value={1}>1</option>
                 <option value={2}>2</option>
                 <option value={3}>3</option>
@@ -257,7 +261,11 @@
         </label>
         <label class="flex flex-col gap-1">
             <span class="text-[10px] text-neutral-500">Games to win</span>
-            <select bind:value={gamesToWin} class={inputClass}>
+            <select
+                bind:value={gamesToWin}
+                class={inputClass}
+                data-testid="rubber-games-to-win"
+            >
                 <option value={4}>4</option>
                 <option value={6}>6</option>
                 <option value={8}>8</option>

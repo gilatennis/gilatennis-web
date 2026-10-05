@@ -7,7 +7,6 @@ use App\Models\TennisMatch;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
-use Illuminate\Support\Facades\Vite;
 
 /**
  * Drives the whole tournament lifecycle through the admin UI: generate the
@@ -18,8 +17,6 @@ use Illuminate\Support\Facades\Vite;
  * does) so this file focuses on the bracket UI wiring: starting a tie, the
  * explicit advance dialog, propagation, and the team rubbers dialog.
  */
-beforeEach(fn () => Vite::useHotFile(sys_get_temp_dir().'/vite-hot-file-disabled'));
-
 function e2eBrowserAdmin(): User
 {
     return User::factory()->admin()->create();
