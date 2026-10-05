@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Services\BracketService;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +19,9 @@ class BracketGroupGenerateRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -29,6 +33,26 @@ class BracketGroupGenerateRequest extends FormRequest
                 BracketService::SEEDING_AUTO,
                 BracketService::SEEDING_MANUAL,
             ])],
+        ];
+    }
+
+    /**
+     * @return array<int, callable>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $groupCount = (int) $this->input('group_count');
+                $advanceCounts = (array) $this->input('advance_counts', []);
+
+                if ($groupCount > 0 && count($advanceCounts) !== $groupCount) {
+                    $validator->errors()->add(
+                        'advance_counts',
+                        'Provide one advancing-winner count per group.',
+                    );
+                }
+            },
         ];
     }
 }

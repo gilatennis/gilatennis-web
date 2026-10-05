@@ -295,10 +295,10 @@ parameters:
 			path: app/Models/User.php
 
 		-
-			message: '#^Method App\\Services\\BracketService\:\:standings\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-array\<string, mixed\>\>\.$#'
+			message: '#^Method App\\Services\\Bracket\\GroupStandingsCalculator\:\:standings\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, non\-empty\-array\<string, mixed\>\>\.$#'
 			identifier: return.type
 			count: 1
-			path: app/Services/BracketService.php
+			path: app/Services/Bracket/GroupStandingsCalculator.php
 
 		-
 			message: '#^Call to an undefined method Faker\\Generator\:\:dayOfWeekThatIsBetween\(\)\.$#'

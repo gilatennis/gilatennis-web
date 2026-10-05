@@ -248,6 +248,22 @@ describe('Group stage generation', function () {
             ->and($bracket->slots()->count())->toBe(12);
     });
 
+    it('requires one advance count per group at the request layer', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.groups.store', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+            ]), [
+                'group_count' => 3,
+                'advance_counts' => [1, 1],
+                'seeding_mode' => 'auto',
+            ])
+            ->assertSessionHasErrors('advance_counts');
+    });
+
     it('keeps the knockout bracket when a group stage is added', function () {
         $division = groupTestDivision(8, 'singles');
         groupTestEntrants($division, 8);

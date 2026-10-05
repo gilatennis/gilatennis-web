@@ -70,14 +70,13 @@ class BracketController extends Controller
         BracketGroupEntrantRequest $request,
         Tournament $tournament,
         Division $division,
-        int $group,
+        BracketGroup $group,
     ): RedirectResponse {
-        $bracketGroup = $this->groupOrFail($division, $group);
         $entrant = TournamentRegistration::where('division_id', $division->id)
             ->findOrFail($request->integer('entrant_id'));
 
         return $this->attempt(
-            fn () => $this->brackets->addEntrant($bracketGroup, $entrant),
+            fn () => $this->brackets->addEntrant($group, $entrant),
             'entrant_id',
             'Entrant added to group.',
             $tournament,
@@ -92,19 +91,18 @@ class BracketController extends Controller
         BracketGroupEntrantRequest $request,
         Tournament $tournament,
         Division $division,
-        int $group,
+        BracketGroup $group,
     ): RedirectResponse {
         if ($request->validated('to_group_id') === null) {
             return back()->withErrors(['to_group_id' => 'Choose the destination group.']);
         }
 
-        $from = $this->groupOrFail($division, $group);
-        $to = $this->groupOrFail($division, $request->integer('to_group_id'));
+        $to = $division->groups()->findOrFail($request->integer('to_group_id'));
         $entrant = TournamentRegistration::where('division_id', $division->id)
             ->findOrFail($request->integer('entrant_id'));
 
         return $this->attempt(
-            fn () => $this->brackets->moveEntrant($from, $to, $entrant),
+            fn () => $this->brackets->moveEntrant($group, $to, $entrant),
             'entrant_id',
             'Entrant moved.',
             $tournament,
@@ -119,13 +117,11 @@ class BracketController extends Controller
         BracketGroupSettingsRequest $request,
         Tournament $tournament,
         Division $division,
-        int $group,
+        BracketGroup $group,
     ): RedirectResponse {
-        $bracketGroup = $this->groupOrFail($division, $group);
-
         return $this->attempt(
             fn () => $this->brackets->setGroupDoubleRoundRobin(
-                $bracketGroup,
+                $group,
                 $request->boolean('double_round_robin'),
             ),
             'group',
@@ -142,12 +138,10 @@ class BracketController extends Controller
         BracketGroupWinnerRequest $request,
         Tournament $tournament,
         Division $division,
-        int $group,
+        BracketGroup $group,
     ): RedirectResponse {
-        $bracketGroup = $this->groupOrFail($division, $group);
-
         return $this->attempt(
-            fn () => $this->brackets->setGroupWinners($bracketGroup, $request->validated('winner_ids')),
+            fn () => $this->brackets->setGroupWinners($group, $request->validated('winner_ids')),
             'winner_ids',
             'Advancing winners saved.',
             $tournament,
@@ -217,7 +211,7 @@ class BracketController extends Controller
 
     public function seed(BracketSeedRequest $request, Tournament $tournament, Division $division): RedirectResponse
     {
-        $bracket = $this->bracketOrFail($division);
+        $bracket = $division->bracket ?? abort(404);
 
         return $this->attempt(
             fn () => $this->brackets->seed($bracket, $request->validated('entrant_ids')),
@@ -237,17 +231,16 @@ class BracketController extends Controller
         BracketSlotStartRequest $request,
         Tournament $tournament,
         Division $division,
-        int $slot,
+        BracketSlot $slot,
     ): RedirectResponse {
         if ($division->participation_category === 'team') {
             return back()->withErrors(['slot' => 'Team ties are played as individual rubbers. Add a rubber instead.']);
         }
 
-        $bracketSlot = $this->slotOrFail($division, $slot);
         $match = null;
 
-        if ($failure = $this->failureOrNull(function () use ($bracketSlot, $request, &$match) {
-            $match = $this->brackets->startSlot($bracketSlot, $this->slotOverrides($request));
+        if ($failure = $this->failureOrNull(function () use ($slot, $request, &$match) {
+            $match = $this->brackets->startSlot($slot, $this->slotOverrides($request));
         }, 'slot')) {
             return $failure;
         }
@@ -263,16 +256,14 @@ class BracketController extends Controller
         BracketRubberStoreRequest $request,
         Tournament $tournament,
         Division $division,
-        int $slot,
+        BracketSlot $slot,
     ): RedirectResponse {
         if ($division->participation_category !== 'team') {
             return back()->withErrors(['slot' => 'Rubbers are only used for team ties.']);
         }
 
-        $bracketSlot = $this->slotOrFail($division, $slot);
-
         return $this->attempt(
-            fn () => $this->brackets->startSlot($bracketSlot, $this->slotOverrides($request)),
+            fn () => $this->brackets->startSlot($slot, $this->slotOverrides($request)),
             'slot',
             'Team rubber added.',
             $tournament,
@@ -284,16 +275,15 @@ class BracketController extends Controller
         BracketSlotUpdateRequest $request,
         Tournament $tournament,
         Division $division,
-        int $slot,
+        BracketSlot $slot,
     ): RedirectResponse {
-        $bracketSlot = $this->slotOrFail($division, $slot);
         $entrantId = $request->validated('winner_entrant_id');
 
         $winner = $entrantId === null
             ? null
             : TournamentRegistration::where('division_id', $division->id)->findOrFail($entrantId);
 
-        $this->brackets->setWinner($bracketSlot, $winner, $request->validated('reason'));
+        $this->brackets->setWinner($slot, $winner, $request->validated('reason'));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Slot updated.']);
 
@@ -303,34 +293,25 @@ class BracketController extends Controller
     public function undoSlot(
         Tournament $tournament,
         Division $division,
-        int $slot,
+        BracketSlot $slot,
     ): RedirectResponse {
-        $bracketSlot = $this->slotOrFail($division, $slot);
-
-        if ($bracketSlot->winner_entrant_id === null) {
+        if ($slot->winner_entrant_id === null) {
             return back()->withErrors(['slot' => 'Nothing to undo.']);
         }
 
-        if ($bracketSlot->bye) {
+        if ($slot->bye) {
             return back()->withErrors(['slot' => 'Byes advance automatically.']);
         }
 
-        if ($this->brackets->laterRoundsHaveProgress($bracketSlot)) {
+        if ($this->brackets->laterRoundsHaveProgress($slot)) {
             return back()->withErrors(['slot' => 'Undo the later rounds first.']);
         }
 
-        $this->brackets->setWinner($bracketSlot, null);
+        $this->brackets->setWinner($slot, null);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Advance undone.']);
 
         return $this->redirectToDivisionBracket($tournament, $division);
-    }
-
-    private function bracketOrFail(Division $division): Bracket
-    {
-        return Bracket::where('division_id', $division->id)
-            ->where('type', BracketType::SingleElimination)
-            ->first() ?? abort(404);
     }
 
     /**
@@ -366,22 +347,6 @@ class BracketController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $successMessage]);
 
         return $this->redirectToDivisionBracket($tournament, $division);
-    }
-
-    private function slotOrFail(Division $division, int $slot): BracketSlot
-    {
-        $bracketIds = Bracket::where('division_id', $division->id)->pluck('id');
-
-        return BracketSlot::whereIn('bracket_id', $bracketIds)->findOrFail($slot);
-    }
-
-    private function groupOrFail(Division $division, int $group): BracketGroup
-    {
-        $bracket = Bracket::where('division_id', $division->id)
-            ->where('type', BracketType::GroupStage)
-            ->first();
-
-        return $bracket?->groups()->findOrFail($group) ?? abort(404);
     }
 
     /**

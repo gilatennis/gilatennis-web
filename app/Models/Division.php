@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
@@ -68,6 +69,28 @@ class Division extends Model
     public function brackets(): HasMany
     {
         return $this->hasMany(Bracket::class);
+    }
+
+    /**
+     * Every group across the division's brackets. Used for scoped route binding
+     * of `{group}` under `{division}`.
+     *
+     * @return HasManyThrough<BracketGroup, Bracket, $this>
+     */
+    public function groups(): HasManyThrough
+    {
+        return $this->hasManyThrough(BracketGroup::class, Bracket::class);
+    }
+
+    /**
+     * Every slot across the division's brackets. Used for scoped route binding
+     * of `{slot}` under `{division}`.
+     *
+     * @return HasManyThrough<BracketSlot, Bracket, $this>
+     */
+    public function slots(): HasManyThrough
+    {
+        return $this->hasManyThrough(BracketSlot::class, Bracket::class);
     }
 
     /**
