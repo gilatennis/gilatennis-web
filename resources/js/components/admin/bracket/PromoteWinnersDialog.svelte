@@ -121,8 +121,8 @@
                 <span class="font-semibold text-neutral-800"
                     >Keep group-mates apart.</span
                 >
-                Split winners from the same group into opposite halves so they can
-                only meet late.
+                Spread winners from the same group across the draw, where the draw
+                allows, so they only meet late.
             </span>
         </label>
 

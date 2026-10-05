@@ -168,6 +168,50 @@ describe('Group promotion', function () {
         expect($halves->filter()->count())->toBe(2);
     });
 
+    it('honours the provided seed order when group-mates are not kept apart', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        $service = app(BracketService::class);
+        $groupStage = $service->generateGroups($division, 2, [2, 2]);
+
+        $order = [];
+
+        foreach ($groupStage->groups as $group) {
+            $picks = $group->entrantIds()->take(2)->all();
+            $service->setGroupWinners($group, $picks);
+            $order = array_merge($order, $picks);
+        }
+
+        $knockout = $service->promoteToKnockout($division, $order, false);
+
+        $round1 = $knockout->slots()->where('round', 1)->orderBy('position')->get();
+
+        // Seeds 1 and 2 follow the caller's order exactly.
+        expect($round1->firstWhere('position', 0)->entrant_a_id)->toBe($order[0])
+            ->and($round1->firstWhere('position', 1)->entrant_a_id)->toBe($order[1]);
+    });
+
+    it('reports a clash when the draw cannot keep every group-mate apart', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 6);
+
+        $service = app(BracketService::class);
+        $groupStage = $service->generateGroups($division, 3, [2, 2, 2]);
+
+        $order = [];
+
+        foreach ($groupStage->groups as $group) {
+            $picks = $group->entrantIds()->take(2)->all();
+            $service->setGroupWinners($group, $picks);
+            $order = array_merge($order, $picks);
+        }
+
+        $knockout = $service->promoteToKnockout($division, $order, true);
+
+        expect($service->firstRoundGroupMateClashes($knockout, $division))->toBeGreaterThan(0);
+    });
+
     it('allows a non-power-of-two field and reports byes', function () {
         $division = promotionDivision();
         promotionEntrants($division, 6);

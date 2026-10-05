@@ -240,6 +240,7 @@ class BracketService
 
         $groups = $groupBracket->groups()->get();
         $qualified = [];
+        $groupIdByEntrant = [];
 
         foreach ($groups as $group) {
             $winners = $group->winnerIds();
@@ -250,6 +251,7 @@ class BracketService
 
             foreach ($winners as $winnerId) {
                 $qualified[] = $winnerId;
+                $groupIdByEntrant[$winnerId] = $group->id;
             }
         }
 
@@ -264,7 +266,12 @@ class BracketService
             throw new InvalidArgumentException('The promoted winners must match the winners picked from every group.');
         }
 
-        $seedOrder = $seedPairsApart ? $qualified : $provided;
+        // The caller's order is authoritative: keeping group-mates apart only
+        // reorders the provided entrants, spreading each group's winners across
+        // the bracket instead of replacing the order wholesale.
+        $seedOrder = $seedPairsApart
+            ? $this->interleaveByGroup($provided, $groupIdByEntrant)
+            : $provided;
 
         $entrants = $this->paidEntrants($division)->keyBy('id');
 
@@ -279,6 +286,81 @@ class BracketService
         }
 
         return $this->writeSingleElimination($division, $ordered->all(), true);
+    }
+
+    /**
+     * Reorder a provided seed list so entrants from the same group are spread
+     * across the bracket instead of clustered. Groups are interleaved round-robin,
+     * preserving each group's internal order.
+     *
+     * This is best-effort: for field shapes where a perfect split is impossible
+     * some group-mates may still share a first-round tie (see
+     * {@see self::firstRoundGroupMateClashes()}).
+     *
+     * @param  array<int, int>  $provided
+     * @param  array<int, int>  $groupIdByEntrant
+     * @return array<int, int>
+     */
+    private function interleaveByGroup(array $provided, array $groupIdByEntrant): array
+    {
+        $buckets = [];
+
+        foreach ($provided as $id) {
+            $buckets[$groupIdByEntrant[$id] ?? 0][] = $id;
+        }
+
+        if (count($buckets) < 2) {
+            return $provided;
+        }
+
+        $max = max(array_map('count', $buckets));
+        $order = [];
+
+        for ($round = 0; $round < $max; $round++) {
+            foreach ($buckets as $members) {
+                if (isset($members[$round])) {
+                    $order[] = $members[$round];
+                }
+            }
+        }
+
+        return $order;
+    }
+
+    /**
+     * The number of first-round knockout ties pitting two entrants from the same
+     * group against each other — the residue of a best-effort group-mate split.
+     */
+    public function firstRoundGroupMateClashes(Bracket $knockout, Division $division): int
+    {
+        $groupBracket = Bracket::where('division_id', $division->id)
+            ->where('type', Bracket::TYPE_GROUP_STAGE)
+            ->first();
+
+        if ($groupBracket === null) {
+            return 0;
+        }
+
+        $groupIdByEntrant = [];
+
+        foreach ($groupBracket->groups()->get() as $group) {
+            foreach ($group->winnerIds() as $id) {
+                $groupIdByEntrant[$id] = $group->id;
+            }
+        }
+
+        return $knockout->slots()
+            ->where('round', 1)
+            ->get()
+            ->filter(function (BracketSlot $slot) use ($groupIdByEntrant): bool {
+                $a = $slot->entrant_a_id;
+                $b = $slot->entrant_b_id;
+
+                return $a !== null && $b !== null
+                    && isset($groupIdByEntrant[$a], $groupIdByEntrant[$b])
+                    && $groupIdByEntrant[$a] === $groupIdByEntrant[$b];
+            })
+            ->count();
     }
 
     private function assertGroupEditable(BracketGroup $group): void

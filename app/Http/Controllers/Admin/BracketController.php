@@ -177,9 +177,17 @@ class BracketController extends Controller
 
         $byes = $bracket->slots()->where('round', 1)->where('bye', true)->count();
 
-        Inertia::flash('toast', $byes > 0
-            ? ['type' => 'warning', 'message' => "Winners promoted. {$byes} entrant(s) enter the knockout with a bye."]
-            : ['type' => 'success', 'message' => 'Winners promoted to the knockout.']);
+        $clashes = $request->boolean('seed_pairs_apart', true)
+            ? $this->brackets->firstRoundGroupMateClashes($bracket, $division)
+            : 0;
+
+        $toast = match (true) {
+            $byes > 0 => ['type' => 'warning', 'message' => "Winners promoted. {$byes} entrant(s) enter the knockout with a bye."],
+            $clashes > 0 => ['type' => 'warning', 'message' => 'Winners promoted. Group-mates meet in the first round of the knockout.'],
+            default => ['type' => 'success', 'message' => 'Winners promoted to the knockout.'],
+        };
+
+        Inertia::flash('toast', $toast);
 
         return $this->redirectToDivisionBracket($tournament, $division);
     }

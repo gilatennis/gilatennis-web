@@ -154,6 +154,30 @@ describe('Group standings', function () {
             ->and($loser['rank'])->toBe(2);
     });
 
+    it('aggregates sets and games across every rubber in a team tie', function () {
+        $division = standingsDivision();
+        [$a, $b] = standingsEntrants($division, 2);
+        $group = groupStageWithFour($division);
+
+        $slot = BracketSlot::factory()->inGroup($group)->round(1, 0)->create([
+            'entrant_a_id' => $a->id,
+            'entrant_b_id' => $b->id,
+        ]);
+
+        // Two rubbers in the same tie, both won by A.
+        decideTie($slot, $a->id, [[6, 1], [6, 1]]);
+        decideTie($slot, $a->id, [[6, 2], [6, 3]]);
+
+        $rows = app(BracketService::class)->standings($group);
+        $winner = $rows->firstWhere('entrant_id', $a->id);
+
+        // The tie counts once, but sets and games are summed across both rubbers.
+        expect($winner['played'])->toBe(1)
+            ->and($winner['sets_for'])->toBe(4)
+            ->and($winner['games_for'])->toBe(24)
+            ->and($winner['games_against'])->toBe(7);
+    });
+
     it('breaks a win tie on set difference', function () {
         $division = standingsDivision();
         [$a, $b, $c, $d] = standingsEntrants($division, 4);
