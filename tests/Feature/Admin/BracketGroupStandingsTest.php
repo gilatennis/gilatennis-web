@@ -22,8 +22,8 @@ use App\Services\BracketService;
 |
 | So this file pins each link of that chain rather than treating "standings" and
 | "tie-breaks" as separate features: wins ordering, the set/game counters the
-| tie-breaks consume, set-difference and head-to-head resolution, and the
-| undecided-tie gate. The full lifecycle e2e
+| tie-breaks consume, set-difference, game-difference, and head-to-head
+| resolution, and the undecided-tie gate. The full lifecycle e2e
 | (tests/Feature/EndToEnd/GroupStageLifecycleTest.php) asserts only the wins
 | cohort and delegates ordering to this file.
 |
@@ -169,6 +169,29 @@ describe('Group standings', function () {
 
         expect($rows[0]['entrant_id'])->toBe($a->id)
             ->and($rows[1]['entrant_id'])->toBe($c->id);
+    });
+
+    it('breaks a win tie on game difference', function () {
+        $division = standingsDivision();
+        [$a, $b, $c, $d] = standingsEntrants($division, 4);
+        $group = groupStageWithFour($division);
+
+        $ab = BracketSlot::factory()->inGroup($group)->round(1, 0)->create(['entrant_a_id' => $a->id, 'entrant_b_id' => $b->id]);
+        $cd = BracketSlot::factory()->inGroup($group)->round(1, 1)->create(['entrant_a_id' => $c->id, 'entrant_b_id' => $d->id]);
+
+        // Both winners take two sets to none, so the set difference is level;
+        // only the game margin separates them.
+        decideTie($ab, $a->id, [[6, 4], [6, 4]]);
+        decideTie($cd, $c->id, [[6, 0], [6, 0]]);
+
+        $rows = app(BracketService::class)->standings($group);
+
+        expect($rows[0]['entrant_id'])->toBe($c->id)
+            ->and($rows[1]['entrant_id'])->toBe($a->id)
+            ->and($rows->firstWhere('entrant_id', $a->id)['set_diff'])->toBe(2)
+            ->and($rows->firstWhere('entrant_id', $c->id)['set_diff'])->toBe(2)
+            ->and($rows->firstWhere('entrant_id', $a->id)['game_diff'])->toBe(4)
+            ->and($rows->firstWhere('entrant_id', $c->id)['game_diff'])->toBe(12);
     });
 
     it('breaks a full tie on head-to-head', function () {
