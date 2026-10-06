@@ -21,9 +21,11 @@ use App\Models\Division;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Services\BracketService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use InvalidArgumentException;
 
@@ -324,6 +326,10 @@ class BracketController extends Controller
             $action();
         } catch (InvalidArgumentException $e) {
             return back()->withErrors([$errorKey => $e->getMessage()]);
+        } catch (QueryException $e) {
+            Log::error('Bracket operation failed', ['error' => $e->getMessage()]);
+
+            return back()->withErrors([$errorKey => 'The bracket operation could not be completed. Please try again.']);
         }
 
         return null;

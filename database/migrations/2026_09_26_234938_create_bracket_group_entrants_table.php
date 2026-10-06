@@ -18,7 +18,10 @@ return new class extends Migration
             $table->unsignedInteger('position');
             $table->timestamps();
 
-            $table->unique(['bracket_group_id', 'tournament_registration_id']);
+            $table->unique(
+                ['bracket_group_id', 'tournament_registration_id'],
+                'bracket_group_entrants_group_registration_unique',
+            );
         });
     }
 

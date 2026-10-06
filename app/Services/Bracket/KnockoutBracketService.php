@@ -128,25 +128,27 @@ class KnockoutBracketService
         $slot->loadMissing(['bracket.division', 'entrantA', 'entrantB']);
         $division = $slot->bracket->division;
 
-        $match = TennisMatch::create(array_merge(
-            $this->defaultFormat(),
-            [
-                'division_id' => $division->id,
-                'bracket_slot_id' => $slot->id,
-                'entrant_a_id' => $slot->entrant_a_id,
-                'entrant_b_id' => $slot->entrant_b_id,
-                'side_a_name' => $slot->entrantA->name ?? 'Side A',
-                'side_b_name' => $slot->entrantB->name ?? 'Side B',
-                'status' => MatchStatus::Pending,
-            ],
-            $overrides,
-        ));
+        return DB::transaction(function () use ($slot, $division, $overrides): TennisMatch {
+            $match = TennisMatch::create(array_merge(
+                $this->defaultFormat(),
+                [
+                    'division_id' => $division->id,
+                    'bracket_slot_id' => $slot->id,
+                    'entrant_a_id' => $slot->entrant_a_id,
+                    'entrant_b_id' => $slot->entrant_b_id,
+                    'side_a_name' => $slot->entrantA->name ?? 'Side A',
+                    'side_b_name' => $slot->entrantB->name ?? 'Side B',
+                    'status' => MatchStatus::Pending,
+                ],
+                $overrides,
+            ));
 
-        if ($slot->bracket->status === BracketStatus::Draft) {
-            $slot->bracket->update(['status' => BracketStatus::Active]);
-        }
+            if ($slot->bracket->status === BracketStatus::Draft) {
+                $slot->bracket->update(['status' => BracketStatus::Active]);
+            }
 
-        return $match;
+            return $match;
+        });
     }
 
     /**
