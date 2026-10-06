@@ -70,7 +70,7 @@
         'Unforced error',
         'Forced error',
     ];
-    const events: EventTag[] = ['Fault', 'Double fault', 'Let'];
+    const events: EventTag[] = ['Fault', 'Double fault']; // 'Let' hidden for now
 
     function isShotTag(value: MatchState['pending_shot']): value is ShotTag {
         return value !== null && (shots as string[]).includes(value);

@@ -19,7 +19,7 @@ class TennisMatchUpdateRequest extends FormRequest
             'side_a_name' => ['sometimes', 'string', 'max:60'],
             'side_b_name' => ['sometimes', 'string', 'max:60'],
             'sets_to_win' => ['sometimes', 'integer', 'between:1,3'],
-            'games_to_win' => ['sometimes', 'integer', 'between:1,8'],
+            'games_to_win' => ['sometimes', 'integer', 'between:2,8'],
             'extend_at_tie' => ['sometimes', 'boolean'],
             'tiebreak_to' => ['sometimes', 'integer', 'between:1,21'],
             'status' => ['sometimes', Rule::enum(MatchStatus::class)],

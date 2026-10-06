@@ -141,7 +141,7 @@ class TennisMatchScoringService
     }
 
     /**
-     * @return array{sets_to_win: int, games_to_win: int, extend_at_tie: bool}
+     * @return array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to: int}
      */
     private function formatFor(TennisMatch $match): array
     {
@@ -149,6 +149,7 @@ class TennisMatchScoringService
             'sets_to_win' => $match->sets_to_win,
             'games_to_win' => $match->games_to_win,
             'extend_at_tie' => (bool) $match->extend_at_tie,
+            'tiebreak_to' => $match->tiebreak_to,
         ];
     }
 }

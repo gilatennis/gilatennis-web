@@ -156,19 +156,19 @@ describe('Admin TennisMatch CRUD', function () {
             ->assertSessionHasErrors('sets_to_win');
     });
 
-    it('validates games_to_win range', function () {
+    it('validates games_to_win range', function (int $gamesToWin) {
         $this->actingAs($this->admin)
             ->post(route('admin.tennis-matches.store'), [
                 'side_a_name' => 'Player A',
                 'side_b_name' => 'Player B',
                 'sets_to_win' => 2,
-                'games_to_win' => 0,
+                'games_to_win' => $gamesToWin,
                 'extend_at_tie' => false,
                 'tiebreak_to' => 7,
             ])
             ->assertRedirect()
             ->assertSessionHasErrors('games_to_win');
-    });
+    })->with([0, 1]);
 
     it('admin can view show page', function () {
         $match = TennisMatch::factory()->create();

@@ -16,7 +16,7 @@ class TennisScoringEngine
     /**
      * Replay an ordered event log into a score projection.
      *
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
      * @param  iterable<int, object>  $events  objects exposing ->type (TennisMatchEventType|string) and ->side (?int)
      */
     public function replay(array $format, iterable $events): TennisScoreState
@@ -44,7 +44,7 @@ class TennisScoringEngine
     }
 
     /**
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
@@ -74,14 +74,14 @@ class TennisScoringEngine
         return [...$state, 'game_a' => $nextA, 'game_b' => $nextB];
     }
 
-    public function gameOver(int $a, int $b, bool $inTiebreak): ?int
+    public function gameOver(int $a, int $b, bool $inTiebreak, int $tiebreakTo = 7): ?int
     {
         if ($inTiebreak) {
-            if ($a >= 7 && $a - $b >= 2) {
+            if ($a >= $tiebreakTo && $a - $b >= 2) {
                 return 1;
             }
 
-            if ($b >= 7 && $b - $a >= 2) {
+            if ($b >= $tiebreakTo && $b - $a >= 2) {
                 return 2;
             }
 
@@ -99,20 +99,8 @@ class TennisScoringEngine
         return null;
     }
 
-    public function setOver(int $a, int $b, int $gamesToWin, bool $extendAtTie): ?int
+    public function setOver(int $a, int $b, int $gamesToWin): ?int
     {
-        if ($extendAtTie) {
-            if ($a >= $gamesToWin + 1 && $a - $b >= 2) {
-                return 1;
-            }
-
-            if ($b >= $gamesToWin + 1 && $b - $a >= 2) {
-                return 2;
-            }
-
-            return null;
-        }
-
         if ($a >= $gamesToWin && $a - $b >= 2) {
             return 1;
         }
@@ -122,6 +110,20 @@ class TennisScoringEngine
         }
 
         return null;
+    }
+
+    /**
+     * Games-each score at which the set tiebreak starts. Without extending, the
+     * tiebreak comes one game before the set target (e.g. 5-5 for a 6-game set);
+     * extending plays that game out first, so the tiebreak lands on the target
+     * (6-6), or the set is won 7-5.
+     *
+     * A single-game set yields 0 here; {@see finishGame()} guards it so no
+     * tiebreak is opened and the set is decided by a two-game margin instead.
+     */
+    public function tiebreakAt(int $gamesToWin, bool $extendAtTie): int
+    {
+        return $extendAtTie ? $gamesToWin : $gamesToWin - 1;
     }
 
     public function tiebreakServer(int $total, int $firstServer): int
@@ -151,7 +153,7 @@ class TennisScoringEngine
     }
 
     /**
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
@@ -165,17 +167,15 @@ class TennisScoringEngine
             'set_b' => $game === 2 ? $state['set_b'] + 1 : $state['set_b'],
         ];
 
-        $set = $this->setOver($next['set_a'], $next['set_b'], $format['games_to_win'], $format['extend_at_tie']);
+        $set = $this->setOver($next['set_a'], $next['set_b'], $format['games_to_win']);
 
         if ($set !== null) {
             return $this->finishSet($next, $format);
         }
 
-        if (
-            ! $format['extend_at_tie']
-            && $next['set_a'] === $format['games_to_win']
-            && $next['set_b'] === $format['games_to_win']
-        ) {
+        $tieAt = $this->tiebreakAt($format['games_to_win'], $format['extend_at_tie']);
+
+        if ($tieAt >= 1 && $next['set_a'] === $tieAt && $next['set_b'] === $tieAt) {
             $first = $state['server'] === 1 ? 2 : 1;
 
             return [
@@ -192,7 +192,7 @@ class TennisScoringEngine
     }
 
     /**
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
@@ -222,7 +222,7 @@ class TennisScoringEngine
     }
 
     /**
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
@@ -240,13 +240,15 @@ class TennisScoringEngine
             'server' => $this->tiebreakServer($tbA + $tbB, $first),
         ];
 
-        $game = $this->gameOver($tbA, $tbB, true);
+        $game = $this->gameOver($tbA, $tbB, true, $format['tiebreak_to'] ?? 7);
 
         if ($game !== null) {
+            $tieAt = $this->tiebreakAt($format['games_to_win'], $format['extend_at_tie']);
+
             $next = [
                 ...$next,
-                'set_a' => $game === 1 ? $format['games_to_win'] + 1 : $next['set_a'],
-                'set_b' => $game === 2 ? $format['games_to_win'] + 1 : $next['set_b'],
+                'set_a' => $game === 1 ? $tieAt + 1 : $next['set_a'],
+                'set_b' => $game === 2 ? $tieAt + 1 : $next['set_b'],
             ];
 
             return $this->finishSet($next, $format);

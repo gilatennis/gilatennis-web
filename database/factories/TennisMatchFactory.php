@@ -66,8 +66,8 @@ class TennisMatchFactory extends Factory
         return $this->state(fn () => [
             'sets_to_win' => 2,
             'games_to_win' => 4,
-            'extend_at_tie' => true,
-            'tiebreak_to' => 7,
+            'extend_at_tie' => false,
+            'tiebreak_to' => 5,
         ]);
     }
 

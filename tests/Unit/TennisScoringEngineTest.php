@@ -40,24 +40,36 @@ describe('TennisScoringEngine gameOver', function () {
             ->and($e->gameOver(8, 6, true))->toBe(1)
             ->and($e->gameOver(5, 7, true))->toBe(2);
     });
+
+    it('honours a custom tiebreak target', function () {
+        $e = engine();
+
+        expect($e->gameOver(4, 3, true, 5))->toBeNull()
+            ->and($e->gameOver(5, 3, true, 5))->toBe(1)
+            ->and($e->gameOver(6, 4, true, 5))->toBe(1)
+            ->and($e->gameOver(3, 5, true, 5))->toBe(2);
+    });
 });
 
 describe('TennisScoringEngine setOver', function () {
     it('uses the games-to-win threshold with a two game margin', function () {
         $e = engine();
 
-        expect($e->setOver(6, 4, 6, false))->toBe(1)
-            ->and($e->setOver(6, 5, 6, false))->toBeNull()
-            ->and($e->setOver(7, 5, 6, false))->toBe(1)
-            ->and($e->setOver(7, 6, 6, false))->toBeNull();
+        expect($e->setOver(6, 4, 6))->toBe(1)
+            ->and($e->setOver(6, 1, 6))->toBe(1)
+            ->and($e->setOver(6, 5, 6))->toBeNull()
+            ->and($e->setOver(7, 5, 6))->toBe(1)
+            ->and($e->setOver(7, 6, 6))->toBeNull()
+            ->and($e->setOver(10, 8, 6))->toBe(1);
     });
 
-    it('extends past the threshold when extend_at_tie is enabled', function () {
+    it('places the tiebreak one game early unless the set is extended', function () {
         $e = engine();
 
-        expect($e->setOver(6, 5, 6, true))->toBeNull()
-            ->and($e->setOver(7, 5, 6, true))->toBe(1)
-            ->and($e->setOver(10, 8, 6, true))->toBe(1);
+        expect($e->tiebreakAt(6, false))->toBe(5)
+            ->and($e->tiebreakAt(6, true))->toBe(6)
+            ->and($e->tiebreakAt(4, false))->toBe(3)
+            ->and($e->tiebreakAt(4, true))->toBe(4);
     });
 });
 
@@ -115,13 +127,85 @@ describe('TennisScoringEngine scorePoint', function () {
         expect($state['set_a'])->toBe(1)->and($state['game_a'])->toBe(0);
     });
 
-    it('awards a tiebreak set at 7-5 in the tiebreak', function () {
+    it('ends the set at 6-1 whether or not the set is extended', function () {
+        $e = engine();
+
+        foreach ([false, true] as $extend) {
+            $format = ['sets_to_win' => 1, 'games_to_win' => 6, 'extend_at_tie' => $extend];
+
+            $state = [
+                ...TennisScoreState::initial()->toArray(),
+                'server' => 1,
+                'first_server' => 1,
+                'set_a' => 5,
+                'set_b' => 1,
+                'game_a' => 3,
+                'game_b' => 0,
+            ];
+
+            $state = $e->scorePoint($state, $format, 1);
+
+            expect($state['win'])->toBe(1)
+                ->and($state['sets'])->toBe([['a' => 6, 'b' => 1]]);
+        }
+    });
+
+    it('opens the tiebreak at 5-5 when the set is not extended', function () {
         $e = engine();
         $format = ['sets_to_win' => 1, 'games_to_win' => 6, 'extend_at_tie' => false];
 
-        $state = TennisScoreState::initial()->toArray();
         $state = [
-            ...$state,
+            ...TennisScoreState::initial()->toArray(),
+            'server' => 1,
+            'first_server' => 1,
+            'set_a' => 5,
+            'set_b' => 4,
+            'game_a' => 0,
+            'game_b' => 3,
+        ];
+
+        $state = $e->scorePoint($state, $format, 2);
+
+        expect($state['tiebreak'])->toBeTrue()
+            ->and($state['set_a'])->toBe(5)
+            ->and($state['set_b'])->toBe(5);
+    });
+
+    it('plays through 5-5 and opens the tiebreak at 6-6 when extended', function () {
+        $e = engine();
+        $format = ['sets_to_win' => 1, 'games_to_win' => 6, 'extend_at_tie' => true];
+
+        $state = [
+            ...TennisScoreState::initial()->toArray(),
+            'server' => 1,
+            'first_server' => 1,
+            'set_a' => 5,
+            'set_b' => 4,
+            'game_a' => 0,
+            'game_b' => 3,
+        ];
+
+        $state = $e->scorePoint($state, $format, 2);
+
+        expect($state['tiebreak'])->toBeFalse()
+            ->and($state['set_a'])->toBe(5)
+            ->and($state['set_b'])->toBe(5);
+
+        $state = $e->scorePoint([...$state, 'game_a' => 3, 'game_b' => 0], $format, 1);
+        expect($state['set_a'])->toBe(6)->and($state['tiebreak'])->toBeFalse();
+
+        $state = $e->scorePoint([...$state, 'game_a' => 0, 'game_b' => 3], $format, 2);
+        expect($state['tiebreak'])->toBeTrue()
+            ->and($state['set_a'])->toBe(6)
+            ->and($state['set_b'])->toBe(6);
+    });
+
+    it('credits the tiebreak winner the extra game on the extended target', function () {
+        $e = engine();
+        $format = ['sets_to_win' => 1, 'games_to_win' => 6, 'extend_at_tie' => true];
+
+        $state = [
+            ...TennisScoreState::initial()->toArray(),
             'server' => 1,
             'first_server' => 1,
             'set_a' => 6,
@@ -139,6 +223,55 @@ describe('TennisScoringEngine scorePoint', function () {
 
         expect($state['win'])->toBe(1)
             ->and($state['sets'])->toBe([['a' => 7, 'b' => 6]]);
+    });
+
+    it('credits the tiebreak winner the short set on the unextended target', function () {
+        $e = engine();
+        $format = ['sets_to_win' => 1, 'games_to_win' => 6, 'extend_at_tie' => false];
+
+        $state = [
+            ...TennisScoreState::initial()->toArray(),
+            'server' => 1,
+            'first_server' => 1,
+            'set_a' => 5,
+            'set_b' => 5,
+            'tiebreak' => true,
+            'tb_first' => 1,
+        ];
+
+        for ($i = 0; $i < 6; $i++) {
+            $state = $e->scorePoint($state, $format, 1);
+        }
+        expect($state['tb_a'])->toBe(6)->and($state['win'])->toBeNull();
+
+        $state = $e->scorePoint($state, $format, 1);
+
+        expect($state['win'])->toBe(1)
+            ->and($state['sets'])->toBe([['a' => 6, 'b' => 5]]);
+    });
+
+    it('does not open a tiebreak for a single-game set', function () {
+        $e = engine();
+        $format = ['sets_to_win' => 1, 'games_to_win' => 1, 'extend_at_tie' => false];
+
+        $state = [
+            ...TennisScoreState::initial()->toArray(),
+            'server' => 1,
+            'first_server' => 1,
+            'game_a' => 3,
+            'game_b' => 0,
+        ];
+
+        $state = $e->scorePoint($state, $format, 1);
+
+        expect($state['set_a'])->toBe(1)
+            ->and($state['tiebreak'])->toBeFalse();
+
+        $state = $e->scorePoint([...$state, 'game_a' => 0, 'game_b' => 3], $format, 2);
+
+        expect($state['set_a'])->toBe(1)
+            ->and($state['set_b'])->toBe(1)
+            ->and($state['tiebreak'])->toBeFalse();
     });
 });
 

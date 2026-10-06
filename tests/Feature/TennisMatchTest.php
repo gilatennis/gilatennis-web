@@ -53,10 +53,10 @@ describe('TennisMatch format_label', function () {
         expect($match->format_label)->toBe('Best of 5 set(s), 6 games, TB to 10');
     });
 
-    it('formats fast-4 with TB to 7', function () {
+    it('formats fast-4 with TB to 5', function () {
         $match = TennisMatch::factory()->fast4()->create();
 
-        expect($match->format_label)->toBe('Best of 3 set(s), 4 games, TB to 7');
+        expect($match->format_label)->toBe('Best of 3 set(s), 4 games, TB to 5');
     });
 
     it('formats short-set 5', function () {

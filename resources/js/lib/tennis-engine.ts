@@ -68,13 +68,18 @@ export function gamePointLabel(p: number): string {
     return PTS[p] ?? String(p);
 }
 
-export function gameOver(a: number, b: number, inTb: boolean): Side | null {
+export function gameOver(
+    a: number,
+    b: number,
+    inTb: boolean,
+    tiebreakTo = 7,
+): Side | null {
     if (inTb) {
-        if (a >= 7 && a - b >= 2) {
+        if (a >= tiebreakTo && a - b >= 2) {
             return 1;
         }
 
-        if (b >= 7 && b - a >= 2) {
+        if (b >= tiebreakTo && b - a >= 2) {
             return 2;
         }
 
@@ -92,24 +97,7 @@ export function gameOver(a: number, b: number, inTb: boolean): Side | null {
     return null;
 }
 
-export function setOver(
-    a: number,
-    b: number,
-    gamesToWin: number,
-    extendAtTie: boolean,
-): Side | null {
-    if (extendAtTie) {
-        if (a >= gamesToWin + 1 && a - b >= 2) {
-            return 1;
-        }
-
-        if (b >= gamesToWin + 1 && b - a >= 2) {
-            return 2;
-        }
-
-        return null;
-    }
-
+export function setOver(a: number, b: number, gamesToWin: number): Side | null {
     if (a >= gamesToWin && a - b >= 2) {
         return 1;
     }
@@ -119,6 +107,10 @@ export function setOver(
     }
 
     return null;
+}
+
+export function tiebreakAt(gamesToWin: number, extendAtTie: boolean): number {
+    return extendAtTie ? gamesToWin : gamesToWin - 1;
 }
 
 export function tiebreakServer(total: number, firstSrv: Side): Side {
@@ -144,20 +136,13 @@ function finishGame(state: MatchState, gw: Side): MatchState {
         set_b: nextSetB,
     };
 
-    const so = setOver(
-        nextSetA,
-        nextSetB,
-        state.games_to_win,
-        state.extend_at_tie,
-    );
+    const so = setOver(nextSetA, nextSetB, state.games_to_win);
+
+    const tieAt = tiebreakAt(state.games_to_win, state.extend_at_tie);
 
     if (so !== null) {
         next = finishSet(next);
-    } else if (
-        !state.extend_at_tie &&
-        nextSetA === state.games_to_win &&
-        nextSetB === state.games_to_win
-    ) {
+    } else if (tieAt >= 1 && nextSetA === tieAt && nextSetB === tieAt) {
         const tbf: Side = state.server === 1 ? 2 : 1;
         next = {
             ...next,
@@ -218,13 +203,15 @@ function finishTiebreakPoint(state: MatchState, who: Side): MatchState {
         tb_b: nextTbB,
         server: nextServer,
     };
-    const gw = gameOver(nextTbA, nextTbB, true);
+    const gw = gameOver(nextTbA, nextTbB, true, state.tiebreak_to);
 
     if (gw !== null) {
+        const tieAt = tiebreakAt(state.games_to_win, state.extend_at_tie);
+
         next = {
             ...next,
-            set_a: gw === 1 ? state.games_to_win + 1 : state.set_a,
-            set_b: gw === 2 ? state.games_to_win + 1 : state.set_b,
+            set_a: gw === 1 ? tieAt + 1 : state.set_a,
+            set_b: gw === 2 ? tieAt + 1 : state.set_b,
         };
         next = finishSet(next);
     }
