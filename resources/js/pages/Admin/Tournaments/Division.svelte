@@ -227,7 +227,7 @@
 
         <div class="bg-white border-b border-black/8 shrink-0 overflow-x-auto">
             <div class="flex items-end gap-0 min-w-max px-4 sm:px-8">
-                {#each [{ id: 'registrants', label: 'Registrants', count: registrations.total }, { id: 'prizes', label: 'Prizes', count: null }, { id: 'matches', label: 'Matches', count: null }, { id: 'schedule', label: 'Schedule', count: null, soon: true }] as t (t.id)}
+                {#each [{ id: 'registrants', label: 'Registrants', count: registrations.total }, { id: 'prizes', label: 'Prizes', count: null }, { id: 'brackets', label: 'Brackets', count: null }, { id: 'schedule', label: 'Schedule', count: null, soon: true }] as t (t.id)}
                     <button
                         type="button"
                         onclick={() => switchTab(t.id)}
@@ -378,7 +378,7 @@
                 </p>
             </div>
         {/if}
-    {:else if tab === 'matches'}
+    {:else if tab === 'brackets'}
         <div class="flex flex-col gap-8">
             <GroupStageView
                 {groupStage}

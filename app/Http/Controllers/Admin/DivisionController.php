@@ -30,7 +30,7 @@ class DivisionController extends Controller
 
         $status = request('status');
         $search = request('search');
-        $tab = in_array(request('tab'), ['registrants', 'prizes', 'matches', 'schedule'], true)
+        $tab = in_array(request('tab'), ['registrants', 'prizes', 'brackets', 'schedule'], true)
             ? request('tab')
             : 'registrants';
 

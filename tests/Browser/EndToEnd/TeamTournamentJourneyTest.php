@@ -46,7 +46,7 @@ describe('team tournament journey', function () {
         [$admin, $tournament, $division] = teamJourneyTournament(6);
 
         teamJourneyLogin($admin);
-        $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+        $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
         teamJourneyGenerateGroups($page, 3);
 
         $groupStage = teamJourneyGroupStage($division)->load('groups.slots');
@@ -64,7 +64,7 @@ describe('team tournament journey', function () {
         [$admin, $tournament, $division] = teamJourneyTournament(6);
 
         teamJourneyLogin($admin);
-        $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+        $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
         teamJourneyGenerateGroups($page, 3);
 
         $group = teamJourneyGroupStage($division)->groups()->with('slots')->first();
@@ -125,7 +125,7 @@ describe('team tournament journey', function () {
         // The live semi decides who meets the bye entrant in the final.
         teamJourneyPlayTieViaUi($tournament, $division, $live->id, 1);
 
-        $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+        $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
         $page->assertPresent('@advance-slot-'.$final->id.'-side-1');
 
         teamJourneyPlayTieViaUi($tournament, $division, $final->id, 1);
@@ -135,7 +135,7 @@ describe('team tournament journey', function () {
 
         expect($knockout->status)->toBe(BracketStatus::Completed);
 
-        $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+        $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
         $page->assertSee($champion->display_name)->assertNoJavaScriptErrors();
     });
 
@@ -175,7 +175,7 @@ describe('team tournament journey', function () {
 
         expect($knockout->status)->toBe(BracketStatus::Completed);
 
-        $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+        $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
         $page->assertSee($champion->display_name)->assertNoJavaScriptErrors();
     });
 });

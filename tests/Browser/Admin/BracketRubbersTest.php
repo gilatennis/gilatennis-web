@@ -79,7 +79,7 @@ function openRubberBracket(User $admin, Tournament $tournament, Division $divisi
         ->navigate(route('admin.tournaments.divisions.show', [
             'tournament' => $tournament->id,
             'division' => $division->id,
-            'tab' => 'matches',
+            'tab' => 'brackets',
         ]))
         ->wait(2);
 }

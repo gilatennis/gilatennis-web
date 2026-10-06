@@ -67,7 +67,7 @@ function e2eBrowserGotoBracket(Tournament $tournament, Division $division)
     return visit(route('admin.tournaments.divisions.show', [
         'tournament' => $tournament->id,
         'division' => $division->id,
-        'tab' => 'matches',
+        'tab' => 'brackets',
     ]))->wait(2);
 }
 

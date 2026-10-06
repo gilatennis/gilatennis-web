@@ -337,7 +337,7 @@ class BracketController extends Controller
 
     /**
      * Run a bracket mutation and, on success, flash a toast and return to the
-     * division's matches tab.
+     * division's brackets tab.
      */
     private function attempt(
         callable $action,
@@ -371,7 +371,7 @@ class BracketController extends Controller
         return redirect()->route('admin.tournaments.divisions.show', [
             'tournament' => $tournament,
             'division' => $division,
-            'tab' => 'matches',
+            'tab' => 'brackets',
         ]);
     }
 }

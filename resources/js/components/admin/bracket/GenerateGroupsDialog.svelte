@@ -166,7 +166,12 @@
             </div>
         </div>
 
-        <div class="mt-5 grid grid-cols-2 gap-2">
+        <div
+            class="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2"
+        >
+            Round-robin format
+        </div>
+        <div class="grid grid-cols-2 gap-2">
             <button
                 type="button"
                 onclick={() => (doubleRoundRobin = false)}
@@ -175,7 +180,7 @@
                     : 'border-black/12 hover:border-black/25'}"
             >
                 <div class="text-[13px] font-semibold text-neutral-800">
-                    Single
+                    Single round-robin
                 </div>
                 <div class="text-[11px] text-neutral-500 mt-0.5">
                     Each pair meets once.
@@ -189,7 +194,7 @@
                     : 'border-black/12 hover:border-black/25'}"
             >
                 <div class="text-[13px] font-semibold text-neutral-800">
-                    Double
+                    Double round-robin
                 </div>
                 <div class="text-[11px] text-neutral-500 mt-0.5">
                     Each pair meets twice.

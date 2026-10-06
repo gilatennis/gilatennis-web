@@ -638,7 +638,7 @@ describe('Admin Team Rubber Formats', function () {
             ->assertRedirect(route('admin.tournaments.divisions.show', [
                 'tournament' => $division->tournament_id,
                 'division' => $division->id,
-                'tab' => 'matches',
+                'tab' => 'brackets',
             ]));
 
         $match = TennisMatch::firstOrFail();

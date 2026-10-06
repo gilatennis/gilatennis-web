@@ -99,7 +99,7 @@ still uses the ambiguous `$division->bracket`.
 - Svelte: `GroupStageView` (generate/promote/delete + entrant management wiring +
   shared advance/undo/rubbers flow), `GroupCard`, `StandingsTable` (with winner picking),
   `GenerateGroupsDialog`, `PromoteWinnersDialog` (bye warning). `Division.svelte` renders the
-  group stage above the knockout on the Matches tab.
+  group stage above the knockout on the Brackets tab.
 - Tests: group-stage payload shaping + type-scoped delete (feature);
   `tests/Browser/Admin/GroupStageTest.php` (generate via UI, promote, locked assignment).
 

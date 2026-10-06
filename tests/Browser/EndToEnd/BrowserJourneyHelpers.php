@@ -162,7 +162,7 @@ function teamJourneyLogin(User $admin): AwaitableWebpage
         ->assertPathIs('/admin/dashboard');
 }
 
-function teamJourneyGotoDivision(Tournament $tournament, Division $division, string $tab = 'matches'): AwaitableWebpage
+function teamJourneyGotoDivision(Tournament $tournament, Division $division, string $tab = 'brackets'): AwaitableWebpage
 {
     return teamJourneyNavigate(route('admin.tournaments.divisions.show', [
         'tournament' => $tournament->id,
@@ -303,7 +303,7 @@ function teamJourneyPlayTieViaUi(
     int $slotId,
     int $winningSide = 1,
 ): TennisMatch {
-    $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+    $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
 
     // Open this tie's rubbers dialog (the trigger is scoped by slot id).
     $page->click('[data-testid="rubbers"][data-slot="'.$slotId.'"]')
@@ -334,7 +334,7 @@ function teamJourneyPlayTieViaUi(
     $page->wait(1)->click('@mark-completed')->wait(2);
 
     // Back to the bracket: the tie winner is an explicit admin decision.
-    $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+    $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
     $page->click('@advance-slot-'.$slotId.'-side-'.$winningSide)
         ->assertPresent('@confirm-modal-accept')
         ->click('@confirm-modal-accept')->wait(2);
@@ -364,14 +364,14 @@ function teamJourneyPickGroupWinners(AwaitableWebpage $page, Bracket $groupStage
  */
 function teamJourneyCompleteGroupStage(Tournament $tournament, Division $division, int $groupCount = 3): void
 {
-    $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+    $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
     teamJourneyGenerateGroups($page, $groupCount);
 
     foreach (teamJourneyGroupStage($division)->groups()->with('slots')->get() as $group) {
         teamJourneyPlayTieViaUi($tournament, $division, $group->slots->first()->id, 1);
     }
 
-    $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+    $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
     teamJourneyPickGroupWinners($page, teamJourneyGroupStage($division));
 }
 
@@ -381,7 +381,7 @@ function teamJourneyCompleteGroupStage(Tournament $tournament, Division $divisio
  */
 function teamJourneyPromoteWinners(Tournament $tournament, Division $division): void
 {
-    $page = teamJourneyGotoDivision($tournament, $division, 'matches');
+    $page = teamJourneyGotoDivision($tournament, $division, 'brackets');
 
     // Promotion is an async POST that creates the knockout bracket.
     $page->click('@open-promote')
