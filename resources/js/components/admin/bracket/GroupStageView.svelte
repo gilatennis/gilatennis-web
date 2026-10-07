@@ -8,6 +8,8 @@
     import GroupCard from '@/components/admin/bracket/GroupCard.svelte';
     import PromoteWinnersDialog from '@/components/admin/bracket/PromoteWinnersDialog.svelte';
     import RubbersDialog from '@/components/admin/bracket/RubbersDialog.svelte';
+    import SetWinnerModal from '@/components/admin/bracket/SetWinnerModal.svelte';
+    import UndoWinnerModal from '@/components/admin/bracket/UndoWinnerModal.svelte';
     import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
     import { Button } from '@/components/ui/button';
     import { update as updateMatch } from '@/routes/admin/tennis-matches';
@@ -60,23 +62,13 @@
     let showRubbers = $state(false);
     let rubbersSlotId = $state<number | null>(null);
 
-    type PendingAction =
-        | {
-              kind: 'advance';
-              slot: BracketSlot;
-              entrantId: number;
-              name: string;
-          }
-        | { kind: 'undo'; slot: BracketSlot; name: string };
-
-    let pendingAction = $state<PendingAction | null>(null);
+    let showSetWinner = $state(false);
+    let setWinnerSlot = $state<BracketSlot | null>(null);
+    let setWinnerEntrant = $state<BracketEntrant | null>(null);
     let advanceReason = $state('');
 
-    const reasonOptions = [
-        { value: 'walkover', label: 'Walkover' },
-        { value: 'retirement', label: 'Retirement' },
-        { value: 'disqualification', label: 'Disqualification' },
-    ];
+    let showUndo = $state(false);
+    let undoSlot = $state<BracketSlot | null>(null);
 
     const statusLabel: Record<string, string> = {
         draft: 'Draft',
@@ -244,67 +236,34 @@
     }
 
     function openAdvanceConfirm(slot: BracketSlot, entrant: BracketEntrant) {
+        setWinnerSlot = slot;
+        setWinnerEntrant = entrant;
         advanceReason = '';
-        pendingAction = {
-            kind: 'advance',
-            slot,
-            entrantId: entrant.id,
-            name: entrant.name,
-        };
+        showSetWinner = true;
+    }
+
+    function confirmSetWinner(
+        slot: BracketSlot,
+        entrantId: number,
+        reason: string,
+    ) {
+        router.patch(
+            slotsRoute.update.url({ ...args, slot: slot.id }),
+            { winner_entrant_id: entrantId, reason: reason || null },
+            { preserveScroll: true },
+        );
     }
 
     function openUndoConfirm(slot: BracketSlot) {
-        pendingAction = {
-            kind: 'undo',
-            slot,
-            name: slot.winner_entrant?.name ?? 'the winner',
-        };
+        undoSlot = slot;
+        showUndo = true;
     }
 
-    function canUndo(slot: BracketSlot) {
-        const group = groups.find((g) =>
-            g.matchdays.some((m) => m.slots.some((s) => s.id === slot.id)),
-        );
-
-        return group ? canEdit(group) : false;
+    function confirmUndo(slot: BracketSlot) {
+        router.delete(slotsRoute.undo.url({ ...args, slot: slot.id }), {
+            preserveScroll: true,
+        });
     }
-
-    function runPendingAction() {
-        if (!pendingAction) {
-            return;
-        }
-
-        if (pendingAction.kind === 'undo') {
-            router.delete(
-                slotsRoute.undo.url({ ...args, slot: pendingAction.slot.id }),
-                { preserveScroll: true },
-            );
-        } else {
-            router.patch(
-                slotsRoute.update.url({ ...args, slot: pendingAction.slot.id }),
-                {
-                    winner_entrant_id: pendingAction.entrantId,
-                    reason: advanceReason || null,
-                },
-                { preserveScroll: true },
-            );
-        }
-
-        pendingAction = null;
-    }
-
-    const isUndo = $derived(pendingAction?.kind === 'undo');
-    const confirmTitle = $derived(isUndo ? 'Undo advance' : 'Set winner');
-    const confirmMessage = $derived.by(() => {
-        if (!pendingAction) {
-            return '';
-        }
-
-        return isUndo
-            ? `Move ${pendingAction.name} back and clear their result?`
-            : `Advance ${pendingAction.name} as the winner?`;
-    });
-    const confirmLabel = $derived(isUndo ? 'Undo' : 'Set Winner');
 </script>
 
 {#if !groupStage}
@@ -388,7 +347,7 @@
                 onRubbers={openRubbers}
                 onAdvance={openAdvanceConfirm}
                 onUndo={openUndoConfirm}
-                {canUndo}
+                canUndo={() => true}
                 onAddEntrant={(entrantId) => addEntrant(group.id, entrantId)}
                 onMoveEntrant={(entrantId, toGroupId) =>
                     moveEntrant(group.id, entrantId, toGroupId)}
@@ -425,18 +384,12 @@
     onConfirm={removeGroupStage}
 />
 
-<ConfirmModal
-    open={pendingAction !== null}
-    onOpenChange={(v) => {
-        if (!v) {
-            pendingAction = null;
-        }
-    }}
-    title={confirmTitle}
-    message={confirmMessage}
-    {confirmLabel}
-    destructive={isUndo}
+<SetWinnerModal
+    bind:open={showSetWinner}
+    slot={setWinnerSlot}
+    entrant={setWinnerEntrant}
     bind:reason={advanceReason}
-    reasonOptions={isUndo ? undefined : reasonOptions}
-    onConfirm={runPendingAction}
+    onConfirm={confirmSetWinner}
 />
+
+<UndoWinnerModal bind:open={showUndo} slot={undoSlot} onConfirm={confirmUndo} />

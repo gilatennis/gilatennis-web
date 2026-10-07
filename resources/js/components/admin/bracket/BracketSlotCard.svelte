@@ -232,6 +232,7 @@
             >
             <button
                 type="button"
+                data-testid="undo-slot-{slot.id}"
                 disabled={!canUndo}
                 onclick={() => onUndo(slot)}
                 title={canUndo

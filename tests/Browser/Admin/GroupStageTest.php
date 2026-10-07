@@ -115,6 +115,44 @@ it('locks entrant assignment once a group has started', function () {
     $page->assertDontSeeIn('@group-card-'.$group->id, 'Add entrant');
 });
 
+it('sets winners on successive group ties and undoes one', function () {
+    [$admin, $tournament, $division] = groupStageSetup(players: 4, drawSize: 4);
+
+    $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+    $slotA = $bracket->groups[0]->slots->first();
+    $slotB = $bracket->groups[1]->slots->first();
+
+    $page = openGroupStage($admin, $tournament, $division);
+
+    // Record the first tie's winner.
+    $page->click('@advance-slot-'.$slotA->id.'-side-1')
+        ->wait(1)
+        ->assertPresent('@confirm-modal-accept')
+        ->click('@confirm-modal-accept')
+        ->wait(2);
+
+    expect($slotA->fresh()->winner_entrant_id)->toBe($slotA->entrant_a_id);
+
+    // Regression: the confirm modal must reopen for the next tie without a
+    // page reload, and its Undo button must be usable.
+    $page->click('@advance-slot-'.$slotB->id.'-side-1')
+        ->wait(1)
+        ->assertPresent('@confirm-modal-accept')
+        ->click('@confirm-modal-accept')
+        ->wait(2);
+
+    expect($slotB->fresh()->winner_entrant_id)->toBe($slotB->entrant_a_id);
+
+    $page->assertButtonEnabled('@undo-slot-'.$slotA->id)
+        ->click('@undo-slot-'.$slotA->id)
+        ->wait(1)
+        ->assertPresent('@confirm-modal-accept')
+        ->click('@confirm-modal-accept')
+        ->wait(2);
+
+    expect($slotA->fresh()->winner_entrant_id)->toBeNull();
+});
+
 it('carries a group stage through to a promoted knockout from the UI', function () {
     [$admin, $tournament, $division] = groupStageSetup();
 
