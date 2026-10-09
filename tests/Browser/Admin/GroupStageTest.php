@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BracketStatus;
 use App\Enums\BracketType;
 use App\Models\Bracket;
 use App\Models\Division;
@@ -168,11 +169,22 @@ it('carries a group stage through to a promoted knockout from the UI', function 
         ->where('type', BracketType::GroupStage)
         ->firstOrFail();
 
+    // No knockout affordance while the group stage is un-promoted.
+    $page->assertMissing('@generate-bracket')->assertMissing('@promote-hint');
+
     // Pick the top entrant from each group's standings table.
+    $leaders = [];
+
     foreach ($bracket->groups as $group) {
         $leader = $group->fresh()->entrantIds()->first();
+        $leaders[] = $leader;
         $page->click('@pick-winner-'.$leader)->wait(2);
     }
+
+    // Once every group has its winner the promote hint appears above the groups.
+    $page->assertPresent('@promote-hint')
+        ->assertPresent('@group-stage-groups')
+        ->assertPresent('@toggle-group-stage');
 
     // Promote — the button enables once every group has its winner.
     $page->click('@open-promote')
@@ -189,9 +201,46 @@ it('carries a group stage through to a promoted knockout from the UI', function 
 
     $final = $knockout->finalSlot();
 
-    $page->assertSee('Final')
+    // Promoting collapses the groups so the bracket takes focus. The knockout
+    // is still a draft, so the group stage stays open: it reads as in progress
+    // and its controls remain available so the draw can still be corrected.
+    $page->assertMissing('@group-stage-groups')
+        ->assertSeeIn('@group-stage-status', 'In Progress')
+        ->assertPresent('@open-promote')
+        ->assertPresent('@regenerate-groups')
+        ->assertPresent('@delete-groups')
+        ->assertSee('Knockout Stage')
+        ->assertSee('Final')
         ->assertPresent('@advance-slot-'.$final->id.'-side-1')
-        ->assertPresent('@advance-slot-'.$final->id.'-side-2');
+        ->assertPresent('@advance-slot-'.$final->id.'-side-2')
+        ->click('@toggle-group-stage')
+        ->wait(1)
+        ->assertPresent('@group-stage-groups');
+
+    // Once the knockout begins play the group stage reads as completed and its
+    // controls are gone.
+    $knockout->update(['status' => BracketStatus::Active]);
+
+    $page->navigate(route('admin.tournaments.divisions.show', [
+        'tournament' => $tournament->id,
+        'division' => $division->id,
+        'tab' => 'brackets',
+    ]))->wait(2);
+
+    $page->assertSeeIn('@group-stage-status', 'Completed')
+        ->assertMissing('@open-promote')
+        ->assertMissing('@regenerate-groups')
+        ->assertMissing('@delete-groups');
+
+    // Expanding the completed groups reveals a read-only standings table: the
+    // per-group edit controls are gone too.
+    $page->click('@toggle-group-stage')
+        ->wait(1)
+        ->assertPresent('@group-stage-groups');
+
+    foreach ($leaders as $leader) {
+        $page->assertMissing('@pick-winner-'.$leader);
+    }
 });
 
 it('promotes a non-power-of-two field as a bye through the UI', function () {
@@ -247,4 +296,32 @@ it('promotes a non-power-of-two field as a bye through the UI', function () {
         ->assertPresent('@advance-slot-'.$liveSlot->id.'-side-1');
 
     $page->assertMissing('@advance-slot-'.$byeSlot->id.'-side-1');
+});
+
+it('generates a standalone knockout from the UI when there is no group stage', function () {
+    [$admin, $tournament, $division] = groupStageSetup(players: 4, drawSize: 4);
+
+    $page = openGroupStage($admin, $tournament, $division);
+
+    // No group stage and no knockout: the standalone draw is offered and the
+    // group-stage entry point is still available.
+    $page->assertPresent('@generate-bracket')
+        ->assertMissing('@promote-hint')
+        ->assertMissing('@standalone-hint');
+
+    $page->click('@generate-bracket')
+        ->wait(1)
+        ->click('@generate-bracket-confirm')
+        ->wait(3);
+
+    $bracket = Bracket::where('division_id', $division->id)
+        ->where('type', BracketType::SingleElimination)
+        ->firstOrFail();
+
+    $semi = $bracket->slots()->where('round', 1)->orderBy('position')->firstOrFail();
+
+    // The knockout is now the primary flow, so the group-stage entry is hidden.
+    $page->assertPresent('@advance-slot-'.$semi->id.'-side-1')
+        ->assertMissing('@generate-bracket')
+        ->assertPresent('@standalone-hint');
 });

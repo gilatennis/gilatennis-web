@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property BracketType $type
  * @property BracketStatus $status
  * @property int $size
+ * @property bool $manual_assignment
+ * @property bool $draw_locked
  * @property-read Division $division
  * @property-read Collection<int, BracketSlot> $slots
  * @property-read Collection<int, BracketGroup> $groups
@@ -29,10 +31,14 @@ class Bracket extends Model
         'type',
         'status',
         'size',
+        'manual_assignment',
+        'draw_locked',
     ];
 
     protected $casts = [
         'size' => 'integer',
+        'manual_assignment' => 'boolean',
+        'draw_locked' => 'boolean',
         'type' => BracketType::class,
         'status' => BracketStatus::class,
     ];
@@ -67,6 +73,17 @@ class Bracket extends Model
     public function isGroupStage(): bool
     {
         return $this->type === BracketType::GroupStage;
+    }
+
+    /**
+     * A manual-assignment draw is still being arranged: entrants may be moved
+     * between first-round slots and byes are not yet resolved.
+     */
+    public function isEditing(): bool
+    {
+        return $this->manual_assignment
+            && $this->status === BracketStatus::Draft
+            && ! $this->draw_locked;
     }
 
     public function finalSlot(): ?BracketSlot

@@ -6,6 +6,7 @@ use App\Enums\BracketStatus;
 use App\Enums\BracketType;
 use App\Enums\MatchStatus;
 use App\Models\Bracket;
+use App\Models\BracketGroup;
 use App\Models\BracketSlot;
 use App\Models\Division;
 use App\Models\TennisMatch;
@@ -30,7 +31,7 @@ class KnockoutBracketService
      * In auto mode, paid entrants are seeded immediately; in manual mode the
      * first round is left empty for the admin to seed later.
      */
-    public function generate(Division $division, string $seedingMode = BracketStructure::SEEDING_AUTO): Bracket
+    public function generate(Division $division, string $seedingMode = BracketStructure::SEEDING_AUTO, bool $manualAssignment = false): Bracket
     {
         $entrants = $this->structure->paidEntrants($division);
         $count = $entrants->count();
@@ -47,6 +48,7 @@ class KnockoutBracketService
             $division,
             $entrants->values()->all(),
             $seedingMode === BracketStructure::SEEDING_AUTO,
+            $manualAssignment,
         );
     }
 
@@ -56,11 +58,11 @@ class KnockoutBracketService
      *
      * @param  array<int, TournamentRegistration>  $entrants
      */
-    public function writeSingleElimination(Division $division, array $entrants, bool $assign): Bracket
+    public function writeSingleElimination(Division $division, array $entrants, bool $assign, bool $manualAssignment = false): Bracket
     {
         $size = $this->capacityFor(count($entrants));
 
-        return DB::transaction(function () use ($division, $entrants, $size, $assign) {
+        return DB::transaction(function () use ($division, $entrants, $size, $assign, $manualAssignment) {
             $bracket = Bracket::updateOrCreate(
                 [
                     'division_id' => $division->id,
@@ -69,6 +71,7 @@ class KnockoutBracketService
                 [
                     'status' => BracketStatus::Draft,
                     'size' => $size,
+                    'manual_assignment' => $manualAssignment,
                 ],
             );
 
@@ -91,8 +94,27 @@ class KnockoutBracketService
      */
     public function seed(Bracket $bracket, array $entrantIds): void
     {
+        if ($bracket->status !== BracketStatus::Draft) {
+            throw new InvalidArgumentException('The draw is final once play has started.');
+        }
+
+        if ($bracket->isEditing()) {
+            throw new InvalidArgumentException('Complete the draw before re-seeding.');
+        }
+
         $division = $bracket->division;
         $entrants = $this->structure->paidEntrants($division)->keyBy('id');
+
+        $fieldCount = $bracket->slots()
+            ->where('round', 1)
+            ->get()
+            ->sum(fn (BracketSlot $slot) => ($slot->entrant_a_id !== null ? 1 : 0) + ($slot->entrant_b_id !== null ? 1 : 0));
+
+        // A group-derived bracket holds only the qualifiers; its draw is fixed by
+        // promotion, so it must never be re-seeded against the full paid field.
+        if ($fieldCount > 0 && $fieldCount < $entrants->count()) {
+            throw new InvalidArgumentException('This bracket was seeded from the group stage; its draw is fixed.');
+        }
 
         $ordered = collect($entrantIds)
             ->map(fn ($id) => $entrants->get((int) $id))
@@ -107,6 +129,261 @@ class KnockoutBracketService
         DB::transaction(function () use ($bracket, $ordered) {
             $this->assignEntrants($bracket, $ordered->all());
         });
+    }
+
+    /**
+     * Toggle whether entrants may be placed into first-round slots by hand. The
+     * option is only changeable while the draw is still a draft.
+     *
+     * Enabling it (re)opens editing: any byes resolved earlier are retracted so
+     * the field can be rearranged from a clean slate. Disabling it is only
+     * allowed once the draw has been completed, so a half-placed field is never
+     * left behind.
+     */
+    public function setManualAssignment(Bracket $bracket, bool $manualAssignment): void
+    {
+        if ($bracket->status !== BracketStatus::Draft) {
+            throw new InvalidArgumentException('The draw is final once play has started.');
+        }
+
+        if ($manualAssignment) {
+            DB::transaction(function () use ($bracket) {
+                $bracket->update(['manual_assignment' => true, 'draw_locked' => false]);
+                $this->clearDerivedRounds($bracket);
+            });
+
+            return;
+        }
+
+        if ($this->placedCount($bracket) > 0 && ! $bracket->draw_locked) {
+            throw new InvalidArgumentException('Complete the draw before turning off manual assignment.');
+        }
+
+        $bracket->update(['manual_assignment' => false, 'draw_locked' => false]);
+    }
+
+    /**
+     * The entrants eligible to occupy this bracket's first round: the group
+     * qualifiers when the division runs a group stage, otherwise every paid
+     * entrant. This is stable regardless of the current slot placement, so a
+     * cleared (TBD) slot can still be refilled.
+     *
+     * @return Collection<int, TournamentRegistration>
+     */
+    public function eligibleEntrants(Bracket $bracket): Collection
+    {
+        $division = $bracket->division;
+
+        $groupStage = Bracket::where('division_id', $division->id)
+            ->where('type', BracketType::GroupStage)
+            ->first();
+
+        if ($groupStage === null) {
+            return $this->structure->paidEntrants($division)->load('team');
+        }
+
+        $winnerIds = $groupStage->groups()->get()
+            ->flatMap(fn (BracketGroup $group) => $group->winnerIds())
+            ->unique()
+            ->values();
+
+        $entrants = $this->structure->paidEntrants($division)->keyBy('id')->load('team');
+
+        return $winnerIds
+            ->map(fn (int $id) => $entrants->get($id))
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * Place an entrant into (or clear) one side of a first-round slot by hand.
+     * The entrant is first removed from wherever else it sits, so the field is
+     * always a permutation with no duplicates. Requires the draw to still be
+     * open for editing — manual assignment enabled, draft, not yet completed.
+     */
+    public function assignSlotEntrant(BracketSlot $slot, string $side, ?TournamentRegistration $entrant): void
+    {
+        $slot->loadMissing('bracket');
+        $bracket = $slot->bracket;
+
+        if (! $bracket->manual_assignment) {
+            throw new InvalidArgumentException('Enable manual assignment before moving entrants.');
+        }
+
+        if ($bracket->status !== BracketStatus::Draft) {
+            throw new InvalidArgumentException('The draw is final once play has started.');
+        }
+
+        if ($bracket->draw_locked) {
+            throw new InvalidArgumentException('The draw is complete; reopen it before moving entrants.');
+        }
+
+        if ($slot->round !== 1) {
+            throw new InvalidArgumentException('Only first-round slots can be assigned.');
+        }
+
+        if ($side !== 'a' && $side !== 'b') {
+            throw new InvalidArgumentException('Unknown slot side.');
+        }
+
+        if ($slot->matches()->exists()) {
+            throw new InvalidArgumentException('This slot has already started.');
+        }
+
+        if ($entrant !== null && ! $this->eligibleEntrants($bracket)->pluck('id')->contains($entrant->id)) {
+            throw new InvalidArgumentException('That entrant is not part of this bracket.');
+        }
+
+        DB::transaction(function () use ($bracket, $slot, $side, $entrant) {
+            if ($entrant !== null) {
+                $bracket->slots()->where('round', 1)->get()->each(function (BracketSlot $first) use ($entrant) {
+                    if ($first->entrant_a_id === $entrant->id) {
+                        $first->entrant_a_id = null;
+                        $first->save();
+                    }
+
+                    if ($first->entrant_b_id === $entrant->id) {
+                        $first->entrant_b_id = null;
+                        $first->save();
+                    }
+                });
+
+                $slot->refresh();
+            }
+
+            $slot->{$side === 'a' ? 'entrant_a_id' : 'entrant_b_id'} = $entrant?->id;
+            $slot->save();
+
+            $this->clearDerivedRounds($bracket);
+        });
+    }
+
+    /**
+     * Finish a manual-assignment draw: the field must be fully placed, then
+     * byes are resolved and the draw is locked against further edits.
+     */
+    public function completeDraw(Bracket $bracket): void
+    {
+        if (! $bracket->isEditing()) {
+            throw new InvalidArgumentException('This draw is not open for editing.');
+        }
+
+        $roundOne = $bracket->slots()->where('round', 1)->get();
+
+        if ($roundOne->contains(
+            fn (BracketSlot $slot) => $slot->entrant_a_id === null && $slot->entrant_b_id === null,
+        )) {
+            throw new InvalidArgumentException('Every first-round match needs at least one entrant.');
+        }
+
+        $eligible = $this->eligibleEntrants($bracket)->count();
+        $filled = $roundOne->sum(
+            fn (BracketSlot $slot) => ($slot->entrant_a_id !== null ? 1 : 0) + ($slot->entrant_b_id !== null ? 1 : 0),
+        );
+
+        if ($filled !== $eligible) {
+            throw new InvalidArgumentException("Place all {$eligible} entrants before completing the draw.");
+        }
+
+        DB::transaction(function () use ($bracket, $roundOne) {
+            foreach ($roundOne as $slot) {
+                $filled = ($slot->entrant_a_id !== null ? 1 : 0) + ($slot->entrant_b_id !== null ? 1 : 0);
+                $slot->bye = $filled === 1;
+                $slot->winner_entrant_id = null;
+                $slot->advance_reason = null;
+                $slot->save();
+            }
+
+            $this->clearLaterRounds($bracket);
+            $this->resolveByes($bracket, $this->loadSlotGraph($bracket));
+
+            $bracket->update(['draw_locked' => true]);
+        });
+    }
+
+    /**
+     * Reopen a completed manual draw for further editing, retracting any byes
+     * that had advanced. Only possible while the draw is still a draft.
+     */
+    public function reopenDraw(Bracket $bracket): void
+    {
+        if (! $bracket->manual_assignment) {
+            throw new InvalidArgumentException('Manual assignment is not enabled for this bracket.');
+        }
+
+        if ($bracket->status !== BracketStatus::Draft) {
+            throw new InvalidArgumentException('The draw is final once play has started.');
+        }
+
+        DB::transaction(function () use ($bracket) {
+            $this->clearDerivedRounds($bracket);
+            $bracket->update(['draw_locked' => false]);
+        });
+    }
+
+    /**
+     * Retract an advancement while a manual draw is still being edited — most
+     * importantly a resolved bye. The slot's winner is cleared and every
+     * downstream entrant/winner is pulled back, but byes are deliberately not
+     * re-resolved, so the first round is left open for rearrangement.
+     */
+    public function undoWhileEditing(BracketSlot $slot): void
+    {
+        $slot->loadMissing('bracket');
+        $bracket = $slot->bracket;
+
+        if (! $bracket->isEditing()) {
+            throw new InvalidArgumentException('This draw is not open for editing.');
+        }
+
+        DB::transaction(function () use ($bracket, $slot) {
+            $graph = $this->loadSlotGraph($bracket);
+            $slot = $graph['slots'][$slot->id];
+
+            $slot->bye = false;
+            $slot->winner_entrant_id = null;
+            $slot->advance_reason = null;
+            $slot->save();
+
+            $this->clearDescendants($slot, $graph);
+        });
+    }
+
+    /**
+     * Reset everything derived from the first round while a manual draw is being
+     * arranged: clear any winners/byes and discard the later rounds. No bye is
+     * advanced here — that only happens once the draw is completed.
+     */
+    private function clearDerivedRounds(Bracket $bracket): void
+    {
+        foreach ($bracket->slots()->where('round', 1)->get() as $slot) {
+            $slot->bye = false;
+            $slot->winner_entrant_id = null;
+            $slot->advance_reason = null;
+            $slot->save();
+        }
+
+        $this->clearLaterRounds($bracket);
+    }
+
+    private function clearLaterRounds(Bracket $bracket): void
+    {
+        $bracket->slots()->where('round', '>', 1)->update([
+            'entrant_a_id' => null,
+            'entrant_b_id' => null,
+            'winner_entrant_id' => null,
+            'advance_reason' => null,
+        ]);
+    }
+
+    /**
+     * Number of first-round sides that currently hold an entrant.
+     */
+    private function placedCount(Bracket $bracket): int
+    {
+        return $bracket->slots()->where('round', 1)->get()->sum(
+            fn (BracketSlot $slot) => ($slot->entrant_a_id !== null ? 1 : 0) + ($slot->entrant_b_id !== null ? 1 : 0),
+        );
     }
 
     /**
@@ -126,6 +403,11 @@ class KnockoutBracketService
         }
 
         $slot->loadMissing(['bracket.division', 'entrantA', 'entrantB']);
+
+        if ($slot->bracket->isEditing()) {
+            throw new InvalidArgumentException('Complete the draw before starting play.');
+        }
+
         $division = $slot->bracket->division;
 
         return DB::transaction(function () use ($slot, $division, $overrides): TennisMatch {
@@ -163,6 +445,10 @@ class KnockoutBracketService
     {
         $slot->loadMissing('bracket');
         $bracket = $slot->bracket;
+
+        if ($bracket->isEditing()) {
+            throw new InvalidArgumentException('Complete the draw before recording results.');
+        }
 
         DB::transaction(function () use ($slot, $bracket, $winner, $reason) {
             $graph = $this->loadSlotGraph($bracket);
@@ -296,6 +582,10 @@ class KnockoutBracketService
         $count = count($entrants);
         $firstRound = $bracket->slots()->where('round', 1)->get()->keyBy('position');
 
+        // While a manual draw is still being arranged, byes stay unresolved and
+        // the field is left untouched so the admin can rearrange it.
+        $editing = $bracket->isEditing();
+
         for ($position = 0; $position < intdiv($size, 2); $position++) {
             $slot = $firstRound[$position];
             $seedA = $order[2 * $position];
@@ -307,20 +597,17 @@ class KnockoutBracketService
             $slot->entrant_a_id = $entrantA?->id;
             $slot->entrant_b_id = $entrantB?->id;
             $slot->seed = min($seedA, $seedB);
-            $slot->bye = $entrantA === null || $entrantB === null;
+            $slot->bye = ! $editing && ($entrantA === null || $entrantB === null);
             $slot->winner_entrant_id = null;
             $slot->advance_reason = null;
             $slot->save();
         }
 
-        $bracket->slots()->where('round', '>', 1)->update([
-            'entrant_a_id' => null,
-            'entrant_b_id' => null,
-            'winner_entrant_id' => null,
-            'advance_reason' => null,
-        ]);
+        $this->clearLaterRounds($bracket);
 
-        $this->resolveByes($bracket, $this->loadSlotGraph($bracket));
+        if (! $editing) {
+            $this->resolveByes($bracket, $this->loadSlotGraph($bracket));
+        }
     }
 
     private function resolveByes(Bracket $bracket, array $graph): void

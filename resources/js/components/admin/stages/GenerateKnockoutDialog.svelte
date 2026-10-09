@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Button } from '@/components/ui/button';
+    import { Checkbox } from '@/components/ui/checkbox';
     import {
         Dialog,
         DialogContent,
@@ -18,10 +19,11 @@
         open?: boolean;
         paidCount: number;
         categoryLabel: string;
-        onGenerate: (mode: SeedingMode) => void;
+        onGenerate: (mode: SeedingMode, manualAssignment: boolean) => void;
     } = $props();
 
     let mode = $state<SeedingMode>('auto');
+    let manualAssignment = $state(false);
 
     function capacity(count: number): number {
         let size = 2;
@@ -114,14 +116,31 @@
             </div>
         </div>
 
+        <label class="mt-5 flex items-start gap-3 cursor-pointer select-none">
+            <Checkbox
+                bind:checked={manualAssignment}
+                data-testid="manual-assignment-checkbox"
+                class="mt-0.5"
+            />
+            <span>
+                <span class="block text-[13px] font-semibold text-neutral-800">
+                    Manual slot assignment
+                </span>
+                <span class="block text-[11px] text-neutral-500 mt-0.5">
+                    Place entrants into specific first-round slots yourself.
+                </span>
+            </span>
+        </label>
+
         <DialogFooter>
             <Button variant="outline" onclick={() => (open = false)}
                 >Cancel</Button
             >
             <Button
                 variant="coral"
+                data-testid="generate-bracket-confirm"
                 onclick={() => {
-                    onGenerate(mode);
+                    onGenerate(mode, manualAssignment);
                     open = false;
                 }}
             >

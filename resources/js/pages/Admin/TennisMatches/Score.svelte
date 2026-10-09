@@ -29,7 +29,10 @@
         update as updateRoute,
     } from '@/routes/admin/tennis-matches';
 
-    const { match }: { match: MatchState } = $props();
+    const {
+        match,
+        bracketUrl = null,
+    }: { match: MatchState; bracketUrl?: string | null } = $props();
 
     let score = $state<MatchState>({
         pending_shot: null,
@@ -243,6 +246,12 @@
         router.visit(indexRoute().url);
     }
 
+    function backToBrackets() {
+        if (bracketUrl) {
+            router.visit(bracketUrl);
+        }
+    }
+
     function playerColor(side: Side) {
         return side === 1
             ? {
@@ -393,6 +402,17 @@
     </div>
 {/snippet}
 
+{#snippet bracketBackButton()}
+    <button
+        type="button"
+        data-testid="back-to-brackets"
+        onclick={backToBrackets}
+        class="px-5 py-2 border border-black/10 bg-white text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-700 hover:bg-neutral-50 transition-colors"
+    >
+        Back to brackets
+    </button>
+{/snippet}
+
 {#snippet winnerActions()}
     <div class="flex flex-wrap gap-2 justify-center mt-2">
         {#if isCompleted}
@@ -413,6 +433,9 @@
             >
                 Mark as completed
             </button>
+        {/if}
+        {#if bracketUrl}
+            {@render bracketBackButton()}
         {/if}
         <button
             type="button"
@@ -485,6 +508,12 @@
             </div>
         </div>
     {/snippet}
+
+    {#if bracketUrl && !decided && !isCompleted}
+        <div class="flex mt-2">
+            {@render bracketBackButton()}
+        </div>
+    {/if}
 
     {#if !isCompleted}
         <p class="mt-2 mb-2 text-[13px] text-neutral-500">

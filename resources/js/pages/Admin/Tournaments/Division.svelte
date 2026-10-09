@@ -5,13 +5,18 @@
     import Search from 'lucide-svelte/icons/search';
     import X from 'lucide-svelte/icons/x';
     import AdminPage from '@/components/admin/AdminPage.svelte';
-    import BracketView from '@/components/admin/bracket/BracketView.svelte';
-    import GroupStageView from '@/components/admin/bracket/GroupStageView.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import RegistrantsTable from '@/components/admin/RegistrantsTable.svelte';
+    import GroupStageView from '@/components/admin/stages/GroupStageView.svelte';
+    import KnockoutStageView from '@/components/admin/stages/KnockoutStageView.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
-    import type { Bracket, BracketEntrantOption, Registration } from '@/types';
+    import type {
+        BracketEntrantOption,
+        GroupStageBracket,
+        KnockoutBracket,
+        Registration,
+    } from '@/types';
 
     interface Prize {
         id: number;
@@ -27,7 +32,7 @@
         stats,
         bracket,
         groupStage,
-        bracketEntrants,
+        stageEntrants,
         filters,
     }: {
         tournament: { id: number; name: string; slug: string };
@@ -68,9 +73,9 @@
             filled: number;
             draw: number;
         };
-        bracket: Bracket | null;
-        groupStage: Bracket | null;
-        bracketEntrants: BracketEntrantOption[];
+        bracket: KnockoutBracket | null;
+        groupStage: GroupStageBracket | null;
+        stageEntrants: BracketEntrantOption[];
         filters: { status?: string; search?: string; tab?: string };
     } = $props();
 
@@ -382,17 +387,19 @@
         <div class="flex flex-col gap-8">
             <GroupStageView
                 {groupStage}
+                knockoutStatus={bracket?.status ?? null}
                 {division}
                 {tournament}
-                entrants={bracketEntrants}
+                entrants={stageEntrants}
             />
 
-            {#if bracket || groupStage}
-                <BracketView
-                    {bracket}
+            {#if bracket || !groupStage}
+                <KnockoutStageView
+                    knockout={bracket}
+                    hasGroupStage={groupStage !== null}
                     {division}
                     {tournament}
-                    entrants={bracketEntrants}
+                    entrants={stageEntrants}
                 />
             {/if}
         </div>

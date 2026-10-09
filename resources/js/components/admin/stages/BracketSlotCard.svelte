@@ -4,24 +4,40 @@
     import Undo2 from 'lucide-svelte/icons/undo-2';
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
     import { show as showMatch } from '@/routes/admin/tennis-matches';
-    import type { BracketEntrant, BracketSlot } from '@/types';
+    import type {
+        BracketEntrant,
+        BracketEntrantOption,
+        BracketSlot,
+    } from '@/types';
 
     let {
         slot,
         isTeam,
         canUndo = false,
+        editable = false,
+        editing = false,
+        eligible = [],
         onStart,
         onRubbers,
         onAdvance,
         onUndo,
+        onAssign = () => {},
     }: {
         slot: BracketSlot;
         isTeam: boolean;
         canUndo?: boolean;
+        editable?: boolean;
+        editing?: boolean;
+        eligible?: BracketEntrantOption[];
         onStart: (slot: BracketSlot) => void;
         onRubbers: (slot: BracketSlot) => void;
         onAdvance: (slot: BracketSlot, entrant: BracketEntrant) => void;
         onUndo: (slot: BracketSlot) => void;
+        onAssign?: (
+            slot: BracketSlot,
+            side: 'a' | 'b',
+            entrantId: number | null,
+        ) => void;
     } = $props();
 
     const isWinner = (entrant: BracketEntrant | null) =>
@@ -101,15 +117,36 @@
                             : 'bg-neutral-300'
                         : 'bg-neutral-200'}"
                 ></span>
-                <span
-                    class="text-[12px] truncate {isWinner(row.entrant)
-                        ? 'font-bold text-emerald-800'
-                        : row.entrant
-                          ? 'font-medium text-neutral-800'
-                          : 'text-neutral-300 italic'}"
-                >
-                    {row.entrant?.name ?? (slot.bye ? 'Bye' : 'TBD')}
-                </span>
+                {#if editable}
+                    <select
+                        class="flex-1 min-w-0 h-6 border border-black/12 bg-white text-[11px] px-1"
+                        data-testid="assign-slot-{slot.id}-side-{row.side}"
+                        value={row.entrant?.id ?? ''}
+                        onchange={(e: Event) => {
+                            const raw = (e.target as HTMLSelectElement).value;
+                            onAssign(
+                                slot,
+                                row.side === 1 ? 'a' : 'b',
+                                raw === '' ? null : Number(raw),
+                            );
+                        }}
+                    >
+                        <option value="">— TBD —</option>
+                        {#each eligible as option (option.id)}
+                            <option value={option.id}>{option.name}</option>
+                        {/each}
+                    </select>
+                {:else}
+                    <span
+                        class="text-[12px] truncate {isWinner(row.entrant)
+                            ? 'font-bold text-emerald-800'
+                            : row.entrant
+                              ? 'font-medium text-neutral-800'
+                              : 'text-neutral-300 italic'}"
+                    >
+                        {row.entrant?.name ?? (slot.bye ? 'Bye' : 'TBD')}
+                    </span>
+                {/if}
                 {#if isWinner(row.entrant)}
                     {#if slot.advance_reason}
                         <span
@@ -129,7 +166,7 @@
         {/each}
     </div>
 
-    {#if isTeam && (slot.is_ready || hasMatches)}
+    {#if isTeam && (slot.is_ready || hasMatches) && !editing}
         <div class="border-t border-black/6 px-2.5 h-8 flex items-center gap-2">
             <span
                 class="text-[10px] text-neutral-500 truncate"
@@ -164,7 +201,7 @@
                         >Match #{match.id}</span
                     >
                     <span class="ml-auto shrink-0"
-                        ><MatchStatusBadge status={match.status as any} /></span
+                        ><MatchStatusBadge status={match.status} /></span
                     >
                     <Link
                         href={showMatch({ match: match.id }).url}
@@ -177,7 +214,7 @@
         </div>
     {/if}
 
-    {#if slot.is_ready && !slot.is_complete}
+    {#if slot.is_ready && !slot.is_complete && !editing}
         <div class="border-t border-black/6 p-2 flex flex-col gap-1.5">
             {#if !isTeam}
                 {#if hasMatches}

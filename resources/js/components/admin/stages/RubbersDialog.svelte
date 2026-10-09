@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
-    import RubberForm from '@/components/admin/bracket/RubberForm.svelte';
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
+    import RubberForm from '@/components/admin/stages/RubberForm.svelte';
     import { Button } from '@/components/ui/button';
     import {
         Dialog,

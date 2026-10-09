@@ -20,6 +20,7 @@ class BracketGenerateRequest extends FormRequest
                 BracketService::SEEDING_AUTO,
                 BracketService::SEEDING_MANUAL,
             ])],
+            'manual_assignment' => ['sometimes', 'boolean'],
         ];
     }
 }

@@ -22,37 +22,37 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assessed_at\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Http/Controllers/Admin/DivisionController.php
+			path: app/Services/DivisionPagePresenter.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$notes\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Http/Controllers/Admin/DivisionController.php
+			path: app/Services/DivisionPagePresenter.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reason\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Http/Controllers/Admin/DivisionController.php
+			path: app/Services/DivisionPagePresenter.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Http/Controllers/Admin/DivisionController.php
+			path: app/Services/DivisionPagePresenter.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$video_url\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Http/Controllers/Admin/DivisionController.php
+			path: app/Services/DivisionPagePresenter.php
 
 		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\TournamentRegistrationPlayer\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
-			path: app/Http/Controllers/Admin/DivisionController.php
+			path: app/Services/DivisionPagePresenter.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assessed_at\.$#'

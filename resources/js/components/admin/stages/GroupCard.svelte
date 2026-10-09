@@ -1,8 +1,8 @@
 <script lang="ts">
     import Settings2 from 'lucide-svelte/icons/settings-2';
     import UserPlus from 'lucide-svelte/icons/user-plus';
-    import BracketSlotCard from '@/components/admin/bracket/BracketSlotCard.svelte';
-    import GroupStandingsTable from '@/components/admin/bracket/StandingsTable.svelte';
+    import BracketSlotCard from '@/components/admin/stages/BracketSlotCard.svelte';
+    import GroupStandingsTable from '@/components/admin/stages/StandingsTable.svelte';
     import { Button } from '@/components/ui/button';
     import type {
         BracketEntrant,
@@ -17,6 +17,7 @@
         isTeam,
         entrants,
         canEdit,
+        canPick,
         onStart,
         onRubbers,
         onAdvance,
@@ -32,6 +33,7 @@
         isTeam: boolean;
         entrants: BracketEntrantOption[];
         canEdit: boolean;
+        canPick: boolean;
         onStart: (slot: BracketSlot) => void;
         onRubbers: (slot: BracketSlot) => void;
         onAdvance: (slot: BracketSlot, entrant: BracketEntrant) => void;
@@ -108,7 +110,7 @@
                 standings={group.standings}
                 advanceCount={group.advance_count}
                 winnerIds={picked}
-                selectable={true}
+                selectable={canPick}
                 onToggle={onToggleWinner}
             />
         </div>

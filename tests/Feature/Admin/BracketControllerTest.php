@@ -109,6 +109,26 @@ describe('Admin Bracket Generation', function () {
 
         expect(Bracket::where('division_id', $division->id)->exists())->toBeFalse();
     });
+
+    it('refuses to generate a standalone knockout when a group stage exists', function () {
+        $division = bracketTestDivision(4);
+        bracketTestEntrants($division, 4);
+
+        app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.store', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+            ]), ['seeding_mode' => 'auto'])
+            ->assertSessionHasErrors([
+                'bracket' => 'Promote winners from the group stage to build the knockout bracket.',
+            ]);
+
+        expect(Bracket::where('division_id', $division->id)
+            ->where('type', BracketType::SingleElimination)
+            ->exists())->toBeFalse();
+    });
 });
 
 describe('Admin Bracket Seeding', function () {
@@ -182,6 +202,30 @@ describe('Admin Bracket Seeding', function () {
 
         expect($round1)->toHaveCount(4)
             ->and($round1->every(fn (BracketSlot $s) => $s->entrant_a_id === null && $s->entrant_b_id === null))->toBeTrue();
+    });
+
+    it('rejects re-seeding once the draw has started', function () {
+        $division = bracketTestDivision(8);
+        $entrants = bracketTestEntrants($division, 8);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
+        $slot = $bracket->slots()->where('round', 1)->orderBy('position')->firstOrFail();
+
+        app(BracketService::class)->startSlot($slot);
+
+        expect($bracket->fresh()->status)->toBe(BracketStatus::Active);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.divisions.bracket.seed', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+            ]), ['entrant_ids' => array_map(fn ($e) => $e->id, $entrants)])
+            ->assertSessionHasErrors('entrant_ids');
     });
 });
 
@@ -523,7 +567,7 @@ describe('Admin Division Bracket Payload', function () {
                 ->component('Admin/Tournaments/Division')
                 ->where('bracket.size', 8)
                 ->has('bracket.rounds', 3)
-                ->has('bracketEntrants', 6)
+                ->has('stageEntrants', 6)
             );
     });
 

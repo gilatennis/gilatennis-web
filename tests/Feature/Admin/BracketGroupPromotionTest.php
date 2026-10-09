@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BracketStatus;
 use App\Enums\BracketType;
 use App\Models\Bracket;
 use App\Models\Division;
@@ -37,6 +38,30 @@ function promotionEntrants(Division $division, int $count): array
             'name' => "Entrant {$i}",
         ]))
         ->all();
+}
+
+/**
+ * Generate a group stage, pick every winner, and promote, leaving the knockout
+ * in its initial draft state.
+ *
+ * @return array{0: BracketService, 1: Bracket, 2: Bracket, 3: array<int, int>}
+ */
+function promoteDivision(Division $division): array
+{
+    $service = app(BracketService::class);
+    $groupStage = $service->generateGroups($division, 2, [2, 2]);
+
+    $order = [];
+
+    foreach ($groupStage->groups as $group) {
+        $picks = $group->entrantIds()->take(2)->all();
+        $service->setGroupWinners($group, $picks);
+        $order = array_merge($order, $picks);
+    }
+
+    $knockout = $service->promoteToKnockout($division, $order, true);
+
+    return [$service, $groupStage, $knockout, $order];
 }
 
 describe('Group winners', function () {
@@ -141,6 +166,51 @@ describe('Group promotion', function () {
         $entrantsIn = $round1->flatMap(fn ($slot) => [$slot->entrant_a_id, $slot->entrant_b_id])->filter();
 
         expect($entrantsIn->sort()->values()->all())->toBe(collect($order)->sort()->values()->all());
+    });
+
+    it('marks the group stage completed on promotion and reopens it when the knockout is deleted', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        $service = app(BracketService::class);
+        $groupStage = $service->generateGroups($division, 2, [2, 2]);
+
+        $order = [];
+
+        foreach ($groupStage->groups as $group) {
+            $picks = $group->entrantIds()->take(2)->all();
+            $service->setGroupWinners($group, $picks);
+            $order = array_merge($order, $picks);
+        }
+
+        $knockout = $service->promoteToKnockout($division, $order, true);
+
+        expect($groupStage->fresh()->status)->toBe(BracketStatus::Completed);
+
+        $service->delete($knockout);
+
+        expect($groupStage->fresh()->status)->toBe(BracketStatus::Active);
+    });
+
+    it('refuses to re-seed a knockout promoted from the group stage', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        $service = app(BracketService::class);
+        $groupStage = $service->generateGroups($division, 2, [2, 2]);
+
+        $order = [];
+
+        foreach ($groupStage->groups as $group) {
+            $picks = $group->entrantIds()->take(2)->all();
+            $service->setGroupWinners($group, $picks);
+            $order = array_merge($order, $picks);
+        }
+
+        $knockout = $service->promoteToKnockout($division, $order, true);
+
+        expect(fn () => $service->seed($knockout, array_reverse($order)))
+            ->toThrow(InvalidArgumentException::class, 'group stage');
     });
 
     it('splits group-mates into opposite halves when seeding', function () {
@@ -292,5 +362,97 @@ describe('Group promotion', function () {
         expect(Bracket::where('division_id', $division->id)
             ->where('type', BracketType::SingleElimination)
             ->exists())->toBeTrue();
+    });
+});
+
+describe('Stage lock', function () {
+    it('stays editable while the promoted knockout is still a draft', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        [$service, $groupStage, $knockout] = promoteDivision($division);
+
+        expect($knockout->status)->toBe(BracketStatus::Draft);
+
+        $group = $groupStage->groups->firstWhere('position', 0);
+        $picks = $group->entrantIds()->take(2)->all();
+
+        $service->setGroupWinners($group, $picks);
+
+        expect($group->fresh()->winnerIds())->toBe($picks);
+
+        $service->generateGroups($division, 2, [2, 2]);
+
+        expect($division->groupStage()->first()->groups()->count())->toBe(2);
+    });
+
+    it('freezes group winner picks and regeneration once the knockout starts', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        [$service, $groupStage, $knockout] = promoteDivision($division);
+
+        $knockout->update(['status' => BracketStatus::Active]);
+
+        $group = $groupStage->groups()->firstWhere('position', 0);
+        $picks = $group->entrantIds()->take(2)->all();
+
+        expect(fn () => $service->setGroupWinners($group, $picks))
+            ->toThrow(InvalidArgumentException::class, 'knockout has already started');
+
+        expect(fn () => $service->generateGroups($division, 2, [2, 2]))
+            ->toThrow(InvalidArgumentException::class, 'knockout has already started');
+    });
+
+    it('refuses to re-promote once the knockout starts', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        [$service, , $knockout, $order] = promoteDivision($division);
+
+        $knockout->update(['status' => BracketStatus::Active]);
+
+        expect(fn () => $service->promoteToKnockout($division, $order, true))
+            ->toThrow(InvalidArgumentException::class, 'knockout has already started');
+    });
+
+    it('rejects deleting the group stage through the endpoint once the knockout starts', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        [, , $knockout] = promoteDivision($division);
+
+        $knockout->update(['status' => BracketStatus::Active]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.destroy', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'type' => 'group_stage',
+            ]))
+            ->assertSessionHasErrors('bracket');
+
+        expect($division->groupStage()->exists())->toBeTrue();
+    });
+
+    it('rejects promotion when a picked winner is no longer a paid entrant', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        $service = app(BracketService::class);
+        $groupStage = $service->generateGroups($division, 2, [2, 2]);
+
+        $order = [];
+
+        foreach ($groupStage->groups as $group) {
+            $picks = $group->entrantIds()->take(2)->all();
+            $service->setGroupWinners($group, $picks);
+            $order = array_merge($order, $picks);
+        }
+
+        TournamentRegistration::findOrFail($order[0])->update(['payment_status' => 'refunded']);
+
+        expect(fn () => $service->promoteToKnockout($division, $order, true))
+            ->toThrow(InvalidArgumentException::class, 'still be a paid entrant');
     });
 });

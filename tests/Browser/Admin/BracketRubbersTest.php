@@ -8,7 +8,7 @@ use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
 
-function rubberBracketSetup(): array
+function rubberBracketSetup(bool $manualAssignment = false): array
 {
     $admin = User::factory()->admin()->create();
 
@@ -31,7 +31,7 @@ function rubberBracketSetup(): array
     test()->actingAs($admin)->post(route('admin.tournaments.divisions.bracket.store', [
         'tournament' => $tournament->id,
         'division' => $division->id,
-    ]), ['seeding_mode' => 'auto']);
+    ]), ['seeding_mode' => 'auto', 'manual_assignment' => $manualAssignment]);
 
     return [$admin, $tournament, $division];
 }
@@ -213,4 +213,24 @@ it('counts completed rubbers in the card summary', function () {
 
     $page->assertSeeIn('@rubber-summary', '1 rubber')
         ->assertSeeIn('@rubber-summary', '1 completed');
+});
+
+it('hides the rubber controls while the manual draw is being edited', function () {
+    [$admin, $tournament, $division] = rubberBracketSetup(manualAssignment: true);
+
+    $page = openRubberBracket($admin, $tournament, $division);
+
+    // While the draw is still open for editing, the play/rubber controls stay hidden.
+    $page->assertPresent('@complete-draw')
+        ->assertMissing('@rubber-summary')
+        ->assertMissing('@rubbers');
+
+    $page->click('@complete-draw')
+        ->wait(1)
+        ->assertPresent('@reopen-draw')
+        ->wait(1);
+
+    // Completing the draw reveals the rubber controls again.
+    $page->assertSeeIn('@rubber-summary', 'No rubbers set up')
+        ->assertPresent('@rubbers');
 });

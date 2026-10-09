@@ -1,6 +1,10 @@
 <?php
 
+use App\Models\Bracket;
+use App\Models\BracketSlot;
+use App\Models\Division;
 use App\Models\TennisMatch;
+use App\Models\Tournament;
 use App\Models\User;
 
 const SAVE_WAIT_S = 2;
@@ -111,6 +115,28 @@ describe('match score page access', function () {
         $page->resize(390, 844)->assertScript($headingSize, '16px');
         $page->resize(700, 900)->assertScript($headingSize, '28px');
         $page->resize(1280, 900)->assertScript($headingSize, '28px');
+    });
+
+    it('links back to the brackets for a bracket match', function () {
+        $user = User::factory()->admin()->create();
+        $tournament = Tournament::factory()->create();
+        $division = Division::factory()->forTournament($tournament)->create();
+        $bracket = Bracket::factory()->forDivision($division)->create();
+        $slot = BracketSlot::factory()->forBracket($bracket)->create();
+        $match = TennisMatch::factory()->create([
+            'division_id' => $division->id,
+            'bracket_slot_id' => $slot->id,
+        ]);
+
+        $page = openMatchScorePage($user, $match);
+
+        $page->assertPresent('@back-to-brackets')
+            ->click('@back-to-brackets')
+            ->wait(1)
+            ->assertPathIs(
+                '/admin/tournaments/'.$tournament->id.'/divisions/'.$division->id,
+            )
+            ->assertQueryStringHas('tab', 'brackets');
     });
 
     it('denies non-admin users and redirects to admin login', function () {
@@ -463,6 +489,7 @@ describe('tiebreak and match completion', function () {
         $page->wait(1)
             ->assertVisible('@match-completed')
             ->assertMissing('@match-winner')
+            ->assertMissing('@back-to-brackets')
             ->assertSee('Match completed')
             ->assertSee('No winner was recorded for this match.')
             ->assertSeeIn('@reopen-match', 'Reopen match');

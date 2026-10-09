@@ -1,9 +1,13 @@
 <?php
 
 use App\Enums\MatchStatus;
+use App\Models\Bracket;
+use App\Models\BracketSlot;
+use App\Models\Division;
 use App\Models\Role;
 use App\Models\TennisMatch;
 use App\Models\TennisMatchState;
+use App\Models\Tournament;
 use App\Models\User;
 
 beforeEach(function () {
@@ -204,6 +208,38 @@ describe('Admin TennisMatch CRUD', function () {
                 ->where('match.side_b_name', 'Sinner')
                 ->where('match.format_label', 'Best of 3 set(s), 6 games, TB to 7')
             );
+    });
+
+    it('exposes the bracket url for a bracket match', function () {
+        $tournament = Tournament::factory()->create();
+        $division = Division::factory()->forTournament($tournament)->create();
+        $bracket = Bracket::factory()->forDivision($division)->create();
+        $slot = BracketSlot::factory()->forBracket($bracket)->create();
+        $match = TennisMatch::factory()->create([
+            'division_id' => $division->id,
+            'bracket_slot_id' => $slot->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tennis-matches.show', $match))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page->where('bracketUrl', route(
+                'admin.tournaments.divisions.show',
+                [
+                    'tournament' => $tournament->id,
+                    'division' => $division->id,
+                    'tab' => 'brackets',
+                ],
+            )));
+    });
+
+    it('omits the bracket url for a standalone match', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tennis-matches.show', $match))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page->where('bracketUrl', null));
     });
 
     it('non-admin cannot access admin match routes', function () {

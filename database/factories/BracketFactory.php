@@ -22,11 +22,18 @@ class BracketFactory extends Factory
             'type' => BracketType::SingleElimination,
             'status' => BracketStatus::Draft,
             'size' => 8,
+            'manual_assignment' => false,
+            'draw_locked' => false,
         ];
     }
 
     public function forDivision(Division $division): static
     {
         return $this->state(fn () => ['division_id' => $division->id]);
+    }
+
+    public function manualAssignment(): static
+    {
+        return $this->state(fn () => ['manual_assignment' => true]);
     }
 }

@@ -63,8 +63,23 @@ class TennisMatchController extends Controller
     {
         $match->loadMissing('state');
 
+        $bracketUrl = null;
+
+        if ($match->bracket_slot_id !== null) {
+            $match->loadMissing('division');
+
+            if ($match->division !== null) {
+                $bracketUrl = route('admin.tournaments.divisions.show', [
+                    'tournament' => $match->division->tournament_id,
+                    'division' => $match->division_id,
+                    'tab' => 'brackets',
+                ]);
+            }
+        }
+
         return Inertia::render('Admin/TennisMatches/Score', [
             'match' => $match->toScorePayload(),
+            'bracketUrl' => $bracketUrl,
         ]);
     }
 

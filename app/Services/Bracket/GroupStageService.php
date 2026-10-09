@@ -70,6 +70,8 @@ class GroupStageService
         }
 
         return DB::transaction(function () use ($division, $groupCount, $advanceCounts, $doubleRoundRobin, $seedingMode, $entrants) {
+            $this->assertStageOpen($division);
+
             $bracket = Bracket::updateOrCreate(
                 [
                     'division_id' => $division->id,
@@ -125,7 +127,7 @@ class GroupStageService
      */
     public function addEntrant(BracketGroup $group, TournamentRegistration $entrant): void
     {
-        $group->load('bracket');
+        $group->loadMissing('bracket.division');
 
         $this->assertGroupEditable($group);
 
@@ -143,6 +145,8 @@ class GroupStageService
         }
 
         DB::transaction(function () use ($group, $entrant) {
+            $this->assertStageOpen($group->bracket->division);
+
             $this->placeEntrants($group, [$entrant], append: true);
         });
     }
@@ -161,10 +165,14 @@ class GroupStageService
             throw new InvalidArgumentException('Groups must belong to the same group stage.');
         }
 
+        $from->loadMissing('bracket.division');
+
         $this->assertGroupEditable($from);
         $this->assertGroupEditable($to);
 
         DB::transaction(function () use ($from, $to, $entrant) {
+            $this->assertStageOpen($from->bracket->division);
+
             $membership = BracketGroupEntrant::where('bracket_group_id', $from->id)
                 ->where('tournament_registration_id', $entrant->id)
                 ->first();
@@ -186,9 +194,13 @@ class GroupStageService
      */
     public function setGroupDoubleRoundRobin(BracketGroup $group, bool $doubleRoundRobin): void
     {
+        $group->loadMissing('bracket.division');
+
         $this->assertGroupEditable($group);
 
         DB::transaction(function () use ($group, $doubleRoundRobin) {
+            $this->assertStageOpen($group->bracket->division);
+
             $group->update(['double_round_robin' => $doubleRoundRobin]);
 
             $this->buildGroupFixtures($group);
@@ -203,6 +215,8 @@ class GroupStageService
      */
     public function setGroupWinners(BracketGroup $group, array $winnerIds): void
     {
+        $group->loadMissing('bracket.division');
+
         $winnerIds = array_values(array_map('intval', $winnerIds));
 
         if (count(array_unique($winnerIds)) !== count($winnerIds)) {
@@ -221,7 +235,11 @@ class GroupStageService
             }
         }
 
-        $group->update(['winner_entrant_ids' => $winnerIds]);
+        DB::transaction(function () use ($group, $winnerIds) {
+            $this->assertStageOpen($group->bracket->division);
+
+            $group->update(['winner_entrant_ids' => $winnerIds]);
+        });
     }
 
     /**
@@ -288,11 +306,38 @@ class GroupStageService
             ->unique('id')
             ->values();
 
+        if ($ordered->count() !== count(array_unique($provided))) {
+            throw new InvalidArgumentException('Every promoted winner must still be a paid entrant.');
+        }
+
         if ($ordered->count() < 2) {
             throw new InvalidArgumentException('At least two advancing winners are required to build the knockout bracket.');
         }
 
-        return $this->knockout->writeSingleElimination($division, $ordered->all(), true);
+        return DB::transaction(function () use ($division, $groupBracket, $ordered) {
+            $this->assertStageOpen($division);
+
+            $knockout = $this->knockout->writeSingleElimination($division, $ordered->all(), true);
+
+            $groupBracket->update(['status' => BracketStatus::Completed]);
+
+            return $knockout;
+        });
+    }
+
+    /**
+     * Reopen a promoted group stage when its knockout bracket is removed, so the
+     * stage no longer reports itself as completed with no bracket to show for it.
+     */
+    public function reopenAfterKnockoutDelete(Division $division): void
+    {
+        $groupBracket = Bracket::where('division_id', $division->id)
+            ->where('type', BracketType::GroupStage)
+            ->first();
+
+        if ($groupBracket !== null && $groupBracket->status === BracketStatus::Completed) {
+            $groupBracket->update(['status' => BracketStatus::Active]);
+        }
     }
 
     /**
@@ -368,6 +413,25 @@ class GroupStageService
                     && $groupIdByEntrant[$a] === $groupIdByEntrant[$b];
             })
             ->count();
+    }
+
+    /**
+     * Reject a group-stage mutation once the promoted knockout has started.
+     * While the knockout is still a draft the stage stays editable so its
+     * winners (and therefore the whole draw) can still be corrected.
+     *
+     * Must be called inside a transaction: the division row is locked so a
+     * concurrent promote cannot flip the knockout to active mid-mutation.
+     */
+    public function assertStageOpen(Division $division): void
+    {
+        Division::whereKey($division->id)->lockForUpdate()->first();
+
+        $knockout = $division->bracket()->first();
+
+        if ($knockout !== null && $knockout->status !== BracketStatus::Draft) {
+            throw new InvalidArgumentException('This group stage is complete; its knockout has already started.');
+        }
     }
 
     private function assertGroupEditable(BracketGroup $group): void

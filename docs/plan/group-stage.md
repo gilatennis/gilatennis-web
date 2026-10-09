@@ -166,3 +166,4 @@ Full suite after Phase 7: 502 passed (includes browser).
 - `standard()` test helpers and `@testid` selectors per project conventions.
 - Under an agent, `laravel/pao` captures CLI output; run PHPStan directly with `PAO_DISABLE=1` to see raw output (`composer analyse` prints a compact summary).
 - PHPStan's invariant `Collection` generic flags `standings()`'s `array<string, mixed>` vs the inferred `non-empty-array`; it is baselined as a false positive.
+- One knockout source per format: `BracketController::store` refuses when a group stage exists (promote instead). The Brackets tab hides the standalone Generate/Regenerate under a group stage and hides Generate Groups once a standalone knockout exists.

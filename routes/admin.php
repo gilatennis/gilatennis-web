@@ -82,6 +82,22 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.seed');
 
+    Route::patch('tournaments/{tournament}/divisions/{division}/bracket/settings', [BracketController::class, 'updateBracketSettings'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.settings.update');
+
+    Route::patch('tournaments/{tournament}/divisions/{division}/bracket/slots/{slot}/entrant', [BracketController::class, 'assignSlotEntrant'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.slots.entrant.update');
+
+    Route::patch('tournaments/{tournament}/divisions/{division}/bracket/complete', [BracketController::class, 'completeDraw'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.complete');
+
+    Route::patch('tournaments/{tournament}/divisions/{division}/bracket/reopen', [BracketController::class, 'reopenDraw'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.reopen');
+
     Route::post('tournaments/{tournament}/divisions/{division}/bracket/slots/{slot}/match', [BracketController::class, 'startMatch'])
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.slots.match.store');

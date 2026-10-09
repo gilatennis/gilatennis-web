@@ -6,7 +6,7 @@ use App\Models\Bracket;
 use App\Models\Division;
 use App\Models\TennisMatch;
 use App\Models\TournamentRegistration;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Small shared operations used by both the group-stage and knockout services.

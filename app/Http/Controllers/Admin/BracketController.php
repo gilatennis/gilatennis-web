@@ -12,6 +12,8 @@ use App\Http\Requests\Admin\BracketGroupWinnerRequest;
 use App\Http\Requests\Admin\BracketPromoteRequest;
 use App\Http\Requests\Admin\BracketRubberStoreRequest;
 use App\Http\Requests\Admin\BracketSeedRequest;
+use App\Http\Requests\Admin\BracketSettingsRequest;
+use App\Http\Requests\Admin\BracketSlotEntrantRequest;
 use App\Http\Requests\Admin\BracketSlotStartRequest;
 use App\Http\Requests\Admin\BracketSlotUpdateRequest;
 use App\Models\Bracket;
@@ -35,10 +37,105 @@ class BracketController extends Controller
 
     public function store(BracketGenerateRequest $request, Tournament $tournament, Division $division): RedirectResponse
     {
+        if ($division->groupStage()->exists()) {
+            $message = 'Promote winners from the group stage to build the knockout bracket.';
+
+            Inertia::flash('toast', ['type' => 'error', 'message' => $message]);
+
+            return back()->withErrors(['bracket' => $message]);
+        }
+
         return $this->attempt(
-            fn () => $this->brackets->generate($division, $request->validated('seeding_mode')),
+            fn () => $this->brackets->generate(
+                $division,
+                $request->validated('seeding_mode'),
+                $request->validated('manual_assignment', false),
+            ),
             'bracket',
             'Bracket generated.',
+            $tournament,
+            $division,
+        );
+    }
+
+    /**
+     * Toggle whether entrants may be placed into the knockout's first round by
+     * hand. Only permitted while the draw is still a draft.
+     */
+    public function updateBracketSettings(
+        BracketSettingsRequest $request,
+        Tournament $tournament,
+        Division $division,
+    ): RedirectResponse {
+        $bracket = $division->bracket ?? abort(404);
+
+        return $this->attempt(
+            fn () => $this->brackets->setManualAssignment(
+                $bracket,
+                $request->validated('manual_assignment'),
+            ),
+            'bracket',
+            'Bracket updated.',
+            $tournament,
+            $division,
+        );
+    }
+
+    /**
+     * Place an entrant into (or clear) one side of a first-round slot by hand.
+     */
+    public function assignSlotEntrant(
+        BracketSlotEntrantRequest $request,
+        Tournament $tournament,
+        Division $division,
+        BracketSlot $slot,
+    ): RedirectResponse {
+        $entrantId = $request->validated('entrant_id');
+
+        $entrant = $entrantId === null
+            ? null
+            : TournamentRegistration::where('division_id', $division->id)->findOrFail($entrantId);
+
+        return $this->attempt(
+            fn () => $this->brackets->assignSlotEntrant($slot, $request->validated('side'), $entrant),
+            'entrant_id',
+            'Slot updated.',
+            $tournament,
+            $division,
+        );
+    }
+
+    /**
+     * Finish a manual-assignment draw: resolve byes and lock the first round.
+     */
+    public function completeDraw(
+        Tournament $tournament,
+        Division $division,
+    ): RedirectResponse {
+        $bracket = $division->bracket ?? abort(404);
+
+        return $this->attempt(
+            fn () => $this->brackets->completeDraw($bracket),
+            'bracket',
+            'Draw completed.',
+            $tournament,
+            $division,
+        );
+    }
+
+    /**
+     * Reopen a completed manual draw for further editing.
+     */
+    public function reopenDraw(
+        Tournament $tournament,
+        Division $division,
+    ): RedirectResponse {
+        $bracket = $division->bracket ?? abort(404);
+
+        return $this->attempt(
+            fn () => $this->brackets->reopenDraw($bracket),
+            'bracket',
+            'Draw reopened for editing.',
             $tournament,
             $division,
         );
@@ -203,7 +300,9 @@ class BracketController extends Controller
             ->first();
 
         if ($bracket !== null) {
-            $this->brackets->delete($bracket);
+            if ($failure = $this->failureOrNull(fn () => $this->brackets->delete($bracket), 'bracket')) {
+                return $failure;
+            }
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Bracket removed.']);
@@ -285,7 +384,12 @@ class BracketController extends Controller
             ? null
             : TournamentRegistration::where('division_id', $division->id)->findOrFail($entrantId);
 
-        $this->brackets->setWinner($slot, $winner, $request->validated('reason'));
+        if ($failure = $this->failureOrNull(
+            fn () => $this->brackets->setWinner($slot, $winner, $request->validated('reason')),
+            'slot',
+        )) {
+            return $failure;
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Slot updated.']);
 
@@ -301,6 +405,16 @@ class BracketController extends Controller
             return back()->withErrors(['slot' => 'Nothing to undo.']);
         }
 
+        $slot->loadMissing('bracket');
+
+        if ($slot->bracket->isEditing()) {
+            $this->brackets->undoWhileEditing($slot);
+
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'Advance undone.']);
+
+            return $this->redirectToDivisionBracket($tournament, $division);
+        }
+
         if ($slot->bye) {
             return back()->withErrors(['slot' => 'Byes advance automatically.']);
         }
@@ -309,7 +423,9 @@ class BracketController extends Controller
             return back()->withErrors(['slot' => 'Undo the later rounds first.']);
         }
 
-        $this->brackets->setWinner($slot, null);
+        if ($failure = $this->failureOrNull(fn () => $this->brackets->setWinner($slot, null), 'slot')) {
+            return $failure;
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Advance undone.']);
 
@@ -325,11 +441,17 @@ class BracketController extends Controller
         try {
             $action();
         } catch (InvalidArgumentException $e) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+
             return back()->withErrors([$errorKey => $e->getMessage()]);
         } catch (QueryException $e) {
             Log::error('Bracket operation failed', ['error' => $e->getMessage()]);
 
-            return back()->withErrors([$errorKey => 'The bracket operation could not be completed. Please try again.']);
+            $message = 'The bracket operation could not be completed. Please try again.';
+
+            Inertia::flash('toast', ['type' => 'error', 'message' => $message]);
+
+            return back()->withErrors([$errorKey => $message]);
         }
 
         return null;

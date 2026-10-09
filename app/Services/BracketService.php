@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\BracketType;
 use App\Models\Bracket;
 use App\Models\BracketGroup;
 use App\Models\BracketSlot;
@@ -13,6 +14,7 @@ use App\Services\Bracket\GroupStageService;
 use App\Services\Bracket\GroupStandingsCalculator;
 use App\Services\Bracket\KnockoutBracketService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Facade over the bracket feature. Group stages, the knockout bracket, and
@@ -100,9 +102,9 @@ class BracketService
 
     // --- Knockout ---------------------------------------------------------
 
-    public function generate(Division $division, string $seedingMode = self::SEEDING_AUTO): Bracket
+    public function generate(Division $division, string $seedingMode = self::SEEDING_AUTO, bool $manualAssignment = false): Bracket
     {
-        return $this->knockout->generate($division, $seedingMode);
+        return $this->knockout->generate($division, $seedingMode, $manualAssignment);
     }
 
     /**
@@ -111,6 +113,39 @@ class BracketService
     public function seed(Bracket $bracket, array $entrantIds): void
     {
         $this->knockout->seed($bracket, $entrantIds);
+    }
+
+    public function setManualAssignment(Bracket $bracket, bool $manualAssignment): void
+    {
+        $this->knockout->setManualAssignment($bracket, $manualAssignment);
+    }
+
+    /**
+     * @return Collection<int, TournamentRegistration>
+     */
+    public function eligibleEntrants(Bracket $bracket): Collection
+    {
+        return $this->knockout->eligibleEntrants($bracket);
+    }
+
+    public function assignSlotEntrant(BracketSlot $slot, string $side, ?TournamentRegistration $entrant): void
+    {
+        $this->knockout->assignSlotEntrant($slot, $side, $entrant);
+    }
+
+    public function completeDraw(Bracket $bracket): void
+    {
+        $this->knockout->completeDraw($bracket);
+    }
+
+    public function reopenDraw(Bracket $bracket): void
+    {
+        $this->knockout->reopenDraw($bracket);
+    }
+
+    public function undoWhileEditing(BracketSlot $slot): void
+    {
+        $this->knockout->undoWhileEditing($slot);
     }
 
     /**
@@ -133,6 +168,19 @@ class BracketService
 
     public function delete(Bracket $bracket): void
     {
-        $this->knockout->delete($bracket);
+        $division = $bracket->division;
+        $wasKnockout = $bracket->type === BracketType::SingleElimination;
+
+        DB::transaction(function () use ($bracket, $division, $wasKnockout) {
+            if (! $wasKnockout && $division !== null) {
+                $this->groups->assertStageOpen($division);
+            }
+
+            $this->knockout->delete($bracket);
+
+            if ($wasKnockout && $division !== null) {
+                $this->groups->reopenAfterKnockoutDelete($division);
+            }
+        });
     }
 }

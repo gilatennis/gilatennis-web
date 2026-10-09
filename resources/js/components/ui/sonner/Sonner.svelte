@@ -8,6 +8,7 @@
 </script>
 
 <SonnerPrimitive
+    richColors
     theme={appearance.value}
     class="toaster group"
     position="bottom-right"

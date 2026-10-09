@@ -1,6 +1,10 @@
 export type BracketStatus = 'draft' | 'active' | 'completed';
 
-export type BracketType = 'single_elimination' | 'group_stage';
+export type BracketMatchStatus =
+    | 'pending'
+    | 'running'
+    | 'completed'
+    | 'canceled';
 
 export type SeedingMode = 'auto' | 'manual';
 
@@ -19,7 +23,7 @@ export interface BracketMatchSummary {
     games_to_win: number;
     extend_at_tie: boolean;
     tiebreak_to: number;
-    status: string;
+    status: BracketMatchStatus;
     format_label: string;
     winner_side: number | null;
 }
@@ -94,6 +98,9 @@ export interface KnockoutBracket {
     type: 'single_elimination';
     status: BracketStatus;
     size: number;
+    manual_assignment: boolean;
+    draw_locked: boolean;
+    eligible_entrants: BracketEntrantOption[];
     rounds: BracketRound[];
 }
 
@@ -102,15 +109,6 @@ export interface GroupStageBracket {
     type: 'group_stage';
     status: BracketStatus;
     size: number;
-    groups: BracketGroup[];
-}
-
-export interface Bracket {
-    id: number;
-    type: BracketType;
-    status: BracketStatus;
-    size: number;
-    rounds: BracketRound[];
     groups: BracketGroup[];
 }
 
