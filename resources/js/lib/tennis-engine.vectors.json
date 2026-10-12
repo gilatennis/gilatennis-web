@@ -1,0 +1,269 @@
+[
+    {
+        "name": "sets the first server from a server event",
+        "format": {
+            "sets_to_win": 2,
+            "games_to_win": 6,
+            "extend_at_tie": false,
+            "tiebreak_to": 7
+        },
+        "start": [],
+        "events": [
+            {
+                "type": "server",
+                "side": 2
+            }
+        ],
+        "expected": {
+            "server": 2,
+            "first_server": 2,
+            "set_a": 0,
+            "set_b": 0,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": false,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": null,
+            "sets": [],
+            "win": null
+        }
+    },
+    {
+        "name": "wins a game after four straight points and hands over serve",
+        "format": {
+            "sets_to_win": 2,
+            "games_to_win": 6,
+            "extend_at_tie": false,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            }
+        ],
+        "expected": {
+            "server": 2,
+            "first_server": 1,
+            "set_a": 1,
+            "set_b": 0,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": false,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": null,
+            "sets": [],
+            "win": null
+        }
+    },
+    {
+        "name": "resets to deuce at 4-4 and awards the game at 5-3",
+        "format": {
+            "sets_to_win": 2,
+            "games_to_win": 6,
+            "extend_at_tie": false,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1,
+            "game_a": 3,
+            "game_b": 3
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 2
+            },
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            }
+        ],
+        "expected": {
+            "server": 2,
+            "first_server": 1,
+            "set_a": 1,
+            "set_b": 0,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": false,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": null,
+            "sets": [],
+            "win": null
+        }
+    },
+    {
+        "name": "wins the set 6-1",
+        "format": {
+            "sets_to_win": 1,
+            "games_to_win": 6,
+            "extend_at_tie": false,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 5,
+            "set_b": 1,
+            "game_a": 3,
+            "game_b": 0
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 1
+            }
+        ],
+        "expected": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 0,
+            "set_b": 0,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": false,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": null,
+            "sets": [
+                {
+                    "a": 6,
+                    "b": 1
+                }
+            ],
+            "win": 1
+        }
+    },
+    {
+        "name": "opens the tiebreak at 5-5 when the set is not extended",
+        "format": {
+            "sets_to_win": 1,
+            "games_to_win": 6,
+            "extend_at_tie": false,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 5,
+            "set_b": 4,
+            "game_a": 0,
+            "game_b": 3
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 2
+            }
+        ],
+        "expected": {
+            "server": 2,
+            "first_server": 1,
+            "set_a": 5,
+            "set_b": 5,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": true,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": 2,
+            "sets": [],
+            "win": null
+        }
+    },
+    {
+        "name": "wins the tiebreak 7-6 on the extended target",
+        "format": {
+            "sets_to_win": 1,
+            "games_to_win": 6,
+            "extend_at_tie": true,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 6,
+            "set_b": 6,
+            "tiebreak": true,
+            "tb_first": 1
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            },
+            {
+                "type": "point",
+                "side": 1
+            }
+        ],
+        "expected": {
+            "server": 2,
+            "first_server": 1,
+            "set_a": 0,
+            "set_b": 0,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": false,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": 1,
+            "sets": [
+                {
+                    "a": 7,
+                    "b": 6
+                }
+            ],
+            "win": 1
+        }
+    }
+]

@@ -660,7 +660,7 @@
                             type="button"
                             data-testid="point-a"
                             onclick={() => awardPoint(1)}
-                            disabled={decided}
+                            disabled={decided || saving}
                             class="w-full px-2 py-3 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-display font-bold text-[12px] uppercase tracking-[0.12em] flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-default"
                         >
                             <span class="size-2 rounded-full bg-emerald-600"
@@ -671,7 +671,7 @@
                             type="button"
                             data-testid="point-b"
                             onclick={() => awardPoint(2)}
-                            disabled={decided}
+                            disabled={decided || saving}
                             class="w-full px-2 py-3 border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 font-display font-bold text-[12px] uppercase tracking-[0.12em] flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-default"
                         >
                             <span class="size-2 rounded-full bg-sky-600"></span>

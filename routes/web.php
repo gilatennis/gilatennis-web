@@ -21,6 +21,10 @@ Route::prefix('tournaments')->group(function () {
     Route::get('{tournament:slug}', [TournamentController::class, 'show'])
         ->name('tournaments.show');
 
+    Route::get('{tournament:slug}/live', [TournamentController::class, 'live'])
+        ->middleware('throttle:120,1')
+        ->name('tournaments.live');
+
     Route::get('{tournament:slug}/register', [TournamentRegistrationController::class, 'create'])
         ->name('tournaments.register');
 

@@ -1,17 +1,41 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
+    import { Link, usePoll } from '@inertiajs/svelte';
     import { ArrowUpRight, MessageCircleMore } from 'lucide-svelte/icons';
     import ImagePlaceholder from '@/components/public/ImagePlaceholder.svelte';
-    import { register as tournamentRegister } from '@/routes/tournaments';
+    import LiveMatchRow from '@/components/public/LiveMatchRow.svelte';
+    import { contextLabel } from '@/lib/live-board';
+    import {
+        live as tournamentLive,
+        register as tournamentRegister,
+    } from '@/routes/tournaments';
+    import type { LiveMatch } from '@/types';
 
     let {
         tournament,
+        liveMatches = [],
     }: {
         tournament: any & {
             contact_person_name?: string | null;
             contact_person_phone?: string | null;
         };
+        liveMatches?: LiveMatch[];
     } = $props();
+
+    // Only poll while matches are on court; the strip is hidden otherwise, so an
+    // idle tournament page never keeps hitting the server.
+    const poll = usePoll(
+        4000,
+        { only: ['liveMatches'] },
+        { autoStart: false, mode: 'rest' },
+    );
+
+    $effect(() => {
+        if (liveMatches.length > 0) {
+            poll.start();
+        } else {
+            poll.stop();
+        }
+    });
 
     const isSoldOut = $derived((tournament?.spots_available ?? 0) === 0);
     const isCanceled = $derived(tournament?.status === 'canceled');
@@ -298,6 +322,38 @@
             </div>
         </div>
         -->
+
+        <!-- Live now -->
+        {#if liveMatches.length > 0}
+            <div class="mt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <div
+                        class="text-[11px] font-bold uppercase tracking-[0.25em] text-coral flex items-center gap-2"
+                    >
+                        <span
+                            class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"
+                        ></span>
+                        Live now
+                    </div>
+                    <Link
+                        href={tournamentLive.url({
+                            tournament: tournament.slug,
+                        })}
+                        class="text-[11px] font-bold uppercase tracking-[0.18em] hover:text-coral flex items-center gap-1"
+                    >
+                        All live scores <ArrowUpRight size={13} />
+                    </Link>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4">
+                    {#each liveMatches as match (match.id)}
+                        <LiveMatchRow
+                            {match}
+                            contextLabel={contextLabel(match)}
+                        />
+                    {/each}
+                </div>
+            </div>
+        {/if}
 
         <!-- Divisions -->
         {#if (tournament?.divisions ?? []).length > 0}

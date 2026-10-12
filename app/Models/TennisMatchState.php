@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\DTOs\TennisScoreState;
 use Database\Factories\TennisMatchStateFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -68,21 +69,14 @@ class TennisMatchState extends Model
         return $this->belongsTo(TennisMatch::class);
     }
 
+    /**
+     * The initial projection, kept in lockstep with the engine's own starting
+     * state ({@see TennisScoreState::initial()}) so the two cannot drift.
+     *
+     * @return array<string, mixed>
+     */
     public static function defaults(): array
     {
-        return [
-            'server' => 1,
-            'first_server' => null,
-            'set_a' => 0,
-            'set_b' => 0,
-            'game_a' => 0,
-            'game_b' => 0,
-            'tiebreak' => false,
-            'tb_a' => 0,
-            'tb_b' => 0,
-            'tb_first' => null,
-            'sets' => [],
-            'win' => null,
-        ];
+        return TennisScoreState::initial()->toArray();
     }
 }

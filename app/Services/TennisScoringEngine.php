@@ -34,13 +34,28 @@ class TennisScoringEngine
                 continue;
             }
 
-            $state = match ($type) {
-                TennisMatchEventType::Server => $this->setServer($state, $side),
-                TennisMatchEventType::Point => $this->scorePoint($state, $format, $side),
-            };
+            $state = $this->applyEvent($state, $format, $type, $side);
         }
 
         return TennisScoreState::fromArray($state);
+    }
+
+    /**
+     * Apply one scoring event to a raw state array. This is the primitive behind
+     * {@see replay()}, and mirrors the JS composition in
+     * resources/js/lib/tennis-engine.ts (setServer / scorePoint) so the two
+     * engines can be driven from the same shared test vectors.
+     *
+     * @param  array<string, mixed>  $state
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
+     * @return array<string, mixed>
+     */
+    public function applyEvent(array $state, array $format, TennisMatchEventType $type, int $side): array
+    {
+        return match ($type) {
+            TennisMatchEventType::Server => $this->setServer($state, $side),
+            TennisMatchEventType::Point => $this->scorePoint($state, $format, $side),
+        };
     }
 
     /**
