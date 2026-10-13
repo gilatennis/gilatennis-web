@@ -23,6 +23,7 @@
         SelectContent,
         SelectItem,
     } from '@/components/ui/select';
+    import { index as registrationsIndex } from '@/routes/admin/tournaments/registrations';
     import {
         PLAYER_FIELDS,
         PLAYER_FIELD_KEYS,
@@ -1570,7 +1571,9 @@
                                     </div>
                                 </div>
                                 <Link
-                                    href={`/admin/tournaments/${tournament.id}/registrations`}
+                                    href={registrationsIndex.url({
+                                        tournament: tournament.id,
+                                    })}
                                     class="h-10 px-5 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-700 inline-flex items-center gap-2 hover:border-black/30 hover:bg-neutral-50 transition-colors"
                                 >
                                     View All Registrations <ArrowRight

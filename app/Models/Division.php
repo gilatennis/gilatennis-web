@@ -5,13 +5,13 @@ namespace App\Models;
 use App\Enums\BracketType;
 use App\Enums\TennisLevel;
 use App\Enums\TournamentStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Facades\DB;
 
 class Division extends Model
 {
@@ -117,7 +117,8 @@ class Division extends Model
     public function paidRegistrations(): HasMany
     {
         return $this->hasMany(TournamentRegistration::class)
-            ->where('payment_status', 'paid');
+            ->where('payment_status', 'paid')
+            ->whereNull('withdrawn_at');
     }
 
     /**
@@ -181,7 +182,7 @@ class Division extends Model
             return (int) $this->attributes['paid_registrations_count'];
         }
 
-        return $this->registrations()->where('payment_status', 'paid')->count();
+        return $this->paidRegistrations()->count();
     }
 
     public function getCategoryLabelAttribute(): string
@@ -222,9 +223,15 @@ class Division extends Model
         return (int) ($this->level_requirements[$level->value] ?? 0);
     }
 
-    public function scopeHasAvailableSpots($query)
+    public function scopeHasAvailableSpots(Builder $query): void
     {
-        return $query->whereColumn('draw_size', '>', DB::raw('(SELECT COUNT(*) FROM tournament_registrations WHERE tournament_registrations.division_id = divisions.id AND tournament_registrations.payment_status = \'paid\')'));
+        $query->where('draw_size', '>', function ($sub): void {
+            $sub->selectRaw('count(*)')
+                ->from('tournament_registrations')
+                ->whereColumn('tournament_registrations.division_id', 'divisions.id')
+                ->where('payment_status', 'paid')
+                ->whereNull('withdrawn_at');
+        });
     }
 
     public function scopeOpen($query)

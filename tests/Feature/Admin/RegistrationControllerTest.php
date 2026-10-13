@@ -1,15 +1,13 @@
 <?php
 
 use App\Models\Division;
-use App\Models\Role;
+use App\Models\PaymentEvent;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
 
 beforeEach(function () {
-    $this->admin = User::factory()->create();
-    $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);
-    $this->admin->roles()->syncWithoutDetaching([$role->id]);
+    $this->admin = User::factory()->admin()->create();
 });
 
 describe('Admin Registration Management', function () {
@@ -178,12 +176,12 @@ describe('Admin Registration Management', function () {
             ]), ['status' => 'paid'])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('payment_events', [
+        expect(PaymentEvent::where([
             'tournament_registration_id' => $registration->id,
             'source' => 'admin',
             'status_before' => 'processing',
             'status_after' => 'paid',
-        ]);
+        ])->exists())->toBeTrue();
     });
 
     it('admin can mark registration as refunded', function () {
@@ -204,5 +202,44 @@ describe('Admin Registration Management', function () {
 
         $registration->refresh();
         expect($registration->payment_status)->toBe('refunded');
+    });
+
+    it('rejects a payment override for a registration from another tournament', function () {
+        $tournamentA = Tournament::factory()->create();
+        $tournamentB = Tournament::factory()->create();
+        $registration = TournamentRegistration::factory()->create([
+            'tournament_id' => $tournamentB->id,
+            'payment_status' => 'pending',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patch(route('admin.tournaments.registrations.payment', [
+                'tournament' => $tournamentA,
+                'registration' => $registration,
+            ]), ['status' => 'paid'])
+            ->assertNotFound();
+
+        expect($registration->fresh()->payment_status)->toBe('pending');
+    });
+
+    it('admin can view a registration detail', function () {
+        $tournament = Tournament::factory()->create();
+        $division = Division::factory()->create(['tournament_id' => $tournament->id]);
+        $registration = TournamentRegistration::factory()->create([
+            'tournament_id' => $tournament->id,
+            'division_id' => $division->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tournaments.divisions.registrations.show', [
+                'tournament' => $tournament,
+                'division' => $division,
+                'registration' => $registration,
+            ]))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Admin/Tournaments/Registrations/Show')
+                ->where('registration.id', $registration->id)
+            );
     });
 });

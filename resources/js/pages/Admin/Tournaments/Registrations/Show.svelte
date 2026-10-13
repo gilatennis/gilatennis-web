@@ -11,8 +11,16 @@
     import { toast } from 'svelte-sonner';
     import AdminPage from '@/components/admin/AdminPage.svelte';
     import PaymentBadge from '@/components/admin/PaymentBadge.svelte';
+    import PaymentOverride from '@/components/admin/PaymentOverride.svelte';
+    import PaymentSummary from '@/components/admin/PaymentSummary.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { Button } from '@/components/ui/button';
+    import { formatDate } from '@/lib/format';
+    import { getInitials } from '@/lib/initials';
+    import {
+        index as tournamentsIndex,
+        show as tournamentShow,
+    } from '@/routes/admin/tournaments';
     import type {
         AssessmentStatusOption,
         PlayerAssessmentStatusValue,
@@ -35,6 +43,8 @@
         back_url,
         update_url,
         payment_url,
+        withdraw_url,
+        draw_started,
         assessment_statuses,
     }: {
         tournament: { id: number; name: string; slug: string };
@@ -50,6 +60,8 @@
         back_url: string;
         update_url: string;
         payment_url: string;
+        withdraw_url: string;
+        draw_started: boolean;
         assessment_statuses: AssessmentStatusOption[];
     } = $props();
 
@@ -85,6 +97,10 @@
     let discarding = $state(false);
     let confirmingPayment: 'paid' | 'refunded' | null = $state(null);
     let paymentPending = $state(false);
+    let confirmingWithdraw = $state(false);
+    let withdrawRefund = $state(false);
+    let withdrawReason = $state('');
+    let withdrawPending = $state(false);
 
     function copyText(text: string) {
         if (!text) {
@@ -98,52 +114,6 @@
                 copied = null;
             }
         }, 1800);
-    }
-
-    function getInitials(name: string): string {
-        return name
-            .split(' ')
-            .map((w) => w[0] ?? '')
-            .join('')
-            .slice(0, 2)
-            .toUpperCase();
-    }
-
-    function formatDate(date: string | null | undefined): string {
-        if (!date) {
-            return '';
-        }
-
-        return new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    }
-
-    function formatDateTime(date: string | null | undefined): string {
-        if (!date) {
-            return '';
-        }
-
-        const d = new Date(date);
-
-        return (
-            d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
-            ' · ' +
-            d.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-            })
-        );
-    }
-
-    function formatAmount(cents: number, currency: string = 'IDR'): string {
-        if (currency === 'IDR') {
-            return `Rp ${(cents / 100).toLocaleString('id-ID')}`;
-        }
-
-        return `$${(cents / 100).toFixed(2)}`;
     }
 
     function detectProvider(url: string): 'YouTube' | 'Vimeo' | null {
@@ -286,6 +256,26 @@
         );
     }
 
+    function submitWithdraw() {
+        withdrawPending = true;
+        router.patch(
+            withdraw_url,
+            { reason: withdrawReason || null, refund: withdrawRefund },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    withdrawPending = false;
+                    confirmingWithdraw = false;
+                    toast.success('Registration withdrawn.');
+                },
+                onError: () => {
+                    withdrawPending = false;
+                    confirmingWithdraw = false;
+                },
+            },
+        );
+    }
+
     const catCls: Record<string, string> = {
         singles: 'bg-blue-50 text-blue-700 border-blue-200',
         doubles: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -304,14 +294,14 @@
 <AdminPage>
     {#snippet breadcrumb()}
         <Link
-            href="/admin/tournaments"
+            href={tournamentsIndex.url()}
             class="text-[12px] text-neutral-400 font-medium hover:text-neutral-700 flex items-center gap-1 transition-colors"
         >
             Tournaments
         </Link>
         <span class="text-neutral-300 text-[12px]">/</span>
         <Link
-            href={`/admin/tournaments/${tournament.id}`}
+            href={tournamentShow.url({ tournament: tournament.id })}
             class="text-[12px] text-neutral-500 font-medium hover:text-neutral-800 transition-colors"
         >
             {tournament.name}
@@ -365,6 +355,13 @@
                 </div>
                 <span class="size-1 rounded-full bg-neutral-300"></span>
                 <PaymentBadge status={registration.payment_status} />
+                {#if registration.is_withdrawn}
+                    <span
+                        class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.12em] text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5"
+                    >
+                        Withdrawn
+                    </span>
+                {/if}
                 <span class="size-1 rounded-full bg-neutral-300"></span>
                 <span class="text-[11px] text-neutral-500"
                     >Registered {formatDate(registration.created_at)}</span
@@ -823,52 +820,8 @@
                 Payment
             </h2>
             <div class="bg-white border border-black/10 p-5">
-                <div
-                    class="flex items-start justify-between gap-4 flex-wrap mb-5"
-                >
-                    <div>
-                        <PaymentBadge status={registration.payment_status} />
-                        {#if registration.payment_reference}
-                            <div class="mt-1.5 flex items-center gap-1.5">
-                                <span
-                                    class="font-mono text-[11px] text-neutral-500"
-                                    >{registration.payment_reference}</span
-                                >
-                                <button
-                                    type="button"
-                                    onclick={() =>
-                                        copyText(
-                                            registration.payment_reference ??
-                                                '',
-                                        )}
-                                    class="size-5 flex items-center justify-center text-neutral-400 hover:text-neutral-700 transition-colors"
-                                >
-                                    {#if copied === registration.payment_reference}
-                                        <Check
-                                            class="size-3 text-emerald-600"
-                                        />
-                                    {:else}
-                                        <Copy class="size-3" />
-                                    {/if}
-                                </button>
-                            </div>
-                        {/if}
-                    </div>
-                    <div class="text-right">
-                        <div
-                            class="font-display font-black text-[22px] tracking-[-0.02em]"
-                        >
-                            {formatAmount(
-                                registration.amount_cents,
-                                registration.currency,
-                            )}
-                        </div>
-                        {#if registration.paid_at}
-                            <div class="text-[11px] text-neutral-400 mt-0.5">
-                                {formatDateTime(registration.paid_at)}
-                            </div>
-                        {/if}
-                    </div>
+                <div class="mb-5">
+                    <PaymentSummary {registration} {copied} onCopy={copyText} />
                 </div>
 
                 <div class="pt-5 border-t border-black/6">
@@ -878,74 +831,92 @@
                         Manual Override
                     </p>
 
-                    {#if confirmingPayment}
+                    <PaymentOverride
+                        status={registration.payment_status}
+                        confirming={confirmingPayment}
+                        pending={paymentPending}
+                        onRequest={(status) => (confirmingPayment = status)}
+                        onConfirm={() =>
+                            confirmingPayment &&
+                            overridePayment(confirmingPayment)}
+                        onCancel={() => (confirmingPayment = null)}
+                        markPaidTestId="mark-paid"
+                        confirmTestId="confirm-payment"
+                    />
+                </div>
+
+                <div class="pt-5 border-t border-black/6">
+                    <p
+                        class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400 mb-3"
+                    >
+                        Draw
+                    </p>
+
+                    {#if registration.is_withdrawn}
+                        <p class="text-[12px] text-neutral-500">
+                            Withdrawn {formatDate(registration.withdrawn_at)}.
+                            {#if registration.withdrawal_reason}
+                                Reason: {registration.withdrawal_reason}
+                            {/if}
+                        </p>
+                    {:else if draw_started}
+                        <p class="text-[12px] text-neutral-500">
+                            The draw has already started. Record this team's
+                            loss instead of withdrawing.
+                        </p>
+                    {:else if confirmingWithdraw}
                         <div
-                            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-amber-50 border border-amber-200 p-3"
+                            class="flex flex-col gap-3 bg-red-50 border border-red-200 p-3"
                         >
-                            <div class="flex items-start gap-2">
-                                <AlertTriangle
-                                    class="size-3.5 shrink-0 text-amber-500 mt-px"
+                            <p class="text-[12px] text-red-800 leading-snug">
+                                Withdraw <strong>{registration.name}</strong> from
+                                the draw? This removes the team from the bracket and
+                                frees its spot so a replacement can register.
+                            </p>
+                            <input
+                                type="text"
+                                bind:value={withdrawReason}
+                                placeholder="Reason (optional)"
+                                class="w-full h-8 px-2 text-[12px] bg-white border border-black/10 focus:border-red-400 focus:outline-none"
+                            />
+                            <label
+                                class="flex items-center gap-2 text-[12px] text-red-800"
+                            >
+                                <input
+                                    type="checkbox"
+                                    bind:checked={withdrawRefund}
+                                    class="size-3.5"
                                 />
-                                <p
-                                    class="text-[12px] text-amber-800 leading-snug"
-                                >
-                                    Mark as
-                                    <strong
-                                        >{confirmingPayment === 'paid'
-                                            ? 'Paid'
-                                            : 'Refunded'}</strong
-                                    >? This updates the payment status
-                                    immediately.
-                                </p>
-                            </div>
-                            <div class="flex gap-2 shrink-0">
+                                Also mark the fee as refunded
+                            </label>
+                            <div class="flex gap-2 justify-end">
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onclick={() => (confirmingPayment = null)}
+                                    disabled={withdrawPending}
+                                    onclick={() => (confirmingWithdraw = false)}
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     size="sm"
-                                    disabled={paymentPending}
-                                    data-testid="confirm-payment"
-                                    onclick={() =>
-                                        confirmingPayment &&
-                                        overridePayment(confirmingPayment)}
+                                    variant="destructive"
+                                    disabled={withdrawPending}
+                                    data-testid="confirm-withdraw"
+                                    onclick={submitWithdraw}
                                 >
-                                    {paymentPending ? '...' : 'Confirm'}
+                                    {withdrawPending ? '...' : 'Withdraw team'}
                                 </Button>
                             </div>
                         </div>
                     {:else}
-                        <div class="flex flex-wrap gap-2">
-                            {#if registration.payment_status !== 'paid'}
-                                <Button
-                                    variant="coral"
-                                    data-testid="mark-paid"
-                                    onclick={() => (confirmingPayment = 'paid')}
-                                >
-                                    <Check class="size-3.5 mr-1.5" />
-                                    Mark as Paid
-                                </Button>
-                            {/if}
-                            {#if registration.payment_status === 'paid' || registration.payment_status === 'processing'}
-                                <Button
-                                    variant="outline"
-                                    onclick={() =>
-                                        (confirmingPayment = 'refunded')}
-                                >
-                                    Mark as Refunded
-                                </Button>
-                            {/if}
-                            {#if registration.payment_status === 'refunded'}
-                                <p class="text-xs text-neutral-400 self-center">
-                                    No actions available for refunded
-                                    registrations.
-                                </p>
-                            {/if}
-                        </div>
+                        <Button
+                            variant="outline"
+                            data-testid="withdraw-team"
+                            onclick={() => (confirmingWithdraw = true)}
+                        >
+                            Withdraw from draw
+                        </Button>
                     {/if}
                 </div>
             </div>

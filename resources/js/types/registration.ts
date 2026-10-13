@@ -73,6 +73,7 @@ export interface ComputedPlayer {
     rating_type: string;
     rating_value: string;
     level: string;
+    date_of_birth?: string;
 }
 
 export interface Registration {
@@ -90,6 +91,9 @@ export interface Registration {
     currency: string;
     paid_at?: string | null;
     created_at: string;
+    withdrawn_at?: string | null;
+    withdrawal_reason?: string | null;
+    is_withdrawn?: boolean;
     division?: { id: number; name: string } | null;
     team?: { id: number; name: string } | null;
     players: Player[];
@@ -150,8 +154,26 @@ export interface Division {
 
 export type ParticipationCategory = 'singles' | 'doubles' | 'team' | '';
 
+/**
+ * The subset of a division's attributes the registration UI reads. Looser than
+ * `Division` so it accepts the trimmed payloads passed to a create/edit form.
+ */
+export interface DivisionInput {
+    id?: number;
+    name?: string;
+    participation_category?: string | null;
+    fee?: number | null;
+    min_team_size?: number | null;
+    max_team_size?: number | null;
+    min_female_players?: number | null;
+    min_male_players?: number | null;
+    level_requirements?: Record<string, number> | null;
+    player_field_requirements?: PlayerFieldRequirement[] | null;
+    gender?: string | null;
+}
+
 export interface DivisionContext {
-    selected: Division | null;
+    selected: DivisionInput | null;
     isTeam: boolean;
     participationCategory: ParticipationCategory;
     fee: number;

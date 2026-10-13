@@ -5,15 +5,11 @@
     import RegistrationProgressRail from '@/components/public/RegistrationProgressRail.svelte';
     import WhatsAppHelpButton from '@/components/public/WhatsAppHelpButton.svelte';
     import { Button } from '@/components/ui/button';
+    import { buildDivisionContext, LEVEL_OPTIONS } from '@/lib/registration';
     import { show as tournamentShow } from '@/routes/tournaments';
     import { store as tournamentStore } from '@/routes/tournaments/register';
     import type { FieldErrors, FormErrors } from '@/types/errors';
-    import { PLAYER_FIELDS, PLAYER_FIELD_KEYS } from '@/types/registration';
-    import type {
-        ComputedPlayer,
-        DivisionContext,
-        PlayerFieldRequirementMap,
-    } from '@/types/registration';
+    import type { ComputedPlayer, DivisionContext } from '@/types/registration';
     import Step1DivisionSelection from './registration/Step1DivisionSelection.svelte';
     import Step2PlayerInfo from './registration/Step2PlayerInfo.svelte';
     import Step3ReviewAndPay from './registration/Step3ReviewAndPay.svelte';
@@ -31,8 +27,6 @@
             level: '',
         };
     }
-
-    const LEVEL_OPTIONS = ['Upper Beginner', 'Intermediate'];
 
     let {
         tournament,
@@ -96,53 +90,9 @@
         divisions.find((d: any) => d.id === selectedDivisionId) ?? null,
     );
 
-    function buildPlayerFieldConfig(d: any): PlayerFieldRequirementMap {
-        const config = {} as PlayerFieldRequirementMap;
-
-        for (const key of PLAYER_FIELD_KEYS) {
-            config[key] = key === 'name' ? true : PLAYER_FIELDS[key].default;
-        }
-
-        const rows = (d?.player_field_requirements ?? []) as Array<{
-            field_key: string;
-            required: boolean;
-        }>;
-
-        for (const row of rows) {
-            if (
-                (PLAYER_FIELD_KEYS as string[]).includes(row.field_key) &&
-                row.field_key !== 'name'
-            ) {
-                config[row.field_key as keyof PlayerFieldRequirementMap] =
-                    !!row.required;
-            }
-        }
-
-        return config;
-    }
-
-    const division: DivisionContext = $derived.by(() => {
-        const d = selectedDivision;
-        const fee = d?.fee ?? 0;
-
-        return {
-            selected: d,
-            isTeam: d?.participation_category === 'team',
-            participationCategory: d?.participation_category ?? '',
-            fee,
-            transactionFee,
-            total: fee + transactionFee,
-            minTeamSize: d?.min_team_size ?? 0,
-            maxTeamSize: d?.max_team_size ?? 0,
-            minFemalePlayers: d?.min_female_players ?? 0,
-            minMalePlayers: d?.min_male_players ?? 0,
-            levelRequirements: (d?.level_requirements ?? {}) as Record<
-                string,
-                number
-            >,
-            playerFieldConfig: buildPlayerFieldConfig(d),
-        };
-    });
+    const division: DivisionContext = $derived(
+        buildDivisionContext(selectedDivision, transactionFee),
+    );
 
     // Clear step 0 field errors on edit
     $effect(() => {
@@ -605,7 +555,10 @@
                             bind:phone
                             bind:gender
                             bind:level
-                            levelOptions={division.isTeam ? LEVEL_OPTIONS : []}
+                            levelOptions={division.isTeam ||
+                            division.participationCategory === 'doubles'
+                                ? LEVEL_OPTIONS
+                                : []}
                             {fieldErrors}
                             {bannerErrors}
                             {division}

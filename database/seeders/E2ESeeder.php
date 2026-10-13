@@ -15,6 +15,7 @@ use App\Models\Team;
 use App\Models\TennisMatch;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
+use App\Models\TournamentRegistrationPlayer;
 use App\Models\User;
 use App\Services\TennisMatchScoringService;
 use Carbon\CarbonInterface;
@@ -43,6 +44,8 @@ class E2ESeeder extends Seeder
         $this->liveOpen();
 
         $this->board();
+
+        $this->registration();
     }
 
     /**
@@ -235,6 +238,104 @@ class E2ESeeder extends Seeder
         // Two rubbers under one tie: one finished, one on court.
         $this->match($division, 211, 'Rubber One A', 'Rubber One B', 'completed', $this->completedState(), $tie->id);
         $this->match($division, 212, 'Rubber Two A', 'Rubber Two B', 'running', [], $tie->id);
+    }
+
+    /**
+     * A bracket-less tournament with singles, doubles and team divisions for
+     * the admin registration CRUD spec, plus one division whose draw is already
+     * live with a placed entrant (to prove edit/delete is guarded).
+     */
+    private function registration(): void
+    {
+        $tournament = Tournament::updateOrCreate(
+            ['slug' => 'e2e-registration'],
+            [
+                'name' => 'E2E Reg Open',
+                'status' => TournamentStatus::Open,
+                'dates' => today()->format('M j').' - '.today()->addDays(2)->format('M j, Y'),
+                'start' => today(),
+                'end' => today()->addDays(2),
+                'city' => 'Jakarta',
+                'surface' => 'hard',
+                'venue_type' => 'outdoor',
+                'ball_type' => 'Penn Championship',
+                'registration_closes' => today()->addDay(),
+            ],
+        );
+
+        Division::updateOrCreate(
+            ['tournament_id' => $tournament->id, 'slug' => 'reg-singles'],
+            [
+                'name' => 'E2E Reg Singles',
+                'participation_category' => 'singles',
+                'draw_size' => 8,
+                'fee' => 50000,
+                'sort_order' => 0,
+            ],
+        );
+
+        Division::updateOrCreate(
+            ['tournament_id' => $tournament->id, 'slug' => 'reg-doubles'],
+            [
+                'name' => 'E2E Reg Doubles',
+                'participation_category' => 'doubles',
+                'draw_size' => 4,
+                'fee' => 50000,
+                'sort_order' => 1,
+            ],
+        );
+
+        Division::updateOrCreate(
+            ['tournament_id' => $tournament->id, 'slug' => 'reg-team'],
+            [
+                'name' => 'E2E Reg Team',
+                'participation_category' => 'team',
+                'draw_size' => 4,
+                'fee' => 100000,
+                'sort_order' => 2,
+                'min_team_size' => 2,
+                'max_team_size' => 2,
+            ],
+        );
+
+        $guardDivision = Division::updateOrCreate(
+            ['tournament_id' => $tournament->id, 'slug' => 'reg-guard'],
+            [
+                'name' => 'E2E Reg Guard',
+                'participation_category' => 'singles',
+                'draw_size' => 2,
+                'fee' => 50000,
+                'sort_order' => 3,
+            ],
+        );
+
+        $guardEntry = TournamentRegistration::factory()
+            ->forTournament($tournament)
+            ->create([
+                'division_id' => $guardDivision->id,
+                'name' => 'E2E Guard Entry',
+                'payment_status' => 'paid',
+            ]);
+
+        TournamentRegistrationPlayer::create([
+            'tournament_registration_id' => $guardEntry->id,
+            'tournament_id' => $tournament->id,
+            'name' => 'E2E Guard Player',
+            'email' => 'guard.player@example.com',
+            'phone' => '081200000001',
+            'gender' => 'male',
+            'sort_order' => 0,
+        ]);
+
+        $bracket = Bracket::create([
+            'division_id' => $guardDivision->id,
+            'type' => BracketType::SingleElimination,
+            'status' => BracketStatus::Active,
+            'size' => 2,
+        ]);
+
+        $slot = $this->slot($bracket, null, 1, 0, 'Final');
+        $slot->update(['entrant_a_id' => $guardEntry->id]);
     }
 
     private function teamEntrant(Tournament $tournament, Division $division, string $name): TournamentRegistration

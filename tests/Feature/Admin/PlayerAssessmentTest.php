@@ -3,16 +3,13 @@
 use App\Enums\PlayerAssessmentStatus;
 use App\Models\Division;
 use App\Models\PlayerAssessment;
-use App\Models\Role;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\TournamentRegistrationPlayer;
 use App\Models\User;
 
 beforeEach(function () {
-    $this->admin = User::factory()->create();
-    $role = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);
-    $this->admin->roles()->syncWithoutDetaching([$role->id]);
+    $this->admin = User::factory()->admin()->create();
 
     $this->tournament = Tournament::factory()->create();
     $this->division = Division::factory()->create([

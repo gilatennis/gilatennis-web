@@ -23,6 +23,9 @@ trait ShapesRegistration
             'currency' => $registration->currency,
             'paid_at' => $registration->paid_at,
             'created_at' => $registration->created_at,
+            'withdrawn_at' => $registration->withdrawn_at,
+            'withdrawal_reason' => $registration->withdrawal_reason,
+            'is_withdrawn' => $registration->isWithdrawn(),
             'team' => $registration->team ? [
                 'id' => $registration->team->id,
                 'name' => $registration->team->name,

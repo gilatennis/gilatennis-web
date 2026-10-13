@@ -1,40 +1,22 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
+    import { formatAmount, formatDate } from '@/lib/format';
+    import { show as divisionShow } from '@/routes/admin/tournaments/divisions';
     import type { Registration, PaymentStatus } from '@/types';
     import DataTable from './DataTable.svelte';
     import PaymentBadge from './PaymentBadge.svelte';
 
     let {
         registrations,
+        tournamentId,
         showDivisionColumn = true,
         onRowClick,
     }: {
         registrations: Registration[];
+        tournamentId?: number;
         showDivisionColumn?: boolean;
         onRowClick?: (reg: Registration) => void;
     } = $props();
-
-    function formatDate(date: string): string {
-        if (!date) {
-            return '';
-        }
-
-        const d = new Date(date);
-
-        return d.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    }
-
-    function formatAmount(cents: number, currency: string = 'IDR'): string {
-        if (currency === 'IDR') {
-            return `Rp ${(cents / 100).toLocaleString('id-ID')}`;
-        }
-
-        return `$${(cents / 100).toFixed(2)}`;
-    }
 </script>
 
 <DataTable
@@ -66,12 +48,23 @@
             <span class="font-mono text-[11px] text-neutral-500 tracking-wide"
                 >{reg.confirmation_code}</span
             >
-            <span class="font-medium text-[13px] text-neutral-900 truncate pr-3"
-                >{reg.name}</span
+            <span
+                class="flex items-center gap-1.5 font-medium text-[13px] text-neutral-900 truncate pr-3"
             >
-            {#if showDivisionColumn && reg.division}
+                <span class="truncate">{reg.name}</span>
+                {#if reg.is_withdrawn}
+                    <span
+                        class="shrink-0 text-[9px] font-bold uppercase tracking-[0.1em] text-red-700 bg-red-50 border border-red-200 px-1 py-px"
+                        >Withdrawn</span
+                    >
+                {/if}
+            </span>
+            {#if showDivisionColumn && reg.division && tournamentId}
                 <Link
-                    href={`/admin/tournaments/${reg.division.id}/divisions/${reg.division.id}`}
+                    href={divisionShow.url({
+                        tournament: tournamentId,
+                        division: reg.division.id,
+                    })}
                     class="text-[12px] text-coral hover:underline truncate pr-2"
                 >
                     {reg.division.name}

@@ -9,7 +9,7 @@
         SelectItem,
     } from '@/components/ui/select';
     import type { FieldErrors, FormErrors } from '@/types/errors';
-    import type { DivisionContext } from '@/types/registration';
+    import type { ComputedPlayer, DivisionContext } from '@/types/registration';
     import TeamMemberFields from './TeamMemberFields.svelte';
 
     let {
@@ -22,7 +22,7 @@
         fieldErrors = {} as FieldErrors,
         bannerErrors = {} as Record<string, string[]>,
         division,
-        computedPlayers = [] as any[],
+        computedPlayers = [] as ComputedPlayer[],
         memberStartIndex = 1,
         onAddPlayer = () => {},
         onRemovePlayer = (_: number) => {},
@@ -36,7 +36,7 @@
         fieldErrors?: FieldErrors;
         bannerErrors?: Record<string, string[]>;
         division: DivisionContext;
-        computedPlayers?: any[];
+        computedPlayers?: ComputedPlayer[];
         memberStartIndex?: number;
         onAddPlayer?: () => void;
         onRemovePlayer?: (index: number) => void;
@@ -55,10 +55,12 @@
     );
 
     const teamMaleCount = $derived(
-        computedPlayers.filter((p: any) => p.gender === 'male').length,
+        computedPlayers.filter((p: ComputedPlayer) => p.gender === 'male')
+            .length,
     );
     const teamFemaleCount = $derived(
-        computedPlayers.filter((p: any) => p.gender === 'female').length,
+        computedPlayers.filter((p: ComputedPlayer) => p.gender === 'female')
+            .length,
     );
     const teamSizeMet = $derived(
         !division.isTeam || computedPlayers.length >= division.minTeamSize,

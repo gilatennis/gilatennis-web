@@ -27,3 +27,16 @@ export const E2E_BOARD_MATCHES = {
     teamRubberCompleted: 211,
     teamRubberLive: 212,
 } as const;
+
+/** The bracket-less fixture used by the admin registration CRUD spec. */
+export const E2E_REGISTRATION_SLUG = 'e2e-registration';
+export const E2E_REGISTRATION_TOURNAMENT = 'E2E Reg Open';
+
+export const E2E_REG_DIVISIONS = {
+    singles: 'E2E Reg Singles',
+    doubles: 'E2E Reg Doubles',
+    team: 'E2E Reg Team',
+} as const;
+
+/** A registration already placed in a live bracket (edit/delete is guarded). */
+export const E2E_GUARD_ENTRY = 'E2E Guard Entry';

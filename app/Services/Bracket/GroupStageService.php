@@ -152,6 +152,54 @@ class GroupStageService
     }
 
     /**
+     * Remove an entrant from the division's group stage. Only permitted before
+     * any tie has started: membership is dropped, the affected group's fixtures
+     * are rebuilt, and any advancing pick naming the entrant is cleared.
+     */
+    public function removeEntrant(Division $division, TournamentRegistration $entrant): void
+    {
+        $bracket = Bracket::where('division_id', $division->id)
+            ->where('type', BracketType::GroupStage)
+            ->first();
+
+        if ($bracket === null) {
+            return;
+        }
+
+        $memberships = BracketGroupEntrant::whereHas('group', fn ($q) => $q->where('bracket_id', $bracket->id))
+            ->where('tournament_registration_id', $entrant->id)
+            ->get();
+
+        if ($memberships->isEmpty()) {
+            return;
+        }
+
+        foreach ($memberships as $membership) {
+            if ($this->groupHasStarted($membership->group)) {
+                throw new InvalidArgumentException('This group has already started; an entrant can no longer be withdrawn.');
+            }
+        }
+
+        DB::transaction(function () use ($memberships, $entrant) {
+            foreach ($memberships as $membership) {
+                $group = $membership->group;
+                $membership->delete();
+
+                $winners = $group->fresh()->winnerIds();
+
+                if (in_array($entrant->id, $winners, true)) {
+                    $group->update(['winner_entrant_ids' => array_values(array_filter(
+                        $winners,
+                        fn (int $id) => $id !== $entrant->id,
+                    ))]);
+                }
+
+                $this->buildGroupFixtures($group);
+            }
+        });
+    }
+
+    /**
      * Move an entrant from one group to another, rebuilding both fixtures.
      * Blocked when either group has started.
      */

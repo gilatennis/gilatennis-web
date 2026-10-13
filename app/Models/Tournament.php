@@ -198,7 +198,7 @@ class Tournament extends Model
 
     public function getPlayerCountAttribute(): int
     {
-        return $this->registrations()->where('payment_status', 'paid')->count();
+        return $this->registrations()->where('payment_status', 'paid')->whereNull('withdrawn_at')->count();
     }
 
     public function getSurfaceLabelAttribute(): string

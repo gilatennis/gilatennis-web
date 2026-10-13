@@ -225,6 +225,21 @@ describe('Registration Form', function () {
         expect(User::where('email', 'jane@example.com')->count())->toBe(1);
     });
 
+    it('does not downgrade an existing registered user to guest', function () {
+        $t = Tournament::factory()->create(['status' => 'open']);
+        $div = makeSinglesDivision($t, ['fee' => 5000]);
+        $user = User::factory()->create(['email' => 'jane@example.com']);
+
+        fakeInvoiceService();
+
+        $this->post(route('tournaments.register.store', $t->slug), singlesFormData($div))
+            ->assertStatus(302);
+
+        expect($user->fresh()->is_guest)->toBeFalse();
+        expect(TournamentRegistration::where('email', 'jane@example.com')->first()->user_id)
+            ->toBe($user->id);
+    });
+
     it('creates registration with processing status', function () {
         $t = Tournament::factory()->create(['status' => 'open']);
         $div = makeSinglesDivision($t, ['fee' => 5000]);

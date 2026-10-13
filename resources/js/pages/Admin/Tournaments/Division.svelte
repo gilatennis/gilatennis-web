@@ -2,6 +2,7 @@
     import { Link, router } from '@inertiajs/svelte';
     import Calendar from 'lucide-svelte/icons/calendar';
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+    import Plus from 'lucide-svelte/icons/plus';
     import Search from 'lucide-svelte/icons/search';
     import X from 'lucide-svelte/icons/x';
     import AdminPage from '@/components/admin/AdminPage.svelte';
@@ -11,6 +12,8 @@
     import KnockoutStageView from '@/components/admin/stages/KnockoutStageView.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
+    import { show as divisionRegistrationShow } from '@/routes/admin/tournaments/divisions/registrations';
+    import { create as createRegistration } from '@/routes/admin/tournaments/registrations';
     import type {
         BracketEntrantOption,
         GroupStageBracket,
@@ -306,6 +309,13 @@
                     </button>
                 {/if}
             </div>
+
+            <Link
+                href={createRegistration.url({ tournament: tournament.id })}
+                class="h-9 px-4 bg-coral text-white inline-flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity shrink-0"
+            >
+                <Plus class="size-3.5" /> New
+            </Link>
         </div>
 
         {#if registrations.data.length === 0}
@@ -322,7 +332,11 @@
                 showDivisionColumn={false}
                 onRowClick={(reg: Registration) => {
                     router.visit(
-                        `/admin/tournaments/${tournament.id}/divisions/${division.id}/registrations/${reg.confirmation_code}`,
+                        divisionRegistrationShow.url({
+                            tournament: tournament.id,
+                            division: division.id,
+                            registration: reg.confirmation_code,
+                        }),
                     );
                 }}
             />

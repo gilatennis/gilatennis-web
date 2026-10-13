@@ -18,10 +18,16 @@ class TournamentRegistrationPlayer extends Model
         'sort_order',
     ];
 
-    protected $casts = [
-        'date_of_birth' => 'date',
-        'rating_value' => 'decimal:1',
-    ];
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'date_of_birth' => 'date',
+            'rating_value' => 'decimal:1',
+        ];
+    }
 
     public function registration(): BelongsTo
     {

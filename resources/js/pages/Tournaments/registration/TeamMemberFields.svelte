@@ -9,10 +9,10 @@
         SelectItem,
     } from '@/components/ui/select';
     import type { FieldErrors } from '@/types/errors';
-    import type { DivisionContext } from '@/types/registration';
+    import type { ComputedPlayer, DivisionContext } from '@/types/registration';
 
     let {
-        computedPlayers = [] as any[],
+        computedPlayers = [] as ComputedPlayer[],
         memberStartIndex = 0,
         division,
         levelOptions = [] as string[],
@@ -20,7 +20,7 @@
         onAddPlayer = () => {},
         onRemovePlayer = (_index: number) => {},
     }: {
-        computedPlayers?: any[];
+        computedPlayers?: ComputedPlayer[];
         memberStartIndex?: number;
         division: DivisionContext;
         levelOptions?: string[];
@@ -32,14 +32,19 @@
     const cfg = $derived(division.playerFieldConfig);
     const isTeam = $derived(division.isTeam);
     const showLevel = $derived(isTeam && levelOptions.length > 0 && cfg.level);
+    const showPartnerLevel = $derived(
+        !isTeam && cfg.level && levelOptions.length > 0,
+    );
     const showDob = $derived(isTeam && cfg.dob);
     const members = $derived(computedPlayers.slice(memberStartIndex));
 
     const femaleCount = $derived(
-        computedPlayers.filter((p: any) => p.gender === 'female').length,
+        computedPlayers.filter((p: ComputedPlayer) => p.gender === 'female')
+            .length,
     );
     const maleCount = $derived(
-        computedPlayers.filter((p: any) => p.gender === 'male').length,
+        computedPlayers.filter((p: ComputedPlayer) => p.gender === 'male')
+            .length,
     );
 
     const genderReqParts = $derived.by(() => {
@@ -331,100 +336,147 @@
         >
             Partner Details
         </div>
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <Label
-                    for="player-1-name"
-                    class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                    >Name<span class="text-coral">*</span></Label
-                >
-                <Input
-                    id="player-1-name"
-                    name="players.1.name"
-                    type="text"
-                    placeholder="Partner full name"
-                    class="text-sm {fieldErrors['players.1.name']
-                        ? 'border-coral ring-2 ring-coral/30'
-                        : ''}"
-                />
-                {#if fieldErrors['players.1.name']}
-                    <p class="mt-1 text-xs text-coral font-medium">
-                        {fieldErrors['players.1.name']}
-                    </p>
-                {/if}
-            </div>
-            <div>
-                <Label
-                    for="player-1-email"
-                    class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                    >Email<span class="text-coral">*</span></Label
-                >
-                <Input
-                    id="player-1-email"
-                    name="players.1.email"
-                    type="email"
-                    placeholder="partner@email.com"
-                    class="text-sm {fieldErrors['players.1.email']
-                        ? 'border-coral ring-2 ring-coral/30'
-                        : ''}"
-                />
-                {#if fieldErrors['players.1.email']}
-                    <p class="mt-1 text-xs text-coral font-medium">
-                        {fieldErrors['players.1.email']}
-                    </p>
-                {/if}
-            </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <Label
-                    for="player-1-phone"
-                    class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                    >Phone<span class="text-coral">*</span></Label
-                >
-                <Input
-                    id="player-1-phone"
-                    name="players.1.phone"
-                    type="tel"
-                    placeholder="0821123123123"
-                    class="text-sm {fieldErrors['players.1.phone']
-                        ? 'border-coral ring-2 ring-coral/30'
-                        : ''}"
-                />
-                {#if fieldErrors['players.1.phone']}
-                    <p class="mt-1 text-xs text-coral font-medium">
-                        {fieldErrors['players.1.phone']}
-                    </p>
-                {/if}
-            </div>
-            <div>
-                <Label
-                    for="player-1-gender"
-                    class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
-                    >Gender<span class="text-coral">*</span></Label
-                >
-                <Select name="players.1.gender">
-                    <SelectTrigger
-                        id="player-1-gender"
-                        class="w-full h-9 px-3 text-[13px] {fieldErrors[
-                            'players.1.gender'
+        {#each members as player, i (memberStartIndex + i)}
+            {@const actualIndex = i + memberStartIndex}
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <Label
+                        for={`player-${actualIndex}-name`}
+                        class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
+                        >Name<span class="text-coral">*</span></Label
+                    >
+                    <Input
+                        id={`player-${actualIndex}-name`}
+                        name={`players.${actualIndex}.name`}
+                        type="text"
+                        placeholder="Partner full name"
+                        bind:value={player.name}
+                        class="text-sm {fieldErrors[
+                            `players.${actualIndex}.name`
                         ]
                             ? 'border-coral ring-2 ring-coral/30'
                             : ''}"
+                    />
+                    {#if fieldErrors[`players.${actualIndex}.name`]}
+                        <p class="mt-1 text-xs text-coral font-medium">
+                            {fieldErrors[`players.${actualIndex}.name`]}
+                        </p>
+                    {/if}
+                </div>
+                <div>
+                    <Label
+                        for={`player-${actualIndex}-email`}
+                        class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
+                        >Email<span class="text-coral">*</span></Label
                     >
-                        Select gender
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="male" label="Male" />
-                        <SelectItem value="female" label="Female" />
-                    </SelectContent>
-                </Select>
-                {#if fieldErrors['players.1.gender']}
-                    <p class="mt-1 text-xs text-coral font-medium">
-                        {fieldErrors['players.1.gender']}
-                    </p>
-                {/if}
+                    <Input
+                        id={`player-${actualIndex}-email`}
+                        name={`players.${actualIndex}.email`}
+                        type="email"
+                        placeholder="partner@email.com"
+                        bind:value={player.email}
+                        class="text-sm {fieldErrors[
+                            `players.${actualIndex}.email`
+                        ]
+                            ? 'border-coral ring-2 ring-coral/30'
+                            : ''}"
+                    />
+                    {#if fieldErrors[`players.${actualIndex}.email`]}
+                        <p class="mt-1 text-xs text-coral font-medium">
+                            {fieldErrors[`players.${actualIndex}.email`]}
+                        </p>
+                    {/if}
+                </div>
             </div>
-        </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <Label
+                        for={`player-${actualIndex}-phone`}
+                        class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
+                        >Phone<span class="text-coral">*</span></Label
+                    >
+                    <Input
+                        id={`player-${actualIndex}-phone`}
+                        name={`players.${actualIndex}.phone`}
+                        type="tel"
+                        placeholder="0821123123123"
+                        bind:value={player.phone}
+                        class="text-sm {fieldErrors[
+                            `players.${actualIndex}.phone`
+                        ]
+                            ? 'border-coral ring-2 ring-coral/30'
+                            : ''}"
+                    />
+                    {#if fieldErrors[`players.${actualIndex}.phone`]}
+                        <p class="mt-1 text-xs text-coral font-medium">
+                            {fieldErrors[`players.${actualIndex}.phone`]}
+                        </p>
+                    {/if}
+                </div>
+                <div>
+                    <Label
+                        for={`player-${actualIndex}-gender`}
+                        class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
+                        >Gender<span class="text-coral">*</span></Label
+                    >
+                    <Select bind:value={player.gender}>
+                        <SelectTrigger
+                            id={`player-${actualIndex}-gender`}
+                            class="w-full h-9 px-3 text-[13px] {fieldErrors[
+                                `players.${actualIndex}.gender`
+                            ]
+                                ? 'border-coral ring-2 ring-coral/30'
+                                : ''}"
+                        >
+                            {player.gender
+                                ? player.gender === 'male'
+                                    ? 'Male'
+                                    : 'Female'
+                                : 'Select gender'}
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="male" label="Male" />
+                            <SelectItem value="female" label="Female" />
+                        </SelectContent>
+                    </Select>
+                    {#if fieldErrors[`players.${actualIndex}.gender`]}
+                        <p class="mt-1 text-xs text-coral font-medium">
+                            {fieldErrors[`players.${actualIndex}.gender`]}
+                        </p>
+                    {/if}
+                </div>
+            </div>
+            {#if showPartnerLevel}
+                <div>
+                    <Label
+                        for={`player-${actualIndex}-level`}
+                        class="text-[10px] uppercase tracking-[0.15em] mb-1 block"
+                        >Level<span class="text-coral">*</span></Label
+                    >
+                    <Select bind:value={player.level}>
+                        <SelectTrigger
+                            id={`player-${actualIndex}-level`}
+                            class="w-full h-9 px-3 text-[13px] {fieldErrors[
+                                `players.${actualIndex}.level`
+                            ]
+                                ? 'border-coral ring-2 ring-coral/30'
+                                : ''}"
+                        >
+                            {player.level || 'Select level'}
+                        </SelectTrigger>
+                        <SelectContent>
+                            {#each levelOptions as opt (opt)}
+                                <SelectItem value={opt} label={opt} />
+                            {/each}
+                        </SelectContent>
+                    </Select>
+                    {#if fieldErrors[`players.${actualIndex}.level`]}
+                        <p class="mt-1 text-xs text-coral font-medium">
+                            {fieldErrors[`players.${actualIndex}.level`]}
+                        </p>
+                    {/if}
+                </div>
+            {/if}
+        {/each}
     </div>
 {/if}

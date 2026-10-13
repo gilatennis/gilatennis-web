@@ -22,54 +22,6 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assessed_at\.$#'
 			identifier: property.notFound
 			count: 1
-			path: app/Services/DivisionPagePresenter.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$notes\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/DivisionPagePresenter.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reason\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/DivisionPagePresenter.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/DivisionPagePresenter.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$video_url\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Services/DivisionPagePresenter.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\TournamentRegistrationPlayer\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Services/DivisionPagePresenter.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assessed_at\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Admin/RegistrationController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Admin/RegistrationController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
 			path: app/Http/Controllers/Admin/RegistrationController.php
 
 		-
@@ -97,9 +49,15 @@ parameters:
 			path: app/Http/Controllers/Admin/RegistrationController.php
 
 		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Controllers/Admin/RegistrationController.php
+
+		-
 			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\TournamentRegistrationPlayer\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
-			count: 1
+			count: 2
 			path: app/Http/Controllers/Admin/RegistrationController.php
 
 		-
@@ -109,7 +67,13 @@ parameters:
 			path: app/Http/Controllers/Admin/RegistrationController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:through\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array, Closure\(App\\Models\\TournamentRegistration\)\: array given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, participation_category\: ''doubles''\|''singles''\|''team'', fee\: float, draw_size\: int\<0, max\>, spots_available\: int, min_team_size\: int\<0, max\>\|null, max_team_size\: int\<0, max\>\|null, min_female_players\: int\<0, max\>\|null, min_male_players\: int\<0, max\>\|null, level_requirements\: array, gender\: ''coed''\|''mens''\|''mixed''\|''womens''\|null, player_field_requirements\: Illuminate\\Support\\Collection\<int, array\{field_key\: mixed, required\: bool\}\>\}, Closure\(App\\Models\\Division\)\: array\{id\: int\<0, max\>, name\: string, participation_category\: ''doubles''\|''singles''\|''team'', fee\: float, draw_size\: int\<0, max\>, spots_available\: int, min_team_size\: int\<0, max\>\|null, max_team_size\: int\<0, max\>\|null, min_female_players\: int\<0, max\>\|null, min_male_players\: int\<0, max\>\|null, level_requirements\: array, gender\: ''coed''\|''mens''\|''mixed''\|''womens''\|null, player_field_requirements\: Illuminate\\Support\\Collection\<int, array\{field_key\: mixed, required\: bool\}\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Admin/RegistrationController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string\}, Closure\(App\\Models\\Division\)\: array\{id\: int\<0, max\>, name\: string\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Admin/RegistrationController.php
@@ -193,19 +157,7 @@ parameters:
 			path: app/Http/Controllers/Admin/UserController.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$fee\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/TournamentRegistrationController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 3
-			path: app/Http/Controllers/TournamentRegistrationController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$participation_category\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Http/Controllers/TournamentRegistrationController.php
@@ -217,13 +169,13 @@ parameters:
 			path: app/Http/Controllers/TournamentRegistrationController.php
 
 		-
-			message: '#^Method App\\Http\\Controllers\\TournamentRegistrationController\:\:calculateAmount\(\) is unused\.$#'
-			identifier: method.unused
+			message: '#^Parameter \#1 \$key of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:contains\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|Illuminate\\Database\\Eloquent\\Model\|int\|string, Closure\(App\\Models\\Division\)\: bool given\.$#'
+			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/TournamentRegistrationController.php
 
 		-
-			message: '#^Parameter \#1 \$key of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:contains\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|Illuminate\\Database\\Eloquent\\Model\|int\|string, Closure\(App\\Models\\Division\)\: bool given\.$#'
+			message: '#^Parameter \#2 \$division of method App\\Services\\TournamentRegistrationService\:\:create\(\) expects App\\Models\\Division, Illuminate\\Database\\Eloquent\\Model given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/TournamentRegistrationController.php
@@ -299,6 +251,42 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: app/Services/Bracket/GroupStandingsCalculator.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assessed_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/DivisionPagePresenter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$notes\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/DivisionPagePresenter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reason\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/DivisionPagePresenter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/DivisionPagePresenter.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$video_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/DivisionPagePresenter.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\TournamentRegistrationPlayer\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/DivisionPagePresenter.php
 
 		-
 			message: '#^Call to an undefined method Faker\\Generator\:\:dayOfWeekThatIsBetween\(\)\.$#'

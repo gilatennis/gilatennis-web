@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +30,8 @@ use Illuminate\Support\Str;
  * @property int|null $transaction_fee_cents
  * @property string|null $currency
  * @property Carbon|null $paid_at
+ * @property Carbon|null $withdrawn_at
+ * @property string|null $withdrawal_reason
  * @property-read Tournament $tournament
  * @property-read User|null $user
  * @property-read Division $division
@@ -47,15 +51,22 @@ class TournamentRegistration extends Model
         'name', 'email', 'phone', 'date_of_birth',
         'payment_status', 'payment_reference', 'payment_url',
         'amount_cents', 'transaction_fee_cents', 'currency',
-        'paid_at',
+        'paid_at', 'withdrawn_at', 'withdrawal_reason',
     ];
 
-    protected $casts = [
-        'amount_cents' => 'integer',
-        'transaction_fee_cents' => 'integer',
-        'date_of_birth' => 'date',
-        'paid_at' => 'datetime',
-    ];
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'amount_cents' => 'integer',
+            'transaction_fee_cents' => 'integer',
+            'date_of_birth' => 'date',
+            'paid_at' => 'datetime',
+            'withdrawn_at' => 'datetime',
+        ];
+    }
 
     public function getRouteKeyName(): string
     {
@@ -114,9 +125,9 @@ class TournamentRegistration extends Model
      * The name to show in brackets and standings: the team name for team
      * entrants, otherwise the individual registrant's name.
      */
-    public function getDisplayNameAttribute(): string
+    protected function displayName(): Attribute
     {
-        return $this->team->name ?? $this->name;
+        return Attribute::get(fn (): string => $this->team->name ?? $this->name);
     }
 
     public function markAsPaid(?string $reference = null): void
@@ -138,13 +149,37 @@ class TournamentRegistration extends Model
         $this->update(['payment_status' => 'failed']);
     }
 
-    public static function generateConfirmationCode(): string
+    public function markAsRefunded(): void
     {
-        return 'GO-'.date('Y').'-'.Str::upper(Str::random(4));
+        $this->update(['payment_status' => 'refunded']);
     }
 
-    public function getFeeAttribute(): float
+    public function isWithdrawn(): bool
     {
-        return $this->amount_cents / 100;
+        return $this->withdrawn_at !== null;
+    }
+
+    /**
+     * @param  Builder<TournamentRegistration>  $query
+     */
+    public function scopeWithdrawn(Builder $query): void
+    {
+        $query->whereNotNull('withdrawn_at');
+    }
+
+    public static function generateConfirmationCode(): string
+    {
+        $year = now()->year;
+
+        do {
+            $code = 'GO-'.$year.'-'.Str::upper(Str::random(4));
+        } while (self::where('confirmation_code', $code)->exists());
+
+        return $code;
+    }
+
+    protected function fee(): Attribute
+    {
+        return Attribute::get(fn (): float => $this->amount_cents / 100);
     }
 }

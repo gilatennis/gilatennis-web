@@ -3,6 +3,7 @@
     import ChevronDown from 'lucide-svelte/icons/chevron-down';
     import ChevronLeft from 'lucide-svelte/icons/chevron-left';
     import Download from 'lucide-svelte/icons/download';
+    import Plus from 'lucide-svelte/icons/plus';
     import Search from 'lucide-svelte/icons/search';
     import X from 'lucide-svelte/icons/x';
     import AdminPage from '@/components/admin/AdminPage.svelte';
@@ -11,6 +12,13 @@
     import RegistrationSlideOver from '@/components/admin/RegistrationSlideOver.svelte';
     import AppHead from '@/components/AppHead.svelte';
     import { useSearch } from '@/composables/useSearch.svelte';
+    import { show as tournamentShow } from '@/routes/admin/tournaments';
+    import {
+        create as createRegistration,
+        destroy as destroyRegistration,
+        edit as editRegistration,
+        payment as updateRegistrationPayment,
+    } from '@/routes/admin/tournaments/registrations';
     import type { Registration } from '@/types';
 
     interface DivisionOption {
@@ -41,6 +49,7 @@
             pending: number;
             failed: number;
             refunded: number;
+            withdrawn: number;
             stuck: number;
         };
         filters: {
@@ -107,7 +116,7 @@
 <AdminPage>
     {#snippet breadcrumb()}
         <Link
-            href={`/admin/tournaments/${tournament.id}`}
+            href={tournamentShow.url({ tournament: tournament.id })}
             class="text-[12px] text-neutral-400 font-medium hover:text-neutral-700 flex items-center gap-1 transition-colors"
         >
             <ChevronLeft class="size-3" />
@@ -140,17 +149,25 @@
     {/snippet}
 
     {#snippet actions()}
-        <button
-            type="button"
-            class="h-10 px-4 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] inline-flex items-center justify-center gap-2 text-neutral-700 hover:border-black/30 transition-colors w-full sm:w-auto sm:justify-start"
-        >
-            <Download class="size-3.5" /> Export CSV
-        </button>
+        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Link
+                href={createRegistration.url({ tournament: tournament.id })}
+                class="h-10 px-5 bg-coral text-white inline-flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] hover:opacity-90 transition-opacity w-full sm:w-auto"
+            >
+                <Plus class="size-3.5" /> New registration
+            </Link>
+            <button
+                type="button"
+                class="h-10 px-4 border border-black/15 text-[11px] font-bold uppercase tracking-[0.18em] inline-flex items-center justify-center gap-2 text-neutral-700 hover:border-black/30 transition-colors w-full sm:w-auto sm:justify-start"
+            >
+                <Download class="size-3.5" /> Export CSV
+            </button>
+        </div>
     {/snippet}
 
     <div class="flex flex-wrap items-center gap-3 mb-5">
         <div class="flex items-center gap-1">
-            {#each ['', 'pending', 'processing', 'paid', 'failed', 'refunded'] as s (s)}
+            {#each ['', 'pending', 'processing', 'paid', 'failed', 'refunded', 'withdrawn'] as s (s)}
                 <button
                     type="button"
                     onclick={() => {
@@ -242,6 +259,7 @@
     {:else}
         <RegistrantsTable
             registrations={registrations.data}
+            tournamentId={tournament.id}
             showDivisionColumn={true}
             onRowClick={(reg: Registration) => (selectedReg = reg)}
         />
@@ -262,6 +280,23 @@
     open={!!selectedReg}
     onClose={() => (selectedReg = null)}
     registration={selectedReg}
-    paymentUrl={`/admin/tournaments/${tournament.id}/registrations/${selectedReg?.id}/payment`}
+    paymentUrl={selectedReg
+        ? updateRegistrationPayment.url({
+              tournament: tournament.id,
+              registration: selectedReg.confirmation_code,
+          })
+        : ''}
+    editUrl={selectedReg
+        ? editRegistration.url({
+              tournament: tournament.id,
+              registration: selectedReg.confirmation_code,
+          })
+        : undefined}
+    deleteUrl={selectedReg
+        ? destroyRegistration.url({
+              tournament: tournament.id,
+              registration: selectedReg.confirmation_code,
+          })
+        : undefined}
     onStatusOverride={handleStatusOverride}
 />

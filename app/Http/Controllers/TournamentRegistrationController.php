@@ -5,20 +5,18 @@ namespace App\Http\Controllers;
 use App\Http\Requests\TournamentRegistrationRequest;
 use App\Models\Division;
 use App\Models\Settings;
-use App\Models\Team;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
-use App\Models\TournamentRegistrationPlayer;
-use App\Models\User;
 use App\Services\DuitkuService;
+use App\Services\TournamentRegistrationService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class TournamentRegistrationController extends Controller
 {
     public function __construct(
         private DuitkuService $duitku,
+        private TournamentRegistrationService $registrations,
     ) {}
 
     public function create(Tournament $tournament)
@@ -58,83 +56,16 @@ class TournamentRegistrationController extends Controller
 
         abort_if($division->spots_available <= 0, 403, 'Division is sold out.');
 
-        // 1. Find or create guest user from first player
-        $players = $request->players;
-        $firstPlayer = $players[0];
-
-        $user = User::firstOrCreate(
-            ['email' => $firstPlayer['email']],
-            [
-                'name' => $firstPlayer['name'],
-                'is_guest' => true,
-                'password' => bcrypt('guest-'.$firstPlayer['email']),
-            ],
-        );
-
-        if ($user->wasRecentlyCreated === false) {
-            $user->update(['is_guest' => true]);
-        }
-
-        // 2. Check for existing paid registration (prevent duplicates)
-        $existing = TournamentRegistration::where('tournament_id', $tournament->id)
-            ->where('division_id', $division->id)
-            ->where('user_id', $user->id)
-            ->where('payment_status', 'paid')
-            ->first();
-
-        if ($existing) {
-            throw ValidationException::withMessages([
-                'duplicate_registration' => "You've already paid for this division (confirmation #{$existing->confirmation_code}). Use a different email to register another player.",
-            ]);
-        }
-
-        // 3. Create team for team divisions
-        $team = null;
-        if ($division->participation_category === 'team') {
-            $team = Team::create(['name' => $request->team_name]);
-        }
-
-        // 4. Calculate amount from division fee + transaction fee
-        $feeCents = (int) ($division->fee * 100);
-        $transactionFeeCents = Settings::getTransactionFeeCents();
-        $amountCents = $feeCents + $transactionFeeCents;
-
-        // 5. Create registration
-        $registration = TournamentRegistration::create([
-            'tournament_id' => $tournament->id,
-            'user_id' => $user->id,
-            'division_id' => $division->id,
-            'team_id' => $team?->id,
-            'confirmation_code' => TournamentRegistration::generateConfirmationCode(),
+        $registration = $this->registrations->create($tournament, $division, [
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
-            'date_of_birth' => $request->date_of_birth ?? '2000-01-01',
-            'amount_cents' => $amountCents,
-            'transaction_fee_cents' => $transactionFeeCents,
-            'currency' => 'IDR',
-            'payment_status' => 'pending',
-        ]);
+            'date_of_birth' => $request->date_of_birth,
+            'team_name' => $request->team_name,
+            'players' => $request->players,
+        ], ['mark_paid' => false]);
 
-        // 6. Create player records
-        foreach ($players as $index => $player) {
-            TournamentRegistrationPlayer::create([
-                'tournament_registration_id' => $registration->id,
-                'tournament_id' => $tournament->id,
-                'team_id' => $team?->id,
-                'name' => $player['name'],
-                'email' => $player['email'] ?? null,
-                'gender' => $player['gender'] ?? null,
-                'phone' => $player['phone'] ?? null,
-                'date_of_birth' => $player['date_of_birth'] ?? null,
-                'rating_type' => $player['rating_type'] ?? null,
-                'rating_value' => $player['rating_value'] ?? null,
-                'level' => $player['level'] ?? null,
-                'sort_order' => $index,
-            ]);
-        }
-
-        // 7. Create Duitku invoice
+        // Create Duitku invoice
         $registration->load('tournament');
         $registration->setRelation('division', $division);
 
@@ -174,10 +105,5 @@ class TournamentRegistrationController extends Controller
         return Inertia::render('Tournaments/RegistrationFailed', [
             'registration' => $registration->load(['tournament', 'division', 'players']),
         ]);
-    }
-
-    private function calculateAmount(Division $division): int
-    {
-        return (int) ($division->fee * 100);
     }
 }

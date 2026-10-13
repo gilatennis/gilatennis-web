@@ -72,6 +72,7 @@ Defined in `database/seeders/E2ESeeder.php` and mirrored in
 | match `102`                      | Running, first server set — scored immediately      |
 | match `103`                      | Completed — appears under "Recent results"          |
 | tournament `e2e-board`           | Multi-stage, multi-division live-board fixture      |
+| tournament `e2e-registration`    | Bracket-less tournament for the admin registration CRUD spec (`E2E Reg Singles` / `E2E Reg Doubles` / `E2E Reg Team`), plus `E2E Reg Guard` whose draw is live with one placed entrant |
 
 `e2e-board` carries three divisions so the board's organisation can be exercised:
 `Board Singles` (group stage **Group A** / **Group B** + knockout **Semifinal** /
@@ -88,6 +89,7 @@ Match ids are explicit so specs can address them directly. A fresh
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `live-scoring.spec.ts` | a spectator's public live board reflects a point the admin records (via Inertia polling), and a pending match appears on the board once the admin starts it |
 | `live-board.spec.ts`   | division tabs, results grouped by stage/group/round, the per-bucket result cap, team rubbers nested under their tie, and slot-less matches under "Matches"   |
+| `admin-registrations.spec.ts` | admin registers a team (with members), a single and a doubles pair; edits and deletes them; overrides payment from the slide-over; withdraws a pre-draw entrant from its details page; sees a validation error; and is blocked from editing an entry placed in a live bracket |
 
 Helpers live in `e2e/helpers/`: `accounts.ts` (fixture values), `auth.ts`
 (`loginAdmin` through the real form — no session cookie injection), and

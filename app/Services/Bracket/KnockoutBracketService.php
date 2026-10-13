@@ -259,6 +259,56 @@ class KnockoutBracketService
     }
 
     /**
+     * Remove an entrant from the division's knockout draw. Only permitted
+     * before play has started: the entrant's first-round slot side is cleared
+     * and the derived rounds are reset, leaving the draw as an editable draft
+     * for the admin to complete again (e.g. after a replacement registers).
+     */
+    public function removeEntrant(Division $division, TournamentRegistration $entrant): void
+    {
+        $bracket = Bracket::where('division_id', $division->id)
+            ->where('type', BracketType::SingleElimination)
+            ->first();
+
+        if ($bracket === null) {
+            return;
+        }
+
+        if ($this->structure->stageStarted($division)) {
+            throw new InvalidArgumentException('The draw has already started; an entrant can no longer be withdrawn.');
+        }
+
+        DB::transaction(function () use ($bracket, $entrant) {
+            foreach ($bracket->slots()->where('round', 1)->get() as $slot) {
+                $changed = false;
+
+                if ($slot->entrant_a_id === $entrant->id) {
+                    $slot->entrant_a_id = null;
+                    $changed = true;
+                }
+
+                if ($slot->entrant_b_id === $entrant->id) {
+                    $slot->entrant_b_id = null;
+                    $changed = true;
+                }
+
+                if ($changed) {
+                    $slot->bye = false;
+                    $slot->winner_entrant_id = null;
+                    $slot->advance_reason = null;
+                    $slot->save();
+                }
+            }
+
+            if ($bracket->draw_locked) {
+                $bracket->update(['draw_locked' => false]);
+            }
+
+            $this->clearDerivedRounds($bracket);
+        });
+    }
+
+    /**
      * Finish a manual-assignment draw: the field must be fully placed, then
      * byes are resolved and the draw is locked against further edits.
      */

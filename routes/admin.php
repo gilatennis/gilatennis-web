@@ -28,8 +28,31 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('tournaments/{tournament}/registrations', [RegistrationController::class, 'index'])
         ->name('tournaments.registrations.index');
 
+    Route::get('tournaments/{tournament}/registrations/create', [RegistrationController::class, 'create'])
+        ->name('tournaments.registrations.create');
+
+    Route::post('tournaments/{tournament}/registrations', [RegistrationController::class, 'store'])
+        ->name('tournaments.registrations.store');
+
+    Route::get('tournaments/{tournament}/registrations/{registration}/edit', [RegistrationController::class, 'edit'])
+        ->scopeBindings()
+        ->name('tournaments.registrations.edit');
+
+    Route::patch('tournaments/{tournament}/registrations/{registration}', [RegistrationController::class, 'update'])
+        ->scopeBindings()
+        ->name('tournaments.registrations.update');
+
+    Route::delete('tournaments/{tournament}/registrations/{registration}', [RegistrationController::class, 'destroy'])
+        ->scopeBindings()
+        ->name('tournaments.registrations.destroy');
+
     Route::patch('tournaments/{tournament}/registrations/{registration}/payment', [RegistrationController::class, 'updatePayment'])
+        ->scopeBindings()
         ->name('tournaments.registrations.payment');
+
+    Route::patch('tournaments/{tournament}/registrations/{registration}/withdraw', [RegistrationController::class, 'withdraw'])
+        ->scopeBindings()
+        ->name('tournaments.registrations.withdraw');
 
     Route::get('tournaments/{tournament}/divisions/{division}/registrations/{registration}', [RegistrationController::class, 'show'])
         ->scopeBindings()

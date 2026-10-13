@@ -6,90 +6,53 @@ use App\Enums\PaymentEventSource;
 use App\Enums\PlayerAssessmentStatus;
 use App\Http\Controllers\Admin\Concerns\ShapesRegistration;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\RegistrationStoreRequest;
+use App\Http\Requests\Admin\RegistrationUpdateRequest;
 use App\Http\Requests\Admin\UpdatePlayerAssessmentsRequest;
+use App\Http\Requests\Admin\UpdateRegistrationPaymentRequest;
+use App\Http\Requests\Admin\WithdrawRegistrationRequest;
 use App\Models\Division;
 use App\Models\PlayerAssessment;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
+use App\Models\TournamentRegistrationPlayer;
+use App\Queries\RegistrationIndexQuery;
+use App\Services\Bracket\BracketStructure;
 use App\Services\TournamentPaymentService;
+use App\Services\TournamentRegistrationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use InvalidArgumentException;
 
 class RegistrationController extends Controller
 {
     use ShapesRegistration;
 
-    /**
-     * A registration is considered stuck when it has not settled this long
-     * after being created (e.g. a successful payment we never processed).
-     */
-    private const STUCK_MINUTES = 30;
-
-    public function index(Tournament $tournament)
+    public function index(Tournament $tournament, Request $request): Response
     {
-        $query = $tournament->registrations()
-            ->with(['division', 'team', 'players.assessment']);
+        $index = new RegistrationIndexQuery($tournament, $request);
 
-        if ($status = request('status')) {
-            $query->where('payment_status', $status);
-        }
-
-        if (request()->boolean('stuck')) {
-            $query->whereIn('payment_status', ['pending', 'processing'])
-                ->where('created_at', '<=', now()->subMinutes(self::STUCK_MINUTES));
-        }
-
-        if ($divisionId = request('division_id')) {
-            $query->where('division_id', $divisionId);
-        }
-
-        if ($search = request('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('confirmation_code', 'like', "%{$search}%");
-            });
-        }
-
-        $registrations = $query->orderByDesc('created_at')->paginate(10)
+        $registrations = $index->paginate()
             ->through(fn (TournamentRegistration $r) => self::shapeRegistration($r, includeDivision: true));
 
-        $stats = [
-            'total' => $tournament->registrations()->count(),
-            'paid' => $tournament->registrations()->where('payment_status', 'paid')->count(),
-            'pending' => $tournament->registrations()->where('payment_status', 'pending')->count(),
-            'failed' => $tournament->registrations()->where('payment_status', 'failed')->count(),
-            'refunded' => $tournament->registrations()->where('payment_status', 'refunded')->count(),
-            'stuck' => $tournament->registrations()
-                ->whereIn('payment_status', ['pending', 'processing'])
-                ->where('created_at', '<=', now()->subMinutes(self::STUCK_MINUTES))
-                ->count(),
-        ];
+        $tournament->loadMissing('divisions');
 
         return Inertia::render('Admin/Tournaments/Registrations', [
-            'tournament' => [
-                'id' => $tournament->id,
-                'name' => $tournament->name,
-                'slug' => $tournament->slug,
-            ],
+            'tournament' => $this->tournamentSummary($tournament),
             'registrations' => $registrations,
-            'divisions' => $tournament->divisions->map(fn ($d) => [
+            'divisions' => $tournament->divisions->map(fn (Division $d) => [
                 'id' => $d->id,
                 'name' => $d->name,
             ]),
-            'stats' => $stats,
-            'filters' => [
-                'status' => $status,
-                'division_id' => $divisionId,
-                'search' => $search,
-                'stuck' => request()->boolean('stuck'),
-            ],
+            'stats' => $index->stats(),
+            'filters' => $index->filters(),
         ]);
     }
 
-    public function show(Tournament $tournament, Division $division, TournamentRegistration $registration): Response
+    public function show(Tournament $tournament, Division $division, TournamentRegistration $registration, BracketStructure $structure): Response
     {
         $registration->load(['division', 'team', 'players.assessment']);
 
@@ -103,11 +66,7 @@ class RegistrationController extends Controller
         };
 
         return Inertia::render('Admin/Tournaments/Registrations/Show', [
-            'tournament' => [
-                'id' => $tournament->id,
-                'name' => $tournament->name,
-                'slug' => $tournament->slug,
-            ],
+            'tournament' => $this->tournamentSummary($tournament),
             'division' => [
                 'id' => $division->id,
                 'name' => $division->name,
@@ -120,6 +79,8 @@ class RegistrationController extends Controller
             'back_url' => route('admin.tournaments.divisions.show', [$tournament, $division]),
             'update_url' => route('admin.tournaments.divisions.registrations.assessments.update', [$tournament, $division, $registration]),
             'payment_url' => route('admin.tournaments.registrations.payment', [$tournament, $registration]),
+            'withdraw_url' => route('admin.tournaments.registrations.withdraw', [$tournament, $registration]),
+            'draw_started' => $structure->stageStarted($division),
             'assessment_statuses' => array_map(
                 fn (PlayerAssessmentStatus $s) => [
                     'value' => $s->value,
@@ -137,7 +98,7 @@ class RegistrationController extends Controller
         TournamentRegistration $registration,
         UpdatePlayerAssessmentsRequest $request,
     ): RedirectResponse {
-        $userId = $request->user('web')?->id;
+        $userId = $request->user()?->id;
         $assessments = (array) $request->input('assessments', []);
 
         $validPlayerIds = $registration->players()
@@ -172,20 +133,22 @@ class RegistrationController extends Controller
         return redirect()->back();
     }
 
-    public function updatePayment(Tournament $tournament, TournamentRegistration $registration, TournamentPaymentService $payments): RedirectResponse
-    {
-        $validated = request()->validate([
-            'status' => ['required', 'in:paid,refunded'],
-            'reference' => ['nullable', 'string', 'max:255'],
-        ]);
+    public function updatePayment(
+        Tournament $tournament,
+        TournamentRegistration $registration,
+        UpdateRegistrationPaymentRequest $request,
+        TournamentPaymentService $payments,
+        TournamentRegistrationService $registrations,
+    ): RedirectResponse {
+        $validated = $request->validated();
 
         $newStatus = $validated['status'];
         $reference = $validated['reference'] ?? null;
 
         $context = [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
             'raw_payload' => ['status' => $newStatus, 'reference' => $reference],
-            'ip' => request()->ip(),
-            'user_agent' => request()->userAgent(),
         ];
 
         if ($newStatus === 'paid') {
@@ -196,18 +159,181 @@ class RegistrationController extends Controller
                 $context,
             );
         } else {
-            $statusBefore = $registration->payment_status;
-
-            $registration->update(['payment_status' => 'refunded']);
-
-            $payments->record($registration, PaymentEventSource::Admin, $context + [
-                'status_before' => $statusBefore,
-                'status_after' => 'refunded',
-            ]);
+            $registrations->refund($registration, $context);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Payment status updated.']);
 
         return redirect()->back();
+    }
+
+    public function withdraw(
+        Tournament $tournament,
+        TournamentRegistration $registration,
+        WithdrawRegistrationRequest $request,
+        TournamentRegistrationService $service,
+    ): RedirectResponse {
+        $context = [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ];
+
+        try {
+            $service->withdraw(
+                $registration,
+                $request->validated('reason'),
+                $request->boolean('refund'),
+                $context,
+            );
+        } catch (InvalidArgumentException $e) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+
+            return back()->withErrors(['registration' => $e->getMessage()]);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Registration withdrawn.']);
+
+        return redirect()->back();
+    }
+
+    public function create(Tournament $tournament): Response
+    {
+        return Inertia::render('Admin/Tournaments/Registrations/Create', [
+            'tournament' => $this->tournamentSummary($tournament),
+            'divisions' => $this->divisionOptions($tournament),
+        ]);
+    }
+
+    public function store(
+        Tournament $tournament,
+        RegistrationStoreRequest $request,
+        TournamentRegistrationService $service,
+    ): RedirectResponse {
+        $division = $request->resolveRegistrationDivision()
+            ?? abort(422, 'The selected division does not belong to this tournament.');
+
+        $service->create($tournament, $division, [
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'date_of_birth' => $request->date_of_birth,
+            'team_name' => $request->team_name,
+            'players' => $request->input('players', []),
+        ], [
+            'mark_paid' => $request->input('payment_action') === 'paid',
+            'payment_reference' => $request->input('payment_reference'),
+            'context' => [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ],
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Registration created.']);
+
+        return redirect()->route('admin.tournaments.registrations.index', $tournament);
+    }
+
+    public function edit(Tournament $tournament, TournamentRegistration $registration): Response
+    {
+        $registration->load(['division', 'team', 'players']);
+
+        return Inertia::render('Admin/Tournaments/Registrations/Edit', [
+            'tournament' => $this->tournamentSummary($tournament),
+            'divisions' => $this->divisionOptions($tournament),
+            'registration' => [
+                'id' => $registration->id,
+                'confirmation_code' => $registration->confirmation_code,
+                'division_id' => $registration->division_id,
+                'name' => $registration->name,
+                'email' => $registration->email,
+                'phone' => $registration->phone,
+                'date_of_birth' => $registration->date_of_birth?->toDateString(),
+                'payment_status' => $registration->payment_status,
+                'payment_reference' => $registration->payment_reference,
+                'team_name' => $registration->team?->name,
+                'players' => $registration->players->map(fn (TournamentRegistrationPlayer $p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'email' => $p->email,
+                    'phone' => $p->phone,
+                    'gender' => $p->gender,
+                    'date_of_birth' => $p->date_of_birth?->toDateString(),
+                    'rating_type' => $p->rating_type,
+                    'rating_value' => $p->rating_value,
+                    'level' => $p->level,
+                ])->values(),
+            ],
+        ]);
+    }
+
+    public function update(
+        Tournament $tournament,
+        TournamentRegistration $registration,
+        RegistrationUpdateRequest $request,
+        TournamentRegistrationService $service,
+    ): RedirectResponse {
+        $service->update($registration, [
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'date_of_birth' => $request->date_of_birth,
+            'team_name' => $request->team_name,
+            'players' => $request->input('players', []),
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Registration updated.']);
+
+        return redirect()->route('admin.tournaments.registrations.index', $tournament);
+    }
+
+    public function destroy(
+        Tournament $tournament,
+        TournamentRegistration $registration,
+        TournamentRegistrationService $service,
+    ): RedirectResponse {
+        $service->delete($registration);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Registration deleted.']);
+
+        return redirect()->route('admin.tournaments.registrations.index', $tournament);
+    }
+
+    /**
+     * @return array{id: int, name: string, slug: string}
+     */
+    private function tournamentSummary(Tournament $tournament): array
+    {
+        return [
+            'id' => $tournament->id,
+            'name' => $tournament->name,
+            'slug' => $tournament->slug,
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function divisionOptions(Tournament $tournament): array
+    {
+        $tournament->load('divisions.playerFieldRequirements');
+
+        return $tournament->divisions->map(fn (Division $d) => [
+            'id' => $d->id,
+            'name' => $d->name,
+            'participation_category' => $d->participation_category,
+            'fee' => $d->fee,
+            'draw_size' => $d->draw_size,
+            'spots_available' => $d->spots_available,
+            'min_team_size' => $d->min_team_size,
+            'max_team_size' => $d->max_team_size,
+            'min_female_players' => $d->min_female_players,
+            'min_male_players' => $d->min_male_players,
+            'level_requirements' => $d->level_requirements ?? [],
+            'gender' => $d->gender,
+            'player_field_requirements' => $d->playerFieldRequirements->map(fn ($r) => [
+                'field_key' => $r->field_key,
+                'required' => (bool) $r->required,
+            ])->values(),
+        ])->values()->all();
     }
 }
