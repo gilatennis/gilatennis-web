@@ -33,6 +33,16 @@ jobs:
           composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
           npm install
 
+      # Wayfinder's generated modules (resources/js/routes, actions, wayfinder)
+      # are gitignored, so they are absent on a fresh checkout. Without them the
+      # ESLint import resolver and svelte-check cannot resolve `@/routes/...`
+      # and `@/actions/...`, which breaks import/order and type checks.
+      - name: Generate Wayfinder artifacts
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+          php artisan wayfinder:generate --with-form
+
       - name: Run Pint
         run: composer lint
 
