@@ -33,12 +33,16 @@
     } = $props();
 
     const isCanceled = $derived(tournament.status === 'canceled');
+    const isOpen = $derived(tournament.status === 'open');
 
     const registrationOpen = $derived(
         tournament.isRegistrationOpen ??
             tournament.is_registration_open ??
             false,
     );
+
+    const primaryButtonClass =
+        'mt-8 w-full h-14 bg-coral text-white font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:bg-background hover:text-foreground transition-colors';
 
     const spotsLeft = $derived(
         tournament.spotsAvailable ??
@@ -225,9 +229,17 @@
             <button
                 onclick={() =>
                     (window.location.href = `/tournaments/${tournament.slug}`)}
-                class="mt-8 w-full h-14 bg-coral text-white font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:bg-background hover:text-foreground transition-colors"
+                class={primaryButtonClass}
             >
                 Register now <ArrowRight size={18}></ArrowRight>
+            </button>
+        {:else if isOpen}
+            <button
+                onclick={() =>
+                    (window.location.href = `/tournaments/${tournament.slug}`)}
+                class={primaryButtonClass}
+            >
+                View tournament <ArrowRight size={18}></ArrowRight>
             </button>
         {:else}
             <button
