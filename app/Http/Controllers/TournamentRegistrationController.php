@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TournamentStatus;
 use App\Http\Requests\TournamentRegistrationRequest;
 use App\Models\Division;
 use App\Models\Settings;
@@ -21,7 +22,7 @@ class TournamentRegistrationController extends Controller
 
     public function create(Tournament $tournament)
     {
-        abort_if($tournament->isCanceled(), 403, 'Tournament is canceled.');
+        $this->guardRegistrationOpen($tournament);
 
         $tournament->load('divisions.playerFieldRequirements');
 
@@ -50,7 +51,7 @@ class TournamentRegistrationController extends Controller
 
     public function store(TournamentRegistrationRequest $request, Tournament $tournament)
     {
-        abort_if($tournament->isCanceled(), 403, 'Tournament is canceled.');
+        $this->guardRegistrationOpen($tournament);
 
         $division = $tournament->divisions()->where('id', $request->division_id)->firstOrFail();
 
@@ -105,5 +106,22 @@ class TournamentRegistrationController extends Controller
         return Inertia::render('Tournaments/RegistrationFailed', [
             'registration' => $registration->load(['tournament', 'division', 'players']),
         ]);
+    }
+
+    /**
+     * Public registration is only allowed while the tournament is open and its
+     * registration deadline (if any) has not passed. Sold-out handling is left
+     * to each action, which knows whether the check is tournament- or
+     * division-level.
+     */
+    private function guardRegistrationOpen(Tournament $tournament): void
+    {
+        abort_if($tournament->isCanceled(), 403, 'Tournament is canceled.');
+
+        abort_if(
+            $tournament->status !== TournamentStatus::Open || $tournament->registrationHasClosed(),
+            403,
+            'Registration is closed.'
+        );
     }
 }

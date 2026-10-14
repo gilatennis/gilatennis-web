@@ -26,11 +26,19 @@
             level?: string;
             perks?: string[];
             registrationCloses?: string;
+            isRegistrationOpen?: boolean;
+            is_registration_open?: boolean;
             status?: TournamentStatus;
         };
     } = $props();
 
     const isCanceled = $derived(tournament.status === 'canceled');
+
+    const registrationOpen = $derived(
+        tournament.isRegistrationOpen ??
+            tournament.is_registration_open ??
+            false,
+    );
 
     const spotsLeft = $derived(
         tournament.spotsAvailable ??
@@ -65,13 +73,19 @@
         <div
             class="absolute top-4 left-4 px-2.5 py-1 text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-1.5 {isCanceled
                 ? 'bg-red-700'
-                : 'bg-coral'}"
+                : registrationOpen
+                  ? 'bg-coral'
+                  : 'bg-neutral-500'}"
         >
-            {#if !isCanceled}
+            {#if registrationOpen && !isCanceled}
                 <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"
                 ></span>
             {/if}
-            {isCanceled ? 'Canceled' : 'Registration open'}
+            {isCanceled
+                ? 'Canceled'
+                : registrationOpen
+                  ? 'Registration open'
+                  : 'Registration closed'}
         </div>
     </ImagePlaceholder>
 
@@ -207,13 +221,21 @@
             >
                 Canceled
             </span>
-        {:else}
+        {:else if registrationOpen}
             <button
                 onclick={() =>
                     (window.location.href = `/tournaments/${tournament.slug}`)}
                 class="mt-8 w-full h-14 bg-coral text-white font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:bg-background hover:text-foreground transition-colors"
             >
                 Register now <ArrowRight size={18}></ArrowRight>
+            </button>
+        {:else}
+            <button
+                onclick={() =>
+                    (window.location.href = `/tournaments/${tournament.slug}`)}
+                class="mt-8 w-full h-14 bg-neutral-300 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 font-display font-bold text-base uppercase tracking-[0.18em] flex items-center justify-center gap-3 hover:opacity-90 transition-opacity"
+            >
+                View tournament <ArrowRight size={18}></ArrowRight>
             </button>
         {/if}
         <!--

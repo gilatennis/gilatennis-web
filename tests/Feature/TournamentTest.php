@@ -165,6 +165,38 @@ describe('Tournament Model', function () {
         expect($canceledNoEnd->isPubliclyVisible())->toBeFalse();
         expect($closed->isPubliclyVisible())->toBeFalse();
     });
+
+    it('isRegistrationOpen reflects status, deadline and spots', function () {
+        $open = Tournament::factory()->create(['status' => 'open', 'registration_closes' => now()->addWeek()]);
+        Division::factory()->forTournament($open)->singles()->create(['draw_size' => 32, 'fee' => 50000]);
+
+        $pastDeadline = Tournament::factory()->registrationClosed()->create();
+        Division::factory()->forTournament($pastDeadline)->singles()->create(['draw_size' => 32, 'fee' => 50000]);
+
+        $noDeadline = Tournament::factory()->create(['status' => 'open', 'registration_closes' => null]);
+        Division::factory()->forTournament($noDeadline)->singles()->create(['draw_size' => 32, 'fee' => 50000]);
+
+        $notOpen = Tournament::factory()->create(['status' => 'closed', 'registration_closes' => now()->addWeek()]);
+        Division::factory()->forTournament($notOpen)->singles()->create(['draw_size' => 32, 'fee' => 50000]);
+
+        expect($open->acceptsRegistrations())->toBeTrue();
+        expect($pastDeadline->acceptsRegistrations())->toBeFalse();
+        expect($noDeadline->acceptsRegistrations())->toBeTrue();
+        expect($notOpen->acceptsRegistrations())->toBeFalse();
+    });
+
+    it('registrationHasClosed is true only for a past deadline', function () {
+        expect(Tournament::factory()->registrationClosed()->create()->registrationHasClosed())->toBeTrue();
+        expect(Tournament::factory()->create(['registration_closes' => now()->addWeek()])->registrationHasClosed())->toBeFalse();
+        expect(Tournament::factory()->create(['registration_closes' => null])->registrationHasClosed())->toBeFalse();
+    });
+
+    it('open scope excludes tournaments whose registration deadline has passed', function () {
+        $t = Tournament::factory()->registrationClosed()->create();
+        Division::factory()->forTournament($t)->singles()->create(['draw_size' => 32, 'fee' => 50000]);
+
+        expect(Tournament::open()->count())->toBe(0);
+    });
 });
 
 describe('TournamentPrize Model', function () {

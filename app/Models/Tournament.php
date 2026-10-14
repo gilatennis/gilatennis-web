@@ -77,6 +77,7 @@ class Tournament extends Model
         'status_label',
         'venue_type_label',
         'is_sold_out',
+        'is_registration_open',
         'cover_image_url',
     ];
 
@@ -85,6 +86,7 @@ class Tournament extends Model
         'perks' => 'array',
         'start' => 'date',
         'end' => 'date',
+        'registration_closes' => 'datetime',
         'status' => TournamentStatus::class,
     ];
 
@@ -126,6 +128,10 @@ class Tournament extends Model
     public function scopeOpen($query)
     {
         return $query->where('status', TournamentStatus::Open)
+            ->where(function ($q) {
+                $q->whereNull('registration_closes')
+                    ->orWhere('registration_closes', '>', now());
+            })
             ->whereHas('divisions', fn ($q) => $q->hasAvailableSpots());
     }
 
@@ -171,6 +177,28 @@ class Tournament extends Model
                 && $this->end->gte(today()));
     }
 
+    /**
+     * Whether the registration deadline has passed. A null deadline means the
+     * tournament stays open while its status is open.
+     */
+    public function registrationHasClosed(): bool
+    {
+        return $this->registration_closes !== null
+            && $this->registration_closes->isPast();
+    }
+
+    /**
+     * The single source of truth for whether new entrants may register: the
+     * tournament is open, not sold out, and its registration deadline (if any)
+     * has not passed.
+     */
+    public function acceptsRegistrations(): bool
+    {
+        return $this->status === TournamentStatus::Open
+            && ! $this->registrationHasClosed()
+            && ! $this->is_sold_out;
+    }
+
     public function getSpotsAvailableAttribute(): int
     {
         if ($this->relationLoaded('divisions')) {
@@ -189,6 +217,11 @@ class Tournament extends Model
         }
 
         return ! $this->divisions()->hasAvailableSpots()->exists();
+    }
+
+    public function getIsRegistrationOpenAttribute(): bool
+    {
+        return $this->acceptsRegistrations();
     }
 
     public function getMaxPlayersAttribute(): int

@@ -76,4 +76,15 @@ class TournamentFactory extends Factory
     {
         return $this->state(fn ($attrs) => ['status' => 'canceled']);
     }
+
+    /**
+     * An otherwise-open tournament whose registration deadline has passed.
+     */
+    public function registrationClosed(): static
+    {
+        return $this->state(fn ($attrs) => [
+            'status' => 'open',
+            'registration_closes' => now()->subDay(),
+        ]);
+    }
 }

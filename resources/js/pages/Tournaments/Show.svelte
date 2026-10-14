@@ -39,8 +39,10 @@
 
     const isSoldOut = $derived((tournament?.spots_available ?? 0) === 0);
     const isCanceled = $derived(tournament?.status === 'canceled');
+    // Authoritative flag from the server (see Tournament::is_registration_open):
+    // open status + not sold out + deadline not passed.
     const registrationOpen = $derived(
-        tournament?.status === 'open' && !isSoldOut,
+        tournament?.is_registration_open ?? false,
     );
 
     const waLink = $derived(() => {

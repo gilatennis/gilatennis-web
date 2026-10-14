@@ -27,6 +27,8 @@
             level?: string;
             perks?: string[];
             registrationCloses?: string;
+            is_registration_open?: boolean;
+            isRegistrationOpen?: boolean;
         }>;
     } = $props();
 

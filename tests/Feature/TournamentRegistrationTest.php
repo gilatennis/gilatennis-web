@@ -153,6 +153,23 @@ describe('Tournament Detail Page', function () {
                 ->where('tournament.status', 'canceled')
             );
     });
+
+    it('exposes is_registration_open on the detail payload', function () {
+        $open = makeTournamentWithDivisions();
+
+        $this->get(route('tournaments.show', $open->slug))
+            ->assertInertia(fn ($page) => $page
+                ->where('tournament.is_registration_open', true)
+            );
+
+        $closed = Tournament::factory()->registrationClosed()->create();
+        makeSinglesDivision($closed);
+
+        $this->get(route('tournaments.show', $closed->slug))
+            ->assertInertia(fn ($page) => $page
+                ->where('tournament.is_registration_open', false)
+            );
+    });
 });
 
 describe('Registration Form', function () {
@@ -195,6 +212,57 @@ describe('Registration Form', function () {
             ->assertStatus(403);
 
         expect(TournamentRegistration::where('tournament_id', $t->id)->count())->toBe(0);
+    });
+
+    it('blocked when registration deadline has passed', function () {
+        $t = Tournament::factory()->registrationClosed()->create();
+        makeSinglesDivision($t);
+
+        $this->get(route('tournaments.register', $t->slug))
+            ->assertStatus(403);
+    });
+
+    it('store blocks when registration deadline has passed', function () {
+        $t = Tournament::factory()->registrationClosed()->create();
+        $div = makeSinglesDivision($t);
+
+        $this->postJson(route('tournaments.register.store', $t->slug), singlesFormData($div))
+            ->assertStatus(403);
+
+        expect(TournamentRegistration::where('tournament_id', $t->id)->count())->toBe(0);
+    });
+
+    it('store blocks when status is not open', function () {
+        $t = Tournament::factory()->create([
+            'status' => 'closed',
+            'registration_closes' => now()->addWeek(),
+        ]);
+        $div = makeSinglesDivision($t);
+
+        $this->postJson(route('tournaments.register.store', $t->slug), singlesFormData($div))
+            ->assertStatus(403);
+    });
+
+    it('loads when registration deadline is in the future', function () {
+        $t = Tournament::factory()->create([
+            'status' => 'open',
+            'registration_closes' => now()->addWeek(),
+        ]);
+        makeSinglesDivision($t);
+
+        $this->get(route('tournaments.register', $t->slug))
+            ->assertOk();
+    });
+
+    it('loads when no registration deadline is set', function () {
+        $t = Tournament::factory()->create([
+            'status' => 'open',
+            'registration_closes' => null,
+        ]);
+        makeSinglesDivision($t);
+
+        $this->get(route('tournaments.register', $t->slug))
+            ->assertOk();
     });
 
     it('creates guest user', function () {
