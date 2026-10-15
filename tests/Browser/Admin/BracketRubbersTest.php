@@ -173,7 +173,30 @@ it('lists every rubber with edit and score buttons and edits from a row', functi
     expect($singles)->toHaveCount(1);
 });
 
-it('stacks the status above the row actions on mobile only', function () {
+it('sends a rubber to court and recalls it from the rubbers dialog', function () {
+    [$admin, $tournament, $division] = rubberBracketSetup();
+
+    $match = startTeamRubber($division, $admin);
+
+    $page = openRubberBracket($admin, $tournament, $division);
+
+    $page->click('@rubbers')->wait(1);
+
+    $page->assertSeeIn('@rubber-status', 'Pending')
+        ->click('@rubber-send-court')
+        ->wait(2)
+        ->assertSeeIn('@rubber-status', 'Running');
+
+    expect($match->fresh()->status)->toBe(MatchStatus::Running);
+
+    $page->click('@rubber-recall')
+        ->wait(2)
+        ->assertSeeIn('@rubber-status', 'Pending');
+
+    expect($match->fresh()->status)->toBe(MatchStatus::Pending);
+});
+
+it('stacks the entrants above the status and actions at every width', function () {
     [$admin, $tournament, $division] = rubberBracketSetup();
 
     startTeamRubber($division, $admin);
@@ -182,25 +205,22 @@ it('stacks the status above the row actions on mobile only', function () {
 
     $page->click('@rubbers')->wait(1);
 
-    $page->resize(390, 844)->assertScript(<<<'JS'
+    $assertStacked = <<<'JS'
         function() {
             const row = document.querySelector('[data-testid="rubber-row"]');
-            const status = row.querySelector('[data-testid="rubber-status"]').getBoundingClientRect();
-            const edit = row.querySelector('[data-testid="rubber-edit"]').getBoundingClientRect();
+            const entrants = row.children[0].getBoundingClientRect();
+            const actions = row.children[1];
+            const status = row.querySelector('[data-testid="rubber-status"]');
+            const edit = row.querySelector('[data-testid="rubber-edit"]');
 
-            return status.bottom <= edit.top;
+            return entrants.bottom <= actions.getBoundingClientRect().top + 1
+                && actions.contains(status)
+                && actions.contains(edit);
         }
-        JS);
+        JS;
 
-    $page->resize(1280, 900)->assertScript(<<<'JS'
-        function() {
-            const row = document.querySelector('[data-testid="rubber-row"]');
-            const status = row.querySelector('[data-testid="rubber-status"]').getBoundingClientRect();
-            const edit = row.querySelector('[data-testid="rubber-edit"]').getBoundingClientRect();
-
-            return status.top < edit.bottom && status.bottom > edit.top;
-        }
-        JS);
+    $page->resize(390, 844)->assertScript($assertStacked);
+    $page->resize(1280, 900)->assertScript($assertStacked);
 });
 
 it('counts completed rubbers in the card summary', function () {

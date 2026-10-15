@@ -20,6 +20,27 @@ class User extends Authenticatable
 
     public const ROLE_ADMIN = 'admin';
 
+    public const ROLE_UMPIRE = 'umpire';
+
+    /**
+     * The roles a super admin may assign when creating or editing a user.
+     *
+     * @var list<string>
+     */
+    public const ASSIGNABLE_ROLES = [self::ROLE_ADMIN, self::ROLE_UMPIRE];
+
+    /**
+     * Human-readable labels for every role slug — the single source of truth
+     * shared by the seeder, the ensure-role migration, and the admin UI.
+     *
+     * @var array<string, string>
+     */
+    public const ROLE_LABELS = [
+        self::ROLE_SUPER_ADMIN => 'Super Admin',
+        self::ROLE_ADMIN => 'Admin',
+        self::ROLE_UMPIRE => 'Umpire',
+    ];
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
@@ -28,7 +49,7 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
-    protected $appends = ['is_admin', 'is_super_admin'];
+    protected $appends = ['is_admin', 'is_umpire', 'is_super_admin'];
 
     /**
      * Get the attributes that should be cast.
@@ -60,6 +81,11 @@ class User extends Authenticatable
         return $this->roles->contains(fn (Role $role) => in_array($role->slug, [self::ROLE_SUPER_ADMIN, self::ROLE_ADMIN], true));
     }
 
+    public function isUmpire(): bool
+    {
+        return $this->roles->contains(fn (Role $role) => $role->slug === self::ROLE_UMPIRE);
+    }
+
     public function isSuperAdmin(): bool
     {
         return $this->roles->contains(fn (Role $role) => $role->slug === self::ROLE_SUPER_ADMIN);
@@ -68,6 +94,11 @@ class User extends Authenticatable
     public function getIsAdminAttribute(): bool
     {
         return $this->isAdminRole();
+    }
+
+    public function getIsUmpireAttribute(): bool
+    {
+        return $this->isUmpire();
     }
 
     public function getIsSuperAdminAttribute(): bool

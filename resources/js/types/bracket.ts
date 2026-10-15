@@ -22,10 +22,13 @@ export interface BracketMatchSummary {
     sets_to_win: number;
     games_to_win: number;
     extend_at_tie: boolean;
+    extend_tiebreak: boolean;
+    sudden_death: boolean;
     tiebreak_to: number;
     status: BracketMatchStatus;
     format_label: string;
     winner_side: number | null;
+    share_url: string | null;
 }
 
 export type RubberPayload = {
@@ -34,6 +37,8 @@ export type RubberPayload = {
     sets_to_win: number;
     games_to_win: number;
     extend_at_tie: boolean;
+    extend_tiebreak: boolean;
+    sudden_death: boolean;
     tiebreak_to: number;
 };
 

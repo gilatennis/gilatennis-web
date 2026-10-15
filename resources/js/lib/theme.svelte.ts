@@ -2,6 +2,11 @@ import type { Appearance, ResolvedAppearance } from '@/types';
 
 export type { Appearance, ResolvedAppearance };
 
+// Dark mode is temporarily disabled while the dark palette is being reworked.
+// Flip this to `true` (and restore the `@class(['dark' => …])` on <html>) to
+// bring it back — the rest of the theme infrastructure is left intact.
+export const DARK_MODE_ENABLED: boolean = false;
+
 export type ThemeState = {
     appearance: {
         value: Appearance;
@@ -27,6 +32,10 @@ const isDarkMode = (value: Appearance): boolean => {
 };
 
 const getResolvedAppearance = (): ResolvedAppearance => {
+    if (!DARK_MODE_ENABLED) {
+        return 'light';
+    }
+
     return isDarkMode(appearance.value) ? 'dark' : 'light';
 };
 
@@ -44,14 +53,14 @@ const applyTheme = (value: Appearance): void => {
         return;
     }
 
-    const isDark = isDarkMode(value);
+    const isDark = DARK_MODE_ENABLED && isDarkMode(value);
     document.documentElement.classList.toggle('dark', isDark);
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
 };
 
 const getStoredAppearance = (): Appearance => {
-    if (typeof window === 'undefined') {
-        return 'system';
+    if (!DARK_MODE_ENABLED || typeof window === 'undefined') {
+        return 'light';
     }
 
     const stored = localStorage.getItem('appearance');
@@ -82,6 +91,13 @@ export function initializeTheme(): () => void {
         return () => {};
     }
 
+    if (!DARK_MODE_ENABLED) {
+        appearance.value = 'light';
+        applyTheme('light');
+
+        return () => {};
+    }
+
     if (!localStorage.getItem('appearance')) {
         localStorage.setItem('appearance', 'system');
         setCookie('appearance', 'system');
@@ -98,6 +114,10 @@ export function initializeTheme(): () => void {
 }
 
 export function updateAppearance(value: Appearance): void {
+    if (!DARK_MODE_ENABLED) {
+        return;
+    }
+
     appearance.value = value;
 
     if (typeof window !== 'undefined') {

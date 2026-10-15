@@ -248,7 +248,7 @@ describe('game scoring', function () {
 
     it('renders the Deuce banner when the state is at 3-3 and a single point flips the banner', function () {
         $user = User::factory()->admin()->create();
-        $match = TennisMatch::factory()->create();
+        $match = TennisMatch::factory()->create(['sudden_death' => false]);
         $a = $match->side_a_name;
 
         $match->update(['status' => 'running', 'started_at' => now()]);

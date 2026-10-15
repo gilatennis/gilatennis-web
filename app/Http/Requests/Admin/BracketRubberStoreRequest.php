@@ -23,6 +23,8 @@ class BracketRubberStoreRequest extends FormRequest
             'sets_to_win' => ['nullable', 'integer', 'between:1,3'],
             'games_to_win' => ['nullable', 'integer', 'between:2,8'],
             'extend_at_tie' => ['nullable', 'boolean'],
+            'extend_tiebreak' => ['nullable', 'boolean'],
+            'sudden_death' => ['nullable', 'boolean'],
             'tiebreak_to' => ['nullable', 'integer', 'between:1,21'],
         ];
     }

@@ -6,7 +6,9 @@ use App\DTOs\TennisScoreState;
 use App\Enums\MatchStatus;
 use App\Enums\TennisMatchEventType;
 use App\Models\TennisMatch;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Owns the authoritative match score: appends scoring events, replays them via
@@ -63,6 +65,49 @@ class TennisMatchScoringService
 
             return $state;
         });
+    }
+
+    /**
+     * Move a match between statuses (start, complete, reopen, cancel), owning
+     * the started/ended timestamps and clearing a stale bracket winner when a
+     * completed match is reopened. Shared by the admin and public scoreboards.
+     */
+    public function setStatus(
+        TennisMatch $match,
+        MatchStatus $next,
+        ?Carbon $startedAt = null,
+        ?Carbon $endedAt = null,
+    ): TennisMatch {
+        $current = $match->status;
+
+        if ($next !== $current && ! $current->canTransitionTo($next)) {
+            throw ValidationException::withMessages([
+                'status' => "Cannot transition from {$current->value} to {$next->value}.",
+            ]);
+        }
+
+        if ($next === MatchStatus::Running) {
+            $match->started_at ??= $startedAt ?? now();
+            $match->ended_at = null;
+        }
+
+        if ($next === MatchStatus::Completed && $match->ended_at === null) {
+            $match->ended_at = $endedAt ?? now();
+        }
+
+        if ($next === MatchStatus::Pending) {
+            $match->started_at = null;
+            $match->ended_at = null;
+        }
+
+        $match->status = $next;
+        $match->save();
+
+        if ($current === MatchStatus::Completed && $next !== MatchStatus::Completed) {
+            $this->clearBracketWinner($match);
+        }
+
+        return $match;
     }
 
     /**
@@ -141,7 +186,24 @@ class TennisMatchScoringService
     }
 
     /**
-     * @return array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to: int}
+     * Clearing and (re)setting the bracket winner are distinct concerns; a
+     * status change only ever drops a winner a reopened match no longer owns.
+     */
+    private function clearBracketWinner(TennisMatch $match): void
+    {
+        if ($match->bracket_slot_id === null) {
+            return;
+        }
+
+        $slot = $match->bracketSlot()->first();
+
+        if ($slot !== null && $slot->winner_entrant_id !== null) {
+            $this->brackets->setWinner($slot, null);
+        }
+    }
+
+    /**
+     * @return array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, extend_tiebreak: bool, sudden_death: bool, tiebreak_to: int}
      */
     private function formatFor(TennisMatch $match): array
     {
@@ -149,6 +211,8 @@ class TennisMatchScoringService
             'sets_to_win' => $match->sets_to_win,
             'games_to_win' => $match->games_to_win,
             'extend_at_tie' => (bool) $match->extend_at_tie,
+            'extend_tiebreak' => (bool) $match->extend_tiebreak,
+            'sudden_death' => (bool) $match->sudden_death,
             'tiebreak_to' => $match->tiebreak_to,
         ];
     }

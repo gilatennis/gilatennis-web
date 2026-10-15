@@ -18,6 +18,7 @@ use App\Http\Requests\Admin\BracketSlotStartRequest;
 use App\Http\Requests\Admin\BracketSlotUpdateRequest;
 use App\Models\Bracket;
 use App\Models\BracketGroup;
+use App\Models\BracketGroupEntrant;
 use App\Models\BracketSlot;
 use App\Models\Division;
 use App\Models\Tournament;
@@ -204,6 +205,36 @@ class BracketController extends Controller
             fn () => $this->brackets->moveEntrant($group, $to, $entrant),
             'entrant_id',
             'Entrant moved.',
+            $tournament,
+            $division,
+        );
+    }
+
+    /**
+     * Remove an entrant from the group stage, rebuilding the affected group's
+     * fixtures. Blocked once the group has started.
+     */
+    public function removeGroupEntrant(
+        BracketGroupEntrantRequest $request,
+        Tournament $tournament,
+        Division $division,
+        BracketGroup $group,
+    ): RedirectResponse {
+        $entrant = TournamentRegistration::where('division_id', $division->id)
+            ->findOrFail($request->integer('entrant_id'));
+
+        $isMember = BracketGroupEntrant::where('bracket_group_id', $group->id)
+            ->where('tournament_registration_id', $entrant->id)
+            ->exists();
+
+        if (! $isMember) {
+            return back()->withErrors(['entrant_id' => 'That entrant is not in this group.']);
+        }
+
+        return $this->attempt(
+            fn () => $this->brackets->removeEntrant($division, $entrant),
+            'entrant_id',
+            'Entrant removed from group.',
             $tournament,
             $division,
         );

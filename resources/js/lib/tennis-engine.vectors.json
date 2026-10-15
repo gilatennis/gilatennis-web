@@ -5,6 +5,8 @@
             "sets_to_win": 2,
             "games_to_win": 6,
             "extend_at_tie": false,
+            "extend_tiebreak": false,
+            "sudden_death": false,
             "tiebreak_to": 7
         },
         "start": [],
@@ -35,6 +37,8 @@
             "sets_to_win": 2,
             "games_to_win": 6,
             "extend_at_tie": false,
+            "extend_tiebreak": false,
+            "sudden_death": false,
             "tiebreak_to": 7
         },
         "start": {
@@ -80,6 +84,8 @@
             "sets_to_win": 2,
             "games_to_win": 6,
             "extend_at_tie": false,
+            "extend_tiebreak": false,
+            "sudden_death": false,
             "tiebreak_to": 7
         },
         "start": {
@@ -127,6 +133,8 @@
             "sets_to_win": 1,
             "games_to_win": 6,
             "extend_at_tie": false,
+            "extend_tiebreak": false,
+            "sudden_death": false,
             "tiebreak_to": 7
         },
         "start": {
@@ -169,6 +177,8 @@
             "sets_to_win": 1,
             "games_to_win": 6,
             "extend_at_tie": false,
+            "extend_tiebreak": false,
+            "sudden_death": false,
             "tiebreak_to": 7
         },
         "start": {
@@ -206,6 +216,8 @@
             "sets_to_win": 1,
             "games_to_win": 6,
             "extend_at_tie": true,
+            "extend_tiebreak": true,
+            "sudden_death": false,
             "tiebreak_to": 7
         },
         "start": {
@@ -264,6 +276,171 @@
                 }
             ],
             "win": 1
+        }
+    },
+    {
+        "name": "ends the tiebreak at the target when extend_tiebreak is off",
+        "format": {
+            "sets_to_win": 1,
+            "games_to_win": 6,
+            "extend_at_tie": false,
+            "extend_tiebreak": false,
+            "sudden_death": false,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 5,
+            "set_b": 5,
+            "tiebreak": true,
+            "tb_first": 1,
+            "tb_a": 6,
+            "tb_b": 6
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 1
+            }
+        ],
+        "expected": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 0,
+            "set_b": 0,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": false,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": 1,
+            "sets": [
+                {
+                    "a": 6,
+                    "b": 5
+                }
+            ],
+            "win": 1
+        }
+    },
+    {
+        "name": "extends the tiebreak past 7-6 when extend_tiebreak is on",
+        "format": {
+            "sets_to_win": 1,
+            "games_to_win": 6,
+            "extend_at_tie": true,
+            "extend_tiebreak": true,
+            "sudden_death": false,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 6,
+            "set_b": 6,
+            "tiebreak": true,
+            "tb_first": 1,
+            "tb_a": 6,
+            "tb_b": 6
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 1
+            }
+        ],
+        "expected": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 6,
+            "set_b": 6,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": true,
+            "tb_a": 7,
+            "tb_b": 6,
+            "tb_first": 1,
+            "sets": [],
+            "win": null
+        }
+    },
+    {
+        "name": "wins a sudden-death game at 4-3 without a two-point margin",
+        "format": {
+            "sets_to_win": 2,
+            "games_to_win": 6,
+            "extend_at_tie": false,
+            "extend_tiebreak": false,
+            "sudden_death": true,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 0,
+            "set_b": 0,
+            "game_a": 3,
+            "game_b": 3
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 1
+            }
+        ],
+        "expected": {
+            "server": 2,
+            "first_server": 1,
+            "set_a": 1,
+            "set_b": 0,
+            "game_a": 0,
+            "game_b": 0,
+            "tiebreak": false,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": null,
+            "sets": [],
+            "win": null
+        }
+    },
+    {
+        "name": "goes to advantage at 4-3 when sudden death is off",
+        "format": {
+            "sets_to_win": 2,
+            "games_to_win": 6,
+            "extend_at_tie": false,
+            "extend_tiebreak": false,
+            "sudden_death": false,
+            "tiebreak_to": 7
+        },
+        "start": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 0,
+            "set_b": 0,
+            "game_a": 3,
+            "game_b": 3
+        },
+        "events": [
+            {
+                "type": "point",
+                "side": 1
+            }
+        ],
+        "expected": {
+            "server": 1,
+            "first_server": 1,
+            "set_a": 0,
+            "set_b": 0,
+            "game_a": 4,
+            "game_b": 3,
+            "tiebreak": false,
+            "tb_a": 0,
+            "tb_b": 0,
+            "tb_first": null,
+            "sets": [],
+            "win": null
         }
     }
 ]

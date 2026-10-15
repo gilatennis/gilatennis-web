@@ -78,15 +78,30 @@ describe('Group winners', function () {
         expect($group->fresh()->winnerIds())->toBe($picks);
     });
 
-    it('rejects a pick count that does not match the advance count', function () {
+    it('rejects a pick count above the advance count', function () {
         $division = promotionDivision();
         promotionEntrants($division, 8);
 
         $bracket = app(BracketService::class)->generateGroups($division, 2, [2, 2]);
         $group = $bracket->groups->firstWhere('position', 0);
 
-        expect(fn () => app(BracketService::class)->setGroupWinners($group, $group->entrantIds()->take(1)->all()))
-            ->toThrow(InvalidArgumentException::class, 'exactly 2');
+        expect(fn () => app(BracketService::class)->setGroupWinners($group, $group->entrantIds()->take(3)->all()))
+            ->toThrow(InvalidArgumentException::class, 'at most 2');
+    });
+
+    it('allows picking fewer winners than the advance count and clearing them', function () {
+        $division = promotionDivision();
+        promotionEntrants($division, 8);
+
+        $service = app(BracketService::class);
+        $bracket = $service->generateGroups($division, 2, [2, 2]);
+        $group = $bracket->groups->firstWhere('position', 0);
+
+        $service->setGroupWinners($group, $group->entrantIds()->take(1)->all());
+        expect($group->fresh()->winnerIds())->toHaveCount(1);
+
+        $service->setGroupWinners($group, []);
+        expect($group->fresh()->winnerIds())->toBe([]);
     });
 
     it('rejects a winner who is not a group member', function () {

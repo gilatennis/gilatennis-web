@@ -1,6 +1,8 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
     import { Button } from '@/components/ui/button';
+    import { Label } from '@/components/ui/label';
+    import { Switch } from '@/components/ui/switch';
     import { show as showMatch } from '@/routes/admin/tennis-matches';
     import type {
         BracketMatchSummary,
@@ -29,13 +31,17 @@
         doubles: {
             sets_to_win: 1,
             games_to_win: 6,
-            extend_at_tie: true,
+            extend_at_tie: false,
+            extend_tiebreak: false,
+            sudden_death: true,
             tiebreak_to: 7,
         },
         singles: {
             sets_to_win: 1,
             games_to_win: 6,
             extend_at_tie: false,
+            extend_tiebreak: false,
+            sudden_death: true,
             tiebreak_to: 7,
         },
     };
@@ -48,6 +54,8 @@
     let setsToWin = $state(DEFAULTS.doubles.sets_to_win);
     let gamesToWin = $state(DEFAULTS.doubles.games_to_win);
     let extendAtTie = $state(DEFAULTS.doubles.extend_at_tie);
+    let extendTiebreak = $state(DEFAULTS.doubles.extend_tiebreak);
+    let suddenDeath = $state(DEFAULTS.doubles.sudden_death);
     let tiebreakTo = $state(DEFAULTS.doubles.tiebreak_to);
 
     const playersA = $derived(slot.entrant_a?.players ?? []);
@@ -84,6 +92,8 @@
         setsToWin = defaults.sets_to_win;
         gamesToWin = defaults.games_to_win;
         extendAtTie = defaults.extend_at_tie;
+        extendTiebreak = defaults.extend_tiebreak;
+        suddenDeath = defaults.sudden_death;
         tiebreakTo = defaults.tiebreak_to;
     }
 
@@ -108,6 +118,8 @@
             setsToWin = rubber.sets_to_win;
             gamesToWin = rubber.games_to_win;
             extendAtTie = rubber.extend_at_tie;
+            extendTiebreak = rubber.extend_tiebreak;
+            suddenDeath = rubber.sudden_death;
             tiebreakTo = rubber.tiebreak_to;
 
             return;
@@ -137,6 +149,8 @@
             sets_to_win: setsToWin,
             games_to_win: gamesToWin,
             extend_at_tie: extendAtTie,
+            extend_tiebreak: extendTiebreak,
+            sudden_death: suddenDeath,
             tiebreak_to: tiebreakTo,
         });
     }
@@ -279,10 +293,59 @@
             </select>
         </label>
     </div>
-    <label class="mt-3 flex items-center gap-2 text-[12px] text-neutral-700">
-        <input type="checkbox" bind:checked={extendAtTie} />
-        Extend at tie
-    </label>
+    <div class="mt-3 space-y-3">
+        <div>
+            <Label
+                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                >Extend at tie</Label
+            >
+            <div class="h-9 flex items-center gap-3">
+                <Switch
+                    bind:checked={extendAtTie}
+                    data-testid="rubber-extend-at-tie"
+                />
+                <span class="text-[12px] text-neutral-500">
+                    {extendAtTie
+                        ? 'Play one more game at tie, then tiebreak'
+                        : 'Tiebreak at games per set'}
+                </span>
+            </div>
+        </div>
+        <div>
+            <Label
+                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                >Extend at tie for tiebreak</Label
+            >
+            <div class="h-9 flex items-center gap-3">
+                <Switch
+                    bind:checked={extendTiebreak}
+                    data-testid="rubber-extend-tiebreak"
+                />
+                <span class="text-[12px] text-neutral-500">
+                    {extendTiebreak
+                        ? 'Win by two points in the tiebreak'
+                        : 'First to the tiebreak target wins'}
+                </span>
+            </div>
+        </div>
+        <div>
+            <Label
+                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                >Sudden death</Label
+            >
+            <div class="h-9 flex items-center gap-3">
+                <Switch
+                    bind:checked={suddenDeath}
+                    data-testid="rubber-sudden-death"
+                />
+                <span class="text-[12px] text-neutral-500">
+                    {suddenDeath
+                        ? 'No deuce — first to 4 points wins the game'
+                        : 'Deuce and advantage in every game'}
+                </span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

@@ -40,3 +40,7 @@ export const E2E_REG_DIVISIONS = {
 
 /** A registration already placed in a live bracket (edit/delete is guarded). */
 export const E2E_GUARD_ENTRY = 'E2E Guard Entry';
+
+/** The team fixture used by the rubbers spec: one ready tie, no rubbers yet. */
+export const E2E_RUBBER_TOURNAMENT = 'E2E Rubber Open';
+export const E2E_RUBBER_DIVISION = 'Rubber Team';

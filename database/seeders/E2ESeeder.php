@@ -45,6 +45,8 @@ class E2ESeeder extends Seeder
 
         $this->board();
 
+        $this->rubbers();
+
         $this->registration();
     }
 
@@ -245,6 +247,56 @@ class E2ESeeder extends Seeder
      * the admin registration CRUD spec, plus one division whose draw is already
      * live with a placed entrant (to prove edit/delete is guarded).
      */
+    /**
+     * A team tournament with one prepared tie and no rubbers yet, used by the
+     * rubbers spec to add a rubber through the modal and read it back.
+     */
+    private function rubbers(): void
+    {
+        $tournament = Tournament::updateOrCreate(
+            ['slug' => 'e2e-rubber'],
+            [
+                'name' => 'E2E Rubber Open',
+                'status' => TournamentStatus::Open,
+                'dates' => today()->format('M j').' - '.today()->addDays(2)->format('M j, Y'),
+                'start' => today(),
+                'end' => today()->addDays(2),
+                'city' => 'Jakarta',
+                'surface' => 'hard',
+                'venue_type' => 'outdoor',
+                'ball_type' => 'Penn Championship',
+                'registration_closes' => today()->addDay(),
+            ],
+        );
+
+        $division = Division::updateOrCreate(
+            ['tournament_id' => $tournament->id, 'slug' => 'rubber-team'],
+            [
+                'name' => 'Rubber Team',
+                'participation_category' => 'team',
+                'draw_size' => 2,
+                'fee' => 100000,
+                'sort_order' => 0,
+                'min_team_size' => 2,
+                'max_team_size' => 2,
+            ],
+        );
+
+        $entrantA = $this->teamEntrant($tournament, $division, 'Rubber Team Alpha');
+        $entrantB = $this->teamEntrant($tournament, $division, 'Rubber Team Bravo');
+
+        // One ready tie with no rubbers: the modal opens straight into the form.
+        $knockout = Bracket::create([
+            'division_id' => $division->id,
+            'type' => BracketType::SingleElimination,
+            'status' => BracketStatus::Active,
+            'size' => 2,
+        ]);
+
+        $tie = $this->slot($knockout, null, 1, 0, 'Final');
+        $tie->update(['entrant_a_id' => $entrantA->id, 'entrant_b_id' => $entrantB->id]);
+    }
+
     private function registration(): void
     {
         $tournament = Tournament::updateOrCreate(

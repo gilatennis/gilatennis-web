@@ -73,6 +73,7 @@ Defined in `database/seeders/E2ESeeder.php` and mirrored in
 | match `103`                      | Completed — appears under "Recent results"          |
 | tournament `e2e-board`           | Multi-stage, multi-division live-board fixture      |
 | tournament `e2e-registration`    | Bracket-less tournament for the admin registration CRUD spec (`E2E Reg Singles` / `E2E Reg Doubles` / `E2E Reg Team`), plus `E2E Reg Guard` whose draw is live with one placed entrant |
+| tournament `e2e-rubber`          | Team tournament (`Rubber Team`) with one ready tie and no rubbers yet — for the rubbers spec |
 
 `e2e-board` carries three divisions so the board's organisation can be exercised:
 `Board Singles` (group stage **Group A** / **Group B** + knockout **Semifinal** /
@@ -90,10 +91,15 @@ Match ids are explicit so specs can address them directly. A fresh
 | `live-scoring.spec.ts` | a spectator's public live board reflects a point the admin records (via Inertia polling), and a pending match appears on the board once the admin starts it |
 | `live-board.spec.ts`   | division tabs, results grouped by stage/group/round, the per-bucket result cap, team rubbers nested under their tie, and slot-less matches under "Matches"   |
 | `admin-registrations.spec.ts` | admin registers a team (with members), a single and a doubles pair; edits and deletes them; overrides payment from the slide-over; withdraws a pre-draw entrant from its details page; sees a validation error; and is blocked from editing an entry placed in a live bracket |
+| `match-engine.spec.ts` | the match engine rules through the real scoreboard: tiebreak trigger (`extend_at_tie`), tiebreak resolution (sudden-death vs win-by-two `extend_tiebreak`), sudden-death games (`sudden_death`), serve rotation, `sets_to_win` completion, undo, and complete/reopen. Each test creates its own match through the New Match form with a tiny format so the rule boundary is a few clicks away |
+| `rubbers.spec.ts` | adding a rubber through a team tie's modal: the format toggles (`extend_at_tie` / `extend_tiebreak` / `sudden_death`) are switches that round-trip — the values set in the modal are persisted by the real endpoint and read back when the rubber is reopened for editing |
 
 Helpers live in `e2e/helpers/`: `accounts.ts` (fixture values), `auth.ts`
-(`loginAdmin` through the real form — no session cookie injection), and
-`scoreboard.ts` (start a match, award a point through the real endpoints).
+(`loginAdmin` through the real form — no session cookie injection), `scoreboard.ts`
+(start a match, award a point / `scorePoints`, and `createMatch` to build a match
+through the New Match form and return its id), `registrations.ts` (admin
+registration CRUD + tournament-id resolution), and `brackets.ts` (resolve a
+division id from the admin UI and build its bracket URL).
 
 ## Artifacts
 
@@ -106,7 +112,7 @@ npx playwright show-trace test-results/<case>/trace.zip
 
 ## Scope
 
-Today the suite covers public live scoring only. It is structured to grow into
-whole-app browser coverage (auth, registration, admin screens) — add specs under
-`e2e/` and fixture data to `E2ESeeder`. Not covered yet: payment settlement
-(the Duitku hosted page), and the existing Pest browser journeys.
+The suite covers public live scoring and board organisation, the admin
+registration CRUD flow, the match-engine rules through the scoreboard, and the
+team-tie rubber modal. Not covered yet: payment settlement (the Duitku hosted
+page), and the Pest browser journeys in `tests/Browser/EndToEnd`.

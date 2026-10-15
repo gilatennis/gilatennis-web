@@ -43,6 +43,8 @@ export interface MatchState extends MatchScore {
     sets_to_win: number;
     games_to_win: number;
     extend_at_tie: boolean;
+    extend_tiebreak: boolean;
+    sudden_death: boolean;
     tiebreak_to: number;
     status: MatchStatusValue;
     started_at: string | null;
@@ -73,13 +75,39 @@ export function gameOver(
     b: number,
     inTb: boolean,
     tiebreakTo = 7,
+    extendTiebreak = true,
+    suddenDeath = false,
 ): Side | null {
     if (inTb) {
+        if (!extendTiebreak) {
+            if (a >= tiebreakTo) {
+                return 1;
+            }
+
+            if (b >= tiebreakTo) {
+                return 2;
+            }
+
+            return null;
+        }
+
         if (a >= tiebreakTo && a - b >= 2) {
             return 1;
         }
 
         if (b >= tiebreakTo && b - a >= 2) {
+            return 2;
+        }
+
+        return null;
+    }
+
+    if (suddenDeath) {
+        if (a >= 4) {
+            return 1;
+        }
+
+        if (b >= 4) {
             return 2;
         }
 
@@ -203,7 +231,13 @@ function finishTiebreakPoint(state: MatchState, who: Side): MatchState {
         tb_b: nextTbB,
         server: nextServer,
     };
-    const gw = gameOver(nextTbA, nextTbB, true, state.tiebreak_to);
+    const gw = gameOver(
+        nextTbA,
+        nextTbB,
+        true,
+        state.tiebreak_to,
+        state.extend_tiebreak,
+    );
 
     if (gw !== null) {
         const tieAt = tiebreakAt(state.games_to_win, state.extend_at_tie);
@@ -236,13 +270,13 @@ export function scorePoint(state: MatchState, who: Side): MatchState {
 
     const nextA = who === 1 ? state.game_a + 1 : state.game_a;
     const nextB = who === 2 ? state.game_b + 1 : state.game_b;
-    const gw = gameOver(nextA, nextB, false);
+    const gw = gameOver(nextA, nextB, false, 7, true, state.sudden_death);
 
     if (gw !== null) {
         return finishGame(cleared, gw);
     }
 
-    if (nextA === 4 && nextB === 4) {
+    if (!state.sudden_death && nextA === 4 && nextB === 4) {
         return { ...cleared, game_a: 3, game_b: 3 };
     }
 
@@ -320,6 +354,10 @@ export function statusLine(state: MatchState): StatusLine {
 
     const deuce =
         state.game_a >= 3 && state.game_b >= 3 && state.game_a === state.game_b;
+
+    if (state.sudden_death && deuce) {
+        return { text: 'Deciding point', tone: 'blue' };
+    }
 
     if (deuce) {
         return { text: 'Deuce', tone: 'blue' };

@@ -16,7 +16,7 @@ class TennisScoringEngine
     /**
      * Replay an ordered event log into a score projection.
      *
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, extend_tiebreak: bool, sudden_death: bool, tiebreak_to?: int}  $format
      * @param  iterable<int, object>  $events  objects exposing ->type (TennisMatchEventType|string) and ->side (?int)
      */
     public function replay(array $format, iterable $events): TennisScoreState
@@ -47,7 +47,7 @@ class TennisScoringEngine
      * engines can be driven from the same shared test vectors.
      *
      * @param  array<string, mixed>  $state
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, extend_tiebreak: bool, sudden_death: bool, tiebreak_to?: int}  $format
      * @return array<string, mixed>
      */
     public function applyEvent(array $state, array $format, TennisMatchEventType $type, int $side): array
@@ -59,7 +59,7 @@ class TennisScoringEngine
     }
 
     /**
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, extend_tiebreak: bool, sudden_death: bool, tiebreak_to?: int}  $format
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
@@ -73,30 +73,56 @@ class TennisScoringEngine
             return $this->finishTiebreakPoint($state, $format, $who);
         }
 
+        $suddenDeath = (bool) ($format['sudden_death'] ?? false);
+
         $nextA = $who === 1 ? $state['game_a'] + 1 : $state['game_a'];
         $nextB = $who === 2 ? $state['game_b'] + 1 : $state['game_b'];
 
-        $game = $this->gameOver($nextA, $nextB, false);
+        $game = $this->gameOver($nextA, $nextB, false, 7, true, $suddenDeath);
 
         if ($game !== null) {
             return $this->finishGame($state, $format, $game);
         }
 
-        if ($nextA === 4 && $nextB === 4) {
+        if (! $suddenDeath && $nextA === 4 && $nextB === 4) {
             return [...$state, 'game_a' => 3, 'game_b' => 3];
         }
 
         return [...$state, 'game_a' => $nextA, 'game_b' => $nextB];
     }
 
-    public function gameOver(int $a, int $b, bool $inTiebreak, int $tiebreakTo = 7): ?int
+    public function gameOver(int $a, int $b, bool $inTiebreak, int $tiebreakTo = 7, bool $extendTiebreak = true, bool $suddenDeath = false): ?int
     {
         if ($inTiebreak) {
+            if (! $extendTiebreak) {
+                if ($a >= $tiebreakTo) {
+                    return 1;
+                }
+
+                if ($b >= $tiebreakTo) {
+                    return 2;
+                }
+
+                return null;
+            }
+
             if ($a >= $tiebreakTo && $a - $b >= 2) {
                 return 1;
             }
 
             if ($b >= $tiebreakTo && $b - $a >= 2) {
+                return 2;
+            }
+
+            return null;
+        }
+
+        if ($suddenDeath) {
+            if ($a >= 4) {
+                return 1;
+            }
+
+            if ($b >= 4) {
                 return 2;
             }
 
@@ -168,7 +194,7 @@ class TennisScoringEngine
     }
 
     /**
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, extend_tiebreak: bool, sudden_death: bool, tiebreak_to?: int}  $format
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
@@ -207,7 +233,7 @@ class TennisScoringEngine
     }
 
     /**
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, extend_tiebreak: bool, sudden_death: bool, tiebreak_to?: int}  $format
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
@@ -237,7 +263,7 @@ class TennisScoringEngine
     }
 
     /**
-     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, tiebreak_to?: int}  $format
+     * @param  array{sets_to_win: int, games_to_win: int, extend_at_tie: bool, extend_tiebreak: bool, sudden_death: bool, tiebreak_to?: int}  $format
      * @param  array<string, mixed>  $state
      * @return array<string, mixed>
      */
@@ -255,7 +281,7 @@ class TennisScoringEngine
             'server' => $this->tiebreakServer($tbA + $tbB, $first),
         ];
 
-        $game = $this->gameOver($tbA, $tbB, true, $format['tiebreak_to'] ?? 7);
+        $game = $this->gameOver($tbA, $tbB, true, $format['tiebreak_to'] ?? 7, (bool) ($format['extend_tiebreak'] ?? false));
 
         if ($game !== null) {
             $tieAt = $this->tiebreakAt($format['games_to_win'], $format['extend_at_tie']);

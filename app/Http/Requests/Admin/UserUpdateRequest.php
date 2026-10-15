@@ -24,7 +24,7 @@ class UserUpdateRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['nullable', 'string', Rule::in([User::ROLE_ADMIN])],
+            'role' => ['nullable', 'string', Rule::in(User::ASSIGNABLE_ROLES)],
         ];
     }
 }

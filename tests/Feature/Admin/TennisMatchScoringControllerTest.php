@@ -232,6 +232,41 @@ describe('Admin TennisMatch scoring', function () {
             ->and($match->events()->count())->toBe(0);
     });
 
+    it('sends a pending match to court and can recall it', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->postJson(scoreUrl('status', $match), ['status' => 'running'])
+            ->assertOk()
+            ->assertJsonPath('match.status', 'running');
+
+        $match->refresh();
+
+        expect($match->status)->toBe(MatchStatus::Running)
+            ->and($match->started_at)->not->toBeNull();
+
+        $this->actingAs($this->admin)
+            ->postJson(scoreUrl('status', $match), ['status' => 'pending'])
+            ->assertOk()
+            ->assertJsonPath('match.status', 'pending');
+
+        $match->refresh();
+
+        expect($match->status)->toBe(MatchStatus::Pending)
+            ->and($match->started_at)->toBeNull();
+    });
+
+    it('rejects a status outside the scorekeeper set', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->postJson(scoreUrl('status', $match), ['status' => 'canceled'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['status']);
+
+        expect($match->fresh()->status)->toBe(MatchStatus::Pending);
+    });
+
     it('validates the side and shot', function () {
         $match = TennisMatch::factory()->create();
 

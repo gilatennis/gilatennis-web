@@ -63,6 +63,11 @@ class BracketService
         $this->groups->moveEntrant($from, $to, $entrant);
     }
 
+    public function removeEntrant(Division $division, TournamentRegistration $entrant): void
+    {
+        $this->groups->removeEntrant($division, $entrant);
+    }
+
     public function setGroupDoubleRoundRobin(BracketGroup $group, bool $doubleRoundRobin): void
     {
         $this->groups->setGroupDoubleRoundRobin($group, $doubleRoundRobin);

@@ -311,6 +311,17 @@ function teamJourneyPlayTieViaUi(
 
     // One singles rubber, first to four games (a Fast-4 set).
     $page->click('@rubber-type-singles');
+
+    // The format toggles are switches: sudden death defaults on, and clicking
+    // the switch flips its aria-checked state.
+    $page->assertScript(
+        "document.querySelector('[data-testid=\"rubber-sudden-death\"]').getAttribute('aria-checked') === 'true'"
+    );
+    $page->click('@rubber-sudden-death');
+    $page->assertScript(
+        "document.querySelector('[data-testid=\"rubber-sudden-death\"]').getAttribute('aria-checked') === 'false'"
+    );
+
     $page->select('@rubber-sets-to-win', '1');
     $page->select('@rubber-games-to-win', '4');
     $page->click('@rubber-submit');

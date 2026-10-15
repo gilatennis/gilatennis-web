@@ -40,6 +40,7 @@ export interface LiveMatch {
     sets_to_win: number;
     games_to_win: number;
     extend_at_tie: boolean;
+    extend_tiebreak: boolean;
     tiebreak_to: number;
     started_at: string | null;
     ended_at: string | null;

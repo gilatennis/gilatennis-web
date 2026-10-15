@@ -5,6 +5,7 @@
     import { Button } from '@/components/ui/button';
     import { Separator } from '@/components/ui/separator';
     import { currentUrlState } from '@/lib/currentUrl.svelte';
+    import { DARK_MODE_ENABLED } from '@/lib/theme.svelte';
     import { toUrl } from '@/lib/utils';
     import { edit as editAppearance } from '@/routes/appearance';
     import { edit as editProfile } from '@/routes/profile';
@@ -26,10 +27,14 @@
             title: 'Security',
             href: editSecurity(),
         },
-        {
-            title: 'Appearance',
-            href: editAppearance(),
-        },
+        ...(DARK_MODE_ENABLED
+            ? [
+                  {
+                      title: 'Appearance',
+                      href: editAppearance(),
+                  },
+              ]
+            : []),
     ];
 
     const url = currentUrlState();

@@ -2,7 +2,12 @@ REGISTRY ?= docker.io
 IMAGE ?= kevinjanada/gilatennis_web
 TAG ?= latest
 
-.PHONY: build push pull up down dev migrate seed storage-link logs
+SSH ?= hetzner-root
+PROD_DB_IMAGE ?= mysql:8
+PROD_APP_IMAGE ?= kevinjanada/gilatennis_web:latest
+BACKUP_DIR ?= storage/app/db-backups
+
+.PHONY: build push pull up down dev migrate seed storage-link logs db-pull storage-pull mirror
 
 # Build for linux (run on Mac)
 build:
@@ -26,6 +31,15 @@ down:
 # Local dev (build from source)
 dev:
 	docker compose -f docker-compose.dev.yml up --build
+
+# Mirror production DB + uploads into local dev
+db-pull:
+	@SSH=$(SSH) PROD_DB_IMAGE=$(PROD_DB_IMAGE) BACKUP_DIR=$(BACKUP_DIR) scripts/db-pull.sh
+
+storage-pull:
+	@SSH=$(SSH) PROD_APP_IMAGE=$(PROD_APP_IMAGE) BACKUP_DIR=$(BACKUP_DIR) scripts/storage-pull.sh
+
+mirror: db-pull storage-pull
 
 # Artisan helpers
 migrate:

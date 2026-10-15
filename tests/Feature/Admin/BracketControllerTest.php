@@ -677,6 +677,8 @@ describe('Admin Team Rubber Formats', function () {
                 'sets_to_win' => 1,
                 'games_to_win' => 6,
                 'extend_at_tie' => true,
+                'extend_tiebreak' => true,
+                'sudden_death' => false,
                 'tiebreak_to' => 7,
             ])
             ->assertRedirect(route('admin.tournaments.divisions.show', [
@@ -692,6 +694,8 @@ describe('Admin Team Rubber Formats', function () {
             ->and($match->sets_to_win)->toBe(1)
             ->and($match->games_to_win)->toBe(6)
             ->and($match->extend_at_tie)->toBeTrue()
+            ->and($match->extend_tiebreak)->toBeTrue()
+            ->and($match->sudden_death)->toBeFalse()
             ->and($match->tiebreak_to)->toBe(7)
             ->and($match->bracket_slot_id)->toBe($slot->id)
             ->and($match->format_label)->toBe('Best of 1 set(s), 6 games, TB to 7');
@@ -724,6 +728,8 @@ describe('Admin Team Rubber Formats', function () {
         expect($match->sets_to_win)->toBe(2)
             ->and($match->games_to_win)->toBe(6)
             ->and($match->extend_at_tie)->toBeFalse()
+            ->and($match->extend_tiebreak)->toBeFalse()
+            ->and($match->sudden_death)->toBeTrue()
             ->and($match->tiebreak_to)->toBe(7);
     });
 

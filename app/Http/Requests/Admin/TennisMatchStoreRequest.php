@@ -19,6 +19,8 @@ class TennisMatchStoreRequest extends FormRequest
             'sets_to_win' => ['required', 'integer', 'between:1,3'],
             'games_to_win' => ['required', 'integer', 'between:2,8'],
             'extend_at_tie' => ['required', 'boolean'],
+            'extend_tiebreak' => ['required', 'boolean'],
+            'sudden_death' => ['required', 'boolean'],
             'tiebreak_to' => ['required', 'integer', 'between:1,21'],
         ];
     }

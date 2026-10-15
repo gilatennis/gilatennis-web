@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use LogicException;
 
 // INFO: have to be named `TennisMatch` because `Match` is a reserved php keyword
@@ -26,8 +27,11 @@ use LogicException;
  * @property int $sets_to_win
  * @property int $games_to_win
  * @property bool $extend_at_tie
+ * @property bool $extend_tiebreak
+ * @property bool $sudden_death
  * @property int $tiebreak_to
  * @property MatchStatus $status
+ * @property string|null $share_token
  * @property Carbon|null $started_at
  * @property Carbon|null $ended_at
  * @property-read TennisMatchState|null $state
@@ -51,6 +55,8 @@ class TennisMatch extends Model
         'sets_to_win',
         'games_to_win',
         'extend_at_tie',
+        'extend_tiebreak',
+        'sudden_death',
         'tiebreak_to',
         'status',
         'started_at',
@@ -59,8 +65,18 @@ class TennisMatch extends Model
 
     protected $appends = ['format_label'];
 
+    /**
+     * The share token is a bearer credential for the public umpire scoreboard;
+     * it must never leak into serialized payloads.
+     *
+     * @var list<string>
+     */
+    protected $hidden = ['share_token'];
+
     protected $casts = [
         'extend_at_tie' => 'boolean',
+        'extend_tiebreak' => 'boolean',
+        'sudden_death' => 'boolean',
         'started_at' => 'datetime',
         'ended_at' => 'datetime',
         'status' => MatchStatus::class,
@@ -86,6 +102,18 @@ class TennisMatch extends Model
         $bestOf = ($this->sets_to_win * 2) - 1;
 
         return "Best of {$bestOf} set(s), {$this->games_to_win} games, TB to {$this->tiebreak_to}";
+    }
+
+    /**
+     * Public, login-free link an umpire can use to score this match.
+     */
+    public function publicScoreUrl(): ?string
+    {
+        if ($this->share_token === null) {
+            return null;
+        }
+
+        return route('umpire.score', ['match' => $this->share_token]);
     }
 
     /**
@@ -115,6 +143,8 @@ class TennisMatch extends Model
             'sets_to_win' => $this->sets_to_win,
             'games_to_win' => $this->games_to_win,
             'extend_at_tie' => (bool) $this->extend_at_tie,
+            'extend_tiebreak' => (bool) $this->extend_tiebreak,
+            'sudden_death' => (bool) $this->sudden_death,
             'tiebreak_to' => $this->tiebreak_to,
             'started_at' => $this->started_at?->toIso8601String(),
             'ended_at' => $this->ended_at?->toIso8601String(),
@@ -202,6 +232,10 @@ class TennisMatch extends Model
     protected static function booted(): void
     {
         parent::booted();
+
+        static::creating(function (TennisMatch $match) {
+            $match->share_token ??= Str::random(48);
+        });
 
         static::created(function (TennisMatch $match) {
             $match->state()->create(TennisMatchState::defaults());

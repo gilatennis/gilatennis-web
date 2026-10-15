@@ -10,6 +10,7 @@
         DialogFooter,
         DialogTitle,
     } from '@/components/ui/dialog';
+    import { useMatchStatus } from '@/composables/useMatchStatus.svelte';
     import { show as showMatch } from '@/routes/admin/tennis-matches';
     import type {
         BracketMatchSummary,
@@ -32,6 +33,8 @@
     let mode = $state<'list' | 'form'>('list');
     let editing = $state<BracketMatchSummary | null>(null);
     let wasOpen = false;
+
+    const { setStatus, busyId } = useMatchStatus();
 
     const matches = $derived(slot?.matches ?? []);
 
@@ -75,10 +78,18 @@
         editing = null;
         mode = 'list';
     }
+
+    function sendToCourt(match: BracketMatchSummary) {
+        setStatus(match.id, 'running', ['bracket', 'groupStage']);
+    }
+
+    function recall(match: BracketMatchSummary) {
+        setStatus(match.id, 'pending', ['bracket', 'groupStage']);
+    }
 </script>
 
 <Dialog {open} onOpenChange={(v) => (open = v)}>
-    <DialogContent class="max-w-[520px]">
+    <DialogContent class="max-w-[560px]">
         <DialogTitle>
             {mode === 'form'
                 ? editing
@@ -114,19 +125,17 @@
                 </div>
             {:else}
                 <div
-                    class="mt-4 max-h-[420px] overflow-y-auto border border-black/10 divide-y divide-black/5"
+                    class="mt-4 max-h-[460px] overflow-y-auto border border-black/10 divide-y divide-black/5"
                     data-testid="rubber-list"
                 >
                     {#each matches as match (match.id)}
                         <div
-                            class="flex items-start gap-2 px-3 py-2.5 sm:h-12 sm:items-center sm:py-0"
+                            class="flex flex-col gap-2 px-3 py-3"
                             data-testid="rubber-row"
                         >
-                            <div
-                                class="flex-1 min-w-0 self-center sm:self-auto"
-                            >
+                            <div class="min-w-0">
                                 <div
-                                    class="text-[12px] truncate {match.winner_side ===
+                                    class="text-[13px] truncate {match.winner_side ===
                                     1
                                         ? 'font-bold text-emerald-800'
                                         : 'font-medium text-neutral-700'}"
@@ -134,7 +143,7 @@
                                     {match.side_a_name}
                                 </div>
                                 <div
-                                    class="text-[12px] truncate {match.winner_side ===
+                                    class="text-[13px] truncate {match.winner_side ===
                                     2
                                         ? 'font-bold text-emerald-800'
                                         : 'font-medium text-neutral-700'}"
@@ -142,9 +151,8 @@
                                     {match.side_b_name}
                                 </div>
                             </div>
-                            <div
-                                class="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-2"
-                            >
+
+                            <div class="flex flex-wrap items-center gap-2">
                                 <span
                                     class="shrink-0"
                                     data-testid="rubber-status"
@@ -153,7 +161,8 @@
                                         status={match.status as any}
                                     />
                                 </span>
-                                <div class="flex items-center gap-2">
+
+                                <div class="flex items-center gap-2 sm:ml-auto">
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -181,6 +190,29 @@
                                             </Link>
                                         {/snippet}
                                     </Button>
+                                    {#if match.status === 'pending'}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            data-testid="rubber-send-court"
+                                            title="Send to court — appears on the umpire's screen"
+                                            disabled={busyId === match.id}
+                                            onclick={() => sendToCourt(match)}
+                                        >
+                                            On court
+                                        </Button>
+                                    {:else if match.status === 'running'}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            data-testid="rubber-recall"
+                                            title="Recall from court — back to pending"
+                                            disabled={busyId === match.id}
+                                            onclick={() => recall(match)}
+                                        >
+                                            Recall
+                                        </Button>
+                                    {/if}
                                 </div>
                             </div>
                         </div>

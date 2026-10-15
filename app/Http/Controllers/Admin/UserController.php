@@ -41,6 +41,7 @@ class UserController extends Controller
         $stats = [
             'total' => User::count(),
             'admins' => User::whereHas('roles', fn ($q) => $q->whereIn('slug', [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN]))->count(),
+            'umpires' => User::whereHas('roles', fn ($q) => $q->where('slug', User::ROLE_UMPIRE))->count(),
         ];
 
         return Inertia::render('Admin/Users/Index', [
@@ -165,9 +166,13 @@ class UserController extends Controller
 
     private function availableRoles(): array
     {
-        return [
-            ['slug' => User::ROLE_ADMIN, 'name' => 'Admin'],
-        ];
+        return collect(User::ASSIGNABLE_ROLES)
+            ->map(fn (string $slug): array => [
+                'slug' => $slug,
+                'name' => User::ROLE_LABELS[$slug],
+            ])
+            ->values()
+            ->all();
     }
 
     private function resolveRoleFilter(): array
@@ -175,7 +180,7 @@ class UserController extends Controller
         $query = request()->query->all();
 
         if (! array_key_exists('role', $query)) {
-            return [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN];
+            return array_keys(User::ROLE_LABELS);
         }
 
         $raw = $query['role'];

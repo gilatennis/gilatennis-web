@@ -161,10 +161,13 @@ trait ShapesBracket
                 'sets_to_win' => $match->sets_to_win,
                 'games_to_win' => $match->games_to_win,
                 'extend_at_tie' => $match->extend_at_tie,
+                'extend_tiebreak' => $match->extend_tiebreak,
+                'sudden_death' => $match->sudden_death,
                 'tiebreak_to' => $match->tiebreak_to,
                 'status' => $match->status,
                 'format_label' => $match->format_label,
                 'winner_side' => $match->state?->win,
+                'share_url' => $match->publicScoreUrl(),
             ])->values(),
         ];
     }

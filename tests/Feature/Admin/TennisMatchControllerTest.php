@@ -64,6 +64,8 @@ describe('Admin TennisMatch CRUD', function () {
             'sets_to_win' => 2,
             'games_to_win' => 6,
             'extend_at_tie' => false,
+            'extend_tiebreak' => true,
+            'sudden_death' => true,
             'tiebreak_to' => 7,
         ];
 
@@ -78,6 +80,38 @@ describe('Admin TennisMatch CRUD', function () {
         expect($match->ended_at)->toBeNull();
         expect($match->side_b_name)->toBe('Rafael Nadal');
         expect($match->sets_to_win)->toBe(2);
+        expect($match->extend_tiebreak)->toBeTrue();
+        expect($match->sudden_death)->toBeTrue();
+    });
+
+    it('requires extend_tiebreak', function () {
+        $this->actingAs($this->admin)
+            ->post(route('admin.tennis-matches.store'), [
+                'side_a_name' => 'Player A',
+                'side_b_name' => 'Player B',
+                'sets_to_win' => 2,
+                'games_to_win' => 6,
+                'extend_at_tie' => false,
+                'sudden_death' => true,
+                'tiebreak_to' => 7,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('extend_tiebreak');
+    });
+
+    it('requires sudden_death', function () {
+        $this->actingAs($this->admin)
+            ->post(route('admin.tennis-matches.store'), [
+                'side_a_name' => 'Player A',
+                'side_b_name' => 'Player B',
+                'sets_to_win' => 2,
+                'games_to_win' => 6,
+                'extend_at_tie' => false,
+                'extend_tiebreak' => false,
+                'tiebreak_to' => 7,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('sudden_death');
     });
 
     it('redirects to show page after creating match', function () {
@@ -87,6 +121,8 @@ describe('Admin TennisMatch CRUD', function () {
             'sets_to_win' => 2,
             'games_to_win' => 6,
             'extend_at_tie' => false,
+            'extend_tiebreak' => false,
+            'sudden_death' => true,
             'tiebreak_to' => 7,
         ];
 
@@ -207,6 +243,18 @@ describe('Admin TennisMatch CRUD', function () {
                 ->where('match.side_a_name', 'Alcaraz')
                 ->where('match.side_b_name', 'Sinner')
                 ->where('match.format_label', 'Best of 3 set(s), 6 games, TB to 7')
+            );
+    });
+
+    it('exposes the share link without leaking the raw token in the match payload', function () {
+        $match = TennisMatch::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tennis-matches.show', $match))
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->where('shareUrl', route('umpire.score', ['match' => $match->share_token]))
+                ->missing('match.share_token')
             );
     });
 
@@ -537,6 +585,8 @@ describe('Admin TennisMatch rubber edits', function () {
                 'sets_to_win' => 1,
                 'games_to_win' => 6,
                 'extend_at_tie' => true,
+                'extend_tiebreak' => true,
+                'sudden_death' => false,
                 'tiebreak_to' => 7,
             ])
             ->assertRedirect();
@@ -548,6 +598,8 @@ describe('Admin TennisMatch rubber edits', function () {
             ->and($match->sets_to_win)->toBe(1)
             ->and($match->games_to_win)->toBe(6)
             ->and($match->extend_at_tie)->toBeTrue()
+            ->and($match->extend_tiebreak)->toBeTrue()
+            ->and($match->sudden_death)->toBeFalse()
             ->and($match->tiebreak_to)->toBe(7)
             ->and($match->format_label)->toBe('Best of 1 set(s), 6 games, TB to 7');
     });

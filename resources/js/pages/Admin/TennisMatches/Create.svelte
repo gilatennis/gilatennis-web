@@ -13,6 +13,8 @@
     import { store as storeMatch } from '@/routes/admin/tennis-matches';
 
     let extendAtTie = $state(false);
+    let extendTiebreak = $state(false);
+    let suddenDeath = $state(true);
 
     const inputClass =
         'w-full h-9 px-3 border border-black/12 bg-white text-[13px] text-neutral-900 outline-none focus:border-black/35 transition-colors placeholder:text-neutral-300 font-mono';
@@ -144,7 +146,10 @@
                                 >Extend at tie</Label
                             >
                             <div class="h-9 flex items-center gap-3">
-                                <Switch bind:checked={extendAtTie} />
+                                <Switch
+                                    bind:checked={extendAtTie}
+                                    data-testid="extend-at-tie"
+                                />
                                 <span class="text-[12px] text-neutral-500">
                                     {extendAtTie
                                         ? 'Yes — play one more game at tie, then tiebreak'
@@ -177,6 +182,64 @@
                             <InputError
                                 class="mt-1"
                                 message={errors.tiebreak_to}
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 items-end">
+                        <div>
+                            <Label
+                                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                >Extend at tie for tiebreak</Label
+                            >
+                            <div class="h-9 flex items-center gap-3">
+                                <Switch
+                                    bind:checked={extendTiebreak}
+                                    data-testid="extend-tiebreak"
+                                />
+                                <span class="text-[12px] text-neutral-500">
+                                    {extendTiebreak
+                                        ? 'Win by two points in the tiebreak'
+                                        : 'First to the tiebreak target wins'}
+                                </span>
+                            </div>
+                            <input
+                                type="hidden"
+                                name="extend_tiebreak"
+                                value={extendTiebreak ? '1' : '0'}
+                            />
+                            <InputError
+                                class="mt-1"
+                                message={errors.extend_tiebreak}
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 items-end">
+                        <div>
+                            <Label
+                                class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-1.5"
+                                >Sudden death</Label
+                            >
+                            <div class="h-9 flex items-center gap-3">
+                                <Switch
+                                    bind:checked={suddenDeath}
+                                    data-testid="sudden-death"
+                                />
+                                <span class="text-[12px] text-neutral-500">
+                                    {suddenDeath
+                                        ? 'No deuce — first to 4 points wins the game'
+                                        : 'Deuce and advantage in every game'}
+                                </span>
+                            </div>
+                            <input
+                                type="hidden"
+                                name="sudden_death"
+                                value={suddenDeath ? '1' : '0'}
+                            />
+                            <InputError
+                                class="mt-1"
+                                message={errors.sudden_death}
                             />
                         </div>
                     </div>

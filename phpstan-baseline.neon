@@ -19,6 +19,12 @@ parameters:
 			path: app/Http/Controllers/Admin/AdminLoginController.php
 
 		-
+			message: '#^Parameter \#1 \$array \(array\{''Laravel\\\\Fortify\\\\Contracts\\\\RedirectsIfTwoFactorAuthenticatable'', ''Laravel\\\\Fortify\\\\Actions\\\\AttemptToAuthenticate'', ''Laravel\\\\Fortify\\\\Actions\\\\PrepareAuthenticatedSession''\}\) to function array_filter does not contain falsy values, the array will always stay the same\.$#'
+			identifier: arrayFilter.same
+			count: 1
+			path: app/Http/Controllers/Umpire/UmpireLoginController.php
+
+		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$assessed_at\.$#'
 			identifier: property.notFound
 			count: 1
@@ -237,11 +243,17 @@ parameters:
 		-
 			message: '#^Parameter \#1 \$key of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:contains\(\) expects \(callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: bool\)\|Illuminate\\Database\\Eloquent\\Model\|int\|string, Closure\(App\\Models\\Role\)\: bool given\.$#'
 			identifier: argument.type
-			count: 2
+			count: 3
 			path: app/Models/User.php
 
 		-
 			message: '#^Property ''is_super_admin'' does not exist in model\.$#'
+			identifier: rules.modelAppends
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Property ''is_umpire'' does not exist in model\.$#'
 			identifier: rules.modelAppends
 			count: 1
 			path: app/Models/User.php

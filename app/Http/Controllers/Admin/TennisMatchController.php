@@ -7,16 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TennisMatchStoreRequest;
 use App\Http\Requests\Admin\TennisMatchUpdateRequest;
 use App\Models\TennisMatch;
-use App\Services\BracketService;
+use App\Services\TennisMatchScoringService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TennisMatchController extends Controller
 {
-    public function __construct(private BracketService $brackets) {}
+    public function __construct(private TennisMatchScoringService $scoring) {}
 
     public function index(): Response
     {
@@ -80,6 +79,7 @@ class TennisMatchController extends Controller
         return Inertia::render('Admin/TennisMatches/Score', [
             'match' => $match->toScorePayload(),
             'bracketUrl' => $bracketUrl,
+            'shareUrl' => $match->publicScoreUrl(),
         ]);
     }
 
@@ -89,8 +89,6 @@ class TennisMatchController extends Controller
      */
     public function update(TennisMatchUpdateRequest $request, TennisMatch $match): RedirectResponse
     {
-        $previousStatus = $match->status;
-
         DB::transaction(function () use ($request, $match) {
             $match->fill($request->safe()->only([
                 'side_a_name',
@@ -98,6 +96,8 @@ class TennisMatchController extends Controller
                 'sets_to_win',
                 'games_to_win',
                 'extend_at_tie',
+                'extend_tiebreak',
+                'sudden_death',
                 'tiebreak_to',
             ]));
 
@@ -106,56 +106,17 @@ class TennisMatchController extends Controller
             }
 
             if ($request->has('status')) {
-                $current = $match->status;
-                $next = MatchStatus::from($request->validated('status'));
-
-                if ($next !== $current && ! $current->canTransitionTo($next)) {
-                    throw ValidationException::withMessages([
-                        'status' => "Cannot transition from {$current->value} to {$next->value}.",
-                    ]);
-                }
-
-                if ($next === MatchStatus::Running) {
-                    if ($match->started_at === null) {
-                        $match->started_at = $request->validated('started_at') ?? now();
-                    }
-
-                    $match->ended_at = null;
-                }
-
-                if ($next === MatchStatus::Completed && $match->ended_at === null) {
-                    $match->ended_at = $request->validated('ended_at') ?? now();
-                }
-
-                if ($next === MatchStatus::Pending) {
-                    $match->started_at = null;
-                    $match->ended_at = null;
-                }
-
-                $match->status = $next;
-                $match->save();
+                $this->scoring->setStatus(
+                    $match,
+                    MatchStatus::from($request->validated('status')),
+                    $request->date('started_at'),
+                    $request->date('ended_at'),
+                );
             }
         });
 
         $match->refresh();
 
-        if ($previousStatus === MatchStatus::Completed && $match->status !== MatchStatus::Completed) {
-            $this->clearBracketWinner($match);
-        }
-
         return back();
-    }
-
-    private function clearBracketWinner(TennisMatch $match): void
-    {
-        if ($match->bracket_slot_id === null) {
-            return;
-        }
-
-        $slot = $match->bracketSlot()->first();
-
-        if ($slot !== null && $slot->winner_entrant_id !== null) {
-            $this->brackets->setWinner($slot, null);
-        }
     }
 }

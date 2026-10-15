@@ -256,8 +256,9 @@ class GroupStageService
     }
 
     /**
-     * Record the entrants picked to advance from a group, in seed order. Picks
-     * must be group members and must match the group's advance count.
+     * Record the entrants picked to advance from a group, in seed order. A group
+     * may hold anywhere from none up to its advance count of picks; promoting to
+     * the knockout is what requires every group to be fully picked.
      *
      * @param  array<int, int>  $winnerIds
      */
@@ -271,8 +272,8 @@ class GroupStageService
             throw new InvalidArgumentException('Each advancing winner may only be picked once.');
         }
 
-        if (count($winnerIds) !== $group->advance_count) {
-            throw new InvalidArgumentException("Pick exactly {$group->advance_count} advancing winner(s) for {$group->name}.");
+        if (count($winnerIds) > $group->advance_count) {
+            throw new InvalidArgumentException("Pick at most {$group->advance_count} advancing winner(s) for {$group->name}.");
         }
 
         $members = $group->entrantIds()->all();

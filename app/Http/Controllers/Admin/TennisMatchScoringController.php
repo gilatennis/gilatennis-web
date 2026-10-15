@@ -7,6 +7,7 @@ use App\Enums\TennisMatchEventType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TennisMatchPointRequest;
 use App\Http\Requests\Admin\TennisMatchServerRequest;
+use App\Http\Requests\Admin\TennisMatchStatusRequest;
 use App\Models\TennisMatch;
 use App\Services\TennisMatchScoringService;
 use Illuminate\Http\JsonResponse;
@@ -48,6 +49,16 @@ class TennisMatchScoringController extends Controller
         $this->ensureReopenable($match);
 
         $this->scoring->undoLast($match);
+
+        return $this->payload($match);
+    }
+
+    public function status(TennisMatchStatusRequest $request, TennisMatch $match): JsonResponse
+    {
+        $this->scoring->setStatus(
+            $match,
+            MatchStatus::from($request->validated('status')),
+        );
 
         return $this->payload($match);
     }

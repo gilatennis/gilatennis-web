@@ -1,21 +1,14 @@
 <script lang="ts">
     import Settings2 from 'lucide-svelte/icons/settings-2';
-    import UserPlus from 'lucide-svelte/icons/user-plus';
+    import X from 'lucide-svelte/icons/x';
     import BracketSlotCard from '@/components/admin/stages/BracketSlotCard.svelte';
     import GroupStandingsTable from '@/components/admin/stages/StandingsTable.svelte';
-    import { Button } from '@/components/ui/button';
-    import type {
-        BracketEntrant,
-        BracketEntrantOption,
-        BracketGroup,
-        BracketSlot,
-    } from '@/types';
+    import type { BracketEntrant, BracketGroup, BracketSlot } from '@/types';
 
     let {
         group,
         siblings,
         isTeam,
-        entrants,
         canEdit,
         canPick,
         onStart,
@@ -23,7 +16,7 @@
         onAdvance,
         onUndo,
         canUndo,
-        onAddEntrant,
+        onRemoveEntrant,
         onMoveEntrant,
         onToggleDouble,
         onToggleWinner,
@@ -31,7 +24,6 @@
         group: BracketGroup;
         siblings: BracketGroup[];
         isTeam: boolean;
-        entrants: BracketEntrantOption[];
         canEdit: boolean;
         canPick: boolean;
         onStart: (slot: BracketSlot) => void;
@@ -39,33 +31,18 @@
         onAdvance: (slot: BracketSlot, entrant: BracketEntrant) => void;
         onUndo: (slot: BracketSlot) => void;
         canUndo: (slot: BracketSlot) => boolean;
-        onAddEntrant: (entrantId: number) => void;
+        onRemoveEntrant: (entrantId: number) => void;
         onMoveEntrant: (entrantId: number, toGroupId: number) => void;
         onToggleDouble: (doubleRoundRobin: boolean) => void;
         onToggleWinner: (entrantId: number) => void;
     } = $props();
 
-    let pickEntrant = $state<number | null>(null);
-
-    const memberIds = $derived(group.entrants.map((e) => e.id));
-    const available = $derived(
-        entrants.filter((e) => !memberIds.includes(e.id)),
-    );
     const picked = $derived(group.winner_entrant_ids ?? []);
     const moveTargets = $derived(siblings.filter((g) => g.id !== group.id));
-
-    function addSelected() {
-        if (pickEntrant === null) {
-            return;
-        }
-
-        onAddEntrant(pickEntrant);
-        pickEntrant = null;
-    }
 </script>
 
 <section
-    class="border border-black/10 bg-white"
+    class="@container border border-black/10 bg-white"
     data-testid="group-card-{group.id}"
 >
     <header
@@ -99,23 +76,27 @@
         {/if}
     </header>
 
-    <div class="grid gap-5 p-4 lg:grid-cols-[1fr_minmax(320px,420px)]">
-        <div class="min-w-0">
+    <div
+        class="grid gap-5 p-4 @4xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]"
+    >
+        <div class="min-w-0" data-testid="group-standings-{group.id}">
             <div
                 class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2"
             >
                 Standings
             </div>
-            <GroupStandingsTable
-                standings={group.standings}
-                advanceCount={group.advance_count}
-                winnerIds={picked}
-                selectable={canPick}
-                onToggle={onToggleWinner}
-            />
+            <div class="overflow-x-auto">
+                <GroupStandingsTable
+                    standings={group.standings}
+                    advanceCount={group.advance_count}
+                    winnerIds={picked}
+                    selectable={canPick}
+                    onToggle={onToggleWinner}
+                />
+            </div>
         </div>
 
-        <div class="min-w-0">
+        <div class="min-w-0" data-testid="group-entrants-{group.id}">
             <div
                 class="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400 mb-2"
             >
@@ -168,34 +149,22 @@
                                     </select>
                                 </label>
                             {/if}
+                            {#if canEdit}
+                                <button
+                                    type="button"
+                                    data-testid="remove-entrant-{entrant.id}"
+                                    onclick={() => onRemoveEntrant(entrant.id)}
+                                    title="Remove from group"
+                                    aria-label={`Remove ${entrant.name} from ${group.name}`}
+                                    class="text-neutral-400 hover:text-coral transition-colors"
+                                >
+                                    <X class="size-3.5" />
+                                </button>
+                            {/if}
                         </div>
                     {/each}
                 {/if}
             </div>
-
-            {#if canEdit && available.length > 0}
-                <div class="mt-2 flex items-center gap-2">
-                    <select
-                        class="flex-1 h-8 border border-black/12 bg-white text-[12px] px-2"
-                        bind:value={pickEntrant}
-                        data-testid="add-entrant-select-{group.id}"
-                    >
-                        <option value={null}>Add entrant…</option>
-                        {#each available as entrant (entrant.id)}
-                            <option value={entrant.id}>{entrant.name}</option>
-                        {/each}
-                    </select>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={pickEntrant === null}
-                        onclick={addSelected}
-                        data-testid="add-entrant-{group.id}"
-                    >
-                        <UserPlus class="size-3.5" /> Add
-                    </Button>
-                </div>
-            {/if}
         </div>
     </div>
 

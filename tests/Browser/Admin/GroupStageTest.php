@@ -325,3 +325,88 @@ it('generates a standalone knockout from the UI when there is no group stage', f
         ->assertMissing('@generate-bracket')
         ->assertPresent('@standalone-hint');
 });
+
+it('unpicks a group winner through the standings check button', function () {
+    [$admin, $tournament, $division] = groupStageSetup();
+
+    app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+
+    $bracket = Bracket::where('division_id', $division->id)
+        ->where('type', BracketType::GroupStage)
+        ->firstOrFail();
+
+    $leader = $bracket->groups->firstWhere('position', 0)->entrantIds()->first();
+
+    $page = openGroupStage($admin, $tournament, $division);
+
+    // Pick the leader, then click the check again to undo the pick.
+    $page->click('@pick-winner-'.$leader)->wait(2);
+    expect($bracket->groups->firstWhere('position', 0)->fresh()->winnerIds())->toContain($leader);
+
+    $page->click('@pick-winner-'.$leader)->wait(2);
+    expect($bracket->groups->firstWhere('position', 0)->fresh()->winnerIds())->not->toContain($leader);
+});
+
+it('removes an entrant to the unassigned rail and adds it back to a group', function () {
+    [$admin, $tournament, $division] = groupStageSetup();
+
+    app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+
+    $bracket = Bracket::where('division_id', $division->id)
+        ->where('type', BracketType::GroupStage)
+        ->firstOrFail();
+
+    $groupA = $bracket->groups->firstWhere('position', 0);
+    $groupB = $bracket->groups->firstWhere('position', 1);
+    $mover = $groupA->entrantIds()->first();
+
+    $page = openGroupStage($admin, $tournament, $division);
+
+    // Remove from its group → it appears in the unassigned rail.
+    $page->click('@remove-entrant-'.$mover)->wait(2);
+    $page->assertPresent('@unassigned-entrant-'.$mover);
+
+    expect($groupA->fresh()->entrantIds())->not->toContain($mover);
+
+    // Add it back into the other group from the rail dropdown.
+    $page->select('@assign-unassigned-'.$mover, (string) $groupB->id)->wait(2);
+
+    expect($groupB->fresh()->entrantIds())->toContain($mover);
+    $page->assertMissing('@unassigned-entrant-'.$mover);
+});
+
+it('stacks the standings above the entrants when the card is narrow', function () {
+    [$admin, $tournament, $division] = groupStageSetup();
+
+    app(BracketService::class)->generateGroups($division, 2, [2, 2]);
+
+    $bracket = Bracket::where('division_id', $division->id)
+        ->where('type', BracketType::GroupStage)
+        ->firstOrFail();
+
+    $groupId = $bracket->groups->first()->id;
+
+    $page = openGroupStage($admin, $tournament, $division);
+
+    $assertStacked = <<<JS
+        function() {
+            const standings = document.querySelector('[data-testid="group-standings-{$groupId}"]').getBoundingClientRect();
+            const entrants = document.querySelector('[data-testid="group-entrants-{$groupId}"]').getBoundingClientRect();
+
+            return standings.bottom <= entrants.top + 1;
+        }
+        JS;
+
+    $assertSideBySide = <<<JS
+        function() {
+            const standings = document.querySelector('[data-testid="group-standings-{$groupId}"]').getBoundingClientRect();
+            const entrants = document.querySelector('[data-testid="group-entrants-{$groupId}"]').getBoundingClientRect();
+
+            return standings.top < entrants.bottom && standings.bottom > entrants.top;
+        }
+        JS;
+
+    $page->resize(900, 900)->assertScript($assertStacked);
+    $page->resize(1920, 900)->assertScript($assertSideBySide);
+    $page->assertNoJavaScriptErrors();
+});

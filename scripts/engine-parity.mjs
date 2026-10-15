@@ -59,6 +59,8 @@ function initialState(format, start) {
         sets_to_win: format.sets_to_win,
         games_to_win: format.games_to_win,
         extend_at_tie: format.extend_at_tie,
+        extend_tiebreak: format.extend_tiebreak ?? false,
+        sudden_death: format.sudden_death ?? false,
         tiebreak_to: format.tiebreak_to,
         status: 'running',
         started_at: null,

@@ -41,7 +41,7 @@
             to: number;
             total: number;
         };
-        stats: { total: number; admins: number };
+        stats: { total: number; admins: number; umpires: number };
         filters: { search: string; role: string[] };
     } = $props();
 
@@ -123,6 +123,10 @@
             <span class="text-coral font-medium"
                 >{stats.admins} admin{stats.admins !== 1 ? 's' : ''}</span
             >
+            <span class="mx-1.5 text-neutral-300">·</span>
+            <span class="text-emerald-600 font-medium"
+                >{stats.umpires} umpire{stats.umpires !== 1 ? 's' : ''}</span
+            >
         </p>
     {/snippet}
 
@@ -163,7 +167,7 @@
         </div>
 
         <div class="flex items-center gap-1">
-            {#each [{ value: 'super-admin', label: 'Super admin' }, { value: 'admin', label: 'Admin' }] as opt (opt.value)}
+            {#each [{ value: 'super-admin', label: 'Super admin' }, { value: 'admin', label: 'Admin' }, { value: 'umpire', label: 'Umpire' }] as opt (opt.value)}
                 <button
                     type="button"
                     onclick={() => toggleRole(opt.value)}

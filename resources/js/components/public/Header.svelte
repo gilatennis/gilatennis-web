@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Search, Menu, X, Sun, Moon } from 'lucide-svelte/icons';
-    import { themeState } from '@/lib/theme.svelte';
+    import { DARK_MODE_ENABLED, themeState } from '@/lib/theme.svelte';
 
     const categories = [
         // 'Rackets',
@@ -98,17 +98,19 @@
                 <Search size={19} />
             </button>
             -->
-            <button
-                onclick={() =>
-                    updateAppearance(
-                        resolvedAppearance() === 'dark' ? 'light' : 'dark',
-                    )}
-                class="h-10 w-10 grid place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5"
-                aria-label="Toggle dark mode"
-            >
-                <Sun size={19} class="hidden dark:block" />
-                <Moon size={19} class="block dark:hidden" />
-            </button>
+            {#if DARK_MODE_ENABLED}
+                <button
+                    onclick={() =>
+                        updateAppearance(
+                            resolvedAppearance() === 'dark' ? 'light' : 'dark',
+                        )}
+                    class="h-10 w-10 grid place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5"
+                    aria-label="Toggle dark mode"
+                >
+                    <Sun size={19} class="hidden dark:block" />
+                    <Moon size={19} class="block dark:hidden" />
+                </button>
+            {/if}
             <!--
             <button
                 class="h-10 w-10 grid place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/5 hidden sm:grid"

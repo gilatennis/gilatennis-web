@@ -29,6 +29,8 @@ class TennisMatchFactory extends Factory
             'sets_to_win' => 2,
             'games_to_win' => 6,
             'extend_at_tie' => false,
+            'extend_tiebreak' => false,
+            'sudden_death' => true,
             'tiebreak_to' => 7,
             'status' => 'pending',
             'started_at' => null,

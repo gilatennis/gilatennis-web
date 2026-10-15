@@ -85,6 +85,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.groups.entrants.move');
 
+    Route::post('tournaments/{tournament}/divisions/{division}/bracket/groups/{group}/entrants/remove', [BracketController::class, 'removeGroupEntrant'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.groups.entrants.remove');
+
     Route::patch('tournaments/{tournament}/divisions/{division}/bracket/groups/{group}/settings', [BracketController::class, 'updateGroupSettings'])
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.groups.settings.update');
@@ -154,6 +158,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     Route::post('tennis-matches/{match}/undo', [TennisMatchScoringController::class, 'undo'])
         ->name('tennis-matches.undo');
+
+    Route::post('tennis-matches/{match}/status', [TennisMatchScoringController::class, 'status'])
+        ->name('tennis-matches.status');
 
     Route::resource('users', UserController::class)
         ->only(['index', 'create', 'store', 'edit', 'update', 'destroy'])

@@ -7,16 +7,17 @@
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
     import Pagination from '@/components/admin/Pagination.svelte';
     import AppHead from '@/components/AppHead.svelte';
+    import { Button } from '@/components/ui/button';
+    import { useMatchStatus } from '@/composables/useMatchStatus.svelte';
+    import type { MatchStatusValue } from '@/lib/tennis-engine';
     import { show as showMatch } from '@/routes/admin/tennis-matches';
-
-    type MatchStatus = 'pending' | 'running' | 'completed' | 'canceled';
 
     interface Match {
         id: number;
         side_a_name: string;
         side_b_name: string;
         format_label: string;
-        status: MatchStatus;
+        status: MatchStatusValue;
         started_at: string | null;
     }
 
@@ -45,6 +46,16 @@
             data: { page },
             preserveState: true,
         });
+    }
+
+    const { setStatus, busyId } = useMatchStatus();
+
+    function sendToCourt(match: Match) {
+        setStatus(match.id, 'running', ['matches', 'stats']);
+    }
+
+    function recall(match: Match) {
+        setStatus(match.id, 'pending', ['matches', 'stats']);
     }
 
     function formatDate(iso: string | null): string {
@@ -110,7 +121,7 @@
         <DataTable
             items={matches.data}
             getKey={(m) => m.id}
-            columns="60px 2fr 1.6fr 110px 120px"
+            columns="60px 2fr 1.6fr 110px 120px 150px"
         >
             {#snippet empty()}
                 <div
@@ -139,7 +150,7 @@
         <DataTable
             items={matches.data}
             getKey={(m) => m.id}
-            columns="60px 2fr 1.6fr 110px 120px"
+            columns="60px 2fr 1.6fr 110px 120px 150px"
         >
             {#snippet header()}
                 <div>#</div>
@@ -147,6 +158,7 @@
                 <div>Format</div>
                 <div>Status</div>
                 <div>Started</div>
+                <div class="text-right">Court</div>
             {/snippet}
 
             {#snippet row(m)}
@@ -173,6 +185,31 @@
                         {formatDate(m.started_at)}
                     </div>
                 </Link>
+                <div class="flex justify-end">
+                    {#if m.status === 'pending'}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            data-testid="match-send-court"
+                            title="Send to court — appears on the umpire's screen"
+                            disabled={busyId === m.id}
+                            onclick={() => sendToCourt(m)}
+                        >
+                            Send to court
+                        </Button>
+                    {:else if m.status === 'running'}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            data-testid="match-recall"
+                            title="Recall from court — back to pending"
+                            disabled={busyId === m.id}
+                            onclick={() => recall(m)}
+                        >
+                            Recall
+                        </Button>
+                    {/if}
+                </div>
             {/snippet}
 
             {#snippet pagination()}

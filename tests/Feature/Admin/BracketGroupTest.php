@@ -455,6 +455,93 @@ describe('Group entrant management', function () {
             ->and($groupB->fresh()->entrantIds())->toContain($entrant->id);
     });
 
+    it('removes an entrant from the group stage and rebuilds its fixtures', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $group = $bracket->groups->firstWhere('position', 0);
+
+        $removed = TournamentRegistration::find($group->entrantIds()->first());
+
+        app(BracketService::class)->removeEntrant($division, $removed);
+
+        expect($group->fresh()->entrantIds())->not->toContain($removed->id)
+            ->and($group->fresh()->entrantIds())->toHaveCount(3)
+            ->and($group->slots()->count())->toBe(3);
+    });
+
+    it('clears an advancing pick when its entrant is removed', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $service = app(BracketService::class);
+        $bracket = $service->generateGroups($division, 2, [1, 1]);
+        $group = $bracket->groups->firstWhere('position', 0);
+        $pick = $group->entrantIds()->first();
+
+        $service->setGroupWinners($group, [$pick]);
+        $service->removeEntrant($division, TournamentRegistration::find($pick));
+
+        expect($group->fresh()->winnerIds())->not->toContain($pick);
+    });
+
+    it('blocks removing an entrant once a group has started', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $group = $bracket->groups->firstWhere('position', 0);
+
+        $slot = $group->slots->first();
+        $slot->update(['winner_entrant_id' => $slot->entrant_a_id]);
+
+        $removed = TournamentRegistration::find($group->entrantIds()->first());
+
+        expect(fn () => app(BracketService::class)->removeEntrant($division, $removed))
+            ->toThrow(InvalidArgumentException::class, 'already started');
+    });
+
+    it('removes an entrant through the admin endpoint', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $group = $bracket->groups->firstWhere('position', 0);
+        $entrant = TournamentRegistration::find($group->entrantIds()->first());
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.groups.entrants.remove', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'group' => $group->id,
+            ]), ['entrant_id' => $entrant->id])
+            ->assertRedirect();
+
+        expect($group->fresh()->entrantIds())->not->toContain($entrant->id);
+    });
+
+    it('rejects removing an entrant who is not in the group', function () {
+        $division = groupTestDivision(8, 'singles');
+        groupTestEntrants($division, 8);
+
+        $bracket = app(BracketService::class)->generateGroups($division, 2, [1, 1]);
+        $groupA = $bracket->groups->firstWhere('position', 0);
+        $groupB = $bracket->groups->firstWhere('position', 1);
+
+        $outsider = TournamentRegistration::find($groupB->entrantIds()->first());
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.tournaments.divisions.bracket.groups.entrants.remove', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'group' => $groupA->id,
+            ]), ['entrant_id' => $outsider->id])
+            ->assertSessionHasErrors('entrant_id');
+
+        expect($groupB->fresh()->entrantIds())->toContain($outsider->id);
+    });
+
     it('updates a group setting through the admin endpoint', function () {
         $division = groupTestDivision(8, 'singles');
         groupTestEntrants($division, 8);

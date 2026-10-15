@@ -21,7 +21,7 @@ class BracketGroupWinnerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'winner_ids' => ['required', 'array', 'min:1'],
+            'winner_ids' => ['present', 'array'],
             'winner_ids.*' => ['required', 'integer', 'distinct', 'exists:tournament_registrations,id'],
         ];
     }

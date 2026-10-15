@@ -11,6 +11,7 @@
     import PromoteWinnersDialog from '@/components/admin/stages/PromoteWinnersDialog.svelte';
     import RubbersDialog from '@/components/admin/stages/RubbersDialog.svelte';
     import SetWinnerModal from '@/components/admin/stages/SetWinnerModal.svelte';
+    import UnassignedEntrants from '@/components/admin/stages/UnassignedEntrants.svelte';
     import UndoWinnerModal from '@/components/admin/stages/UndoWinnerModal.svelte';
     import { Button } from '@/components/ui/button';
     import {
@@ -64,6 +65,13 @@
     const paidCount = $derived(entrants.length);
     const groups = $derived(groupStage?.groups ?? []);
     const hasKnockout = $derived(knockoutStatus !== null);
+
+    const assignedIds = $derived(
+        new Set(groups.flatMap((group) => group.entrants.map((e) => e.id))),
+    );
+    const unassigned = $derived(
+        entrants.filter((entrant) => !assignedIds.has(entrant.id)),
+    );
 
     let showGenerate = $state(false);
     let showPromote = $state(false);
@@ -128,6 +136,8 @@
     const canEdit = (group: BracketGroup) =>
         !completed && !startedGroupIds[group.id];
 
+    const editableGroups = $derived(groups.filter((group) => canEdit(group)));
+
     const allPicked = $derived(
         groups.length > 0 &&
             groups.every(
@@ -180,6 +190,14 @@
         router.post(
             entrantsRoute.move.url({ ...args, group: groupId }),
             { entrant_id: entrantId, to_group_id: toGroupId },
+            { preserveScroll: true },
+        );
+    }
+
+    function removeEntrant(groupId: number, entrantId: number) {
+        router.post(
+            entrantsRoute.remove.url({ ...args, group: groupId }),
+            { entrant_id: entrantId },
             { preserveScroll: true },
         );
     }
@@ -410,32 +428,45 @@
         {/if}
 
         <div
-            id="group-stage-groups"
-            data-testid="group-stage-groups"
-            class="flex flex-col gap-5"
+            class="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"
         >
-            {#each groups as group (group.id)}
-                <GroupCard
-                    {group}
-                    siblings={groups}
-                    {isTeam}
-                    {entrants}
-                    canEdit={canEdit(group)}
-                    canPick={!completed}
-                    onStart={startSlot}
-                    onRubbers={openRubbers}
-                    onAdvance={openAdvanceConfirm}
-                    onUndo={openUndoConfirm}
-                    canUndo={() => true}
-                    onAddEntrant={(entrantId) =>
-                        addEntrant(group.id, entrantId)}
-                    onMoveEntrant={(entrantId, toGroupId) =>
-                        moveEntrant(group.id, entrantId, toGroupId)}
-                    onToggleDouble={(value) => toggleDouble(group.id, value)}
-                    onToggleWinner={(entrantId) =>
-                        toggleWinner(group.id, entrantId)}
+            <div class="lg:col-start-2 lg:row-start-1">
+                <UnassignedEntrants
+                    {unassigned}
+                    targets={editableGroups}
+                    canEdit={editableGroups.length > 0}
+                    onAdd={addEntrant}
                 />
-            {/each}
+            </div>
+
+            <div
+                id="group-stage-groups"
+                data-testid="group-stage-groups"
+                class="flex flex-col gap-5 lg:col-start-1 lg:row-start-1"
+            >
+                {#each groups as group (group.id)}
+                    <GroupCard
+                        {group}
+                        siblings={groups}
+                        {isTeam}
+                        canEdit={canEdit(group)}
+                        canPick={!completed}
+                        onStart={startSlot}
+                        onRubbers={openRubbers}
+                        onAdvance={openAdvanceConfirm}
+                        onUndo={openUndoConfirm}
+                        canUndo={() => true}
+                        onRemoveEntrant={(entrantId) =>
+                            removeEntrant(group.id, entrantId)}
+                        onMoveEntrant={(entrantId, toGroupId) =>
+                            moveEntrant(group.id, entrantId, toGroupId)}
+                        onToggleDouble={(value) =>
+                            toggleDouble(group.id, value)}
+                        onToggleWinner={(entrantId) =>
+                            toggleWinner(group.id, entrantId)}
+                    />
+                {/each}
+            </div>
         </div>
     {/if}
 {/if}

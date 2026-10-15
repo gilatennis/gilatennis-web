@@ -111,11 +111,24 @@ describe('Admin User Management', function () {
             );
     });
 
-    it('applies default role filter (super-admin + admin) when no filter is set', function () {
+    it('applies default role filter (super-admin + admin + umpire) when no filter is set', function () {
         $this->actingAs($this->admin)
             ->get(route('admin.users.index'))
             ->assertInertia(fn ($page) => $page
-                ->where('filters.role', ['super-admin', 'admin'])
+                ->where('filters.role', ['super-admin', 'admin', 'umpire'])
+            );
+    });
+
+    it('lists umpires by default and counts them in stats', function () {
+        User::factory()->withRole(User::ROLE_UMPIRE, 'Umpire')->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('stats.umpires', 1)
+                ->where('users.data', fn ($rows) => collect($rows)
+                    ->contains(fn ($row) => $row['role']['slug'] === User::ROLE_UMPIRE))
             );
     });
 
@@ -133,7 +146,8 @@ describe('Admin User Management', function () {
             ->assertStatus(200)
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Users/Create')
-                ->has('availableRoles', 1)
+                ->has('availableRoles', 2)
+                ->where('availableRoles.1.slug', User::ROLE_UMPIRE)
             );
     });
 
