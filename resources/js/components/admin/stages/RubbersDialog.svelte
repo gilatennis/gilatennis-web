@@ -1,7 +1,10 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
+    import Pencil from 'lucide-svelte/icons/pencil';
+    import Trash from 'lucide-svelte/icons/trash';
+    import ConfirmModal from '@/components/admin/ConfirmModal.svelte';
     import MatchStatusBadge from '@/components/admin/MatchStatusBadge.svelte';
     import RubberForm from '@/components/admin/stages/RubberForm.svelte';
+    import { IconTennisBall } from '@/components/public/icons';
     import { Button } from '@/components/ui/button';
     import {
         Dialog,
@@ -11,7 +14,6 @@
         DialogTitle,
     } from '@/components/ui/dialog';
     import { useMatchStatus } from '@/composables/useMatchStatus.svelte';
-    import { show as showMatch } from '@/routes/admin/tennis-matches';
     import type {
         BracketMatchSummary,
         BracketSlot,
@@ -23,15 +25,19 @@
         slot,
         onAdd,
         onSave,
+        onDelete,
     }: {
         open?: boolean;
         slot: BracketSlot | null;
         onAdd: (payload: RubberPayload) => void;
         onSave: (rubber: BracketMatchSummary, payload: RubberPayload) => void;
+        onDelete: (rubber: BracketMatchSummary) => void;
     } = $props();
 
     let mode = $state<'list' | 'form'>('list');
     let editing = $state<BracketMatchSummary | null>(null);
+    let deleteTarget = $state<BracketMatchSummary | null>(null);
+    let showDelete = $state(false);
     let wasOpen = false;
 
     const { setStatus, busyId } = useMatchStatus();
@@ -85,6 +91,19 @@
 
     function recall(match: BracketMatchSummary) {
         setStatus(match.id, 'pending', ['bracket', 'groupStage']);
+    }
+
+    function askDelete(match: BracketMatchSummary) {
+        deleteTarget = match;
+        showDelete = true;
+    }
+
+    function confirmDelete() {
+        if (deleteTarget) {
+            onDelete(deleteTarget);
+        }
+
+        deleteTarget = null;
     }
 </script>
 
@@ -162,6 +181,20 @@
                                     />
                                 </span>
 
+                                {#if match.status === 'pending'}
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        class="size-8 text-coral"
+                                        data-testid="rubber-delete"
+                                        title="Delete this rubber"
+                                        disabled={busyId === match.id}
+                                        onclick={() => askDelete(match)}
+                                    >
+                                        <Trash class="size-3.5" />
+                                    </Button>
+                                {/if}
+
                                 <div class="flex items-center gap-2 sm:ml-auto">
                                     <Button
                                         variant="outline"
@@ -170,25 +203,7 @@
                                         title={`Edit ${match.format_label}`}
                                         onclick={() => startEdit(match)}
                                     >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        class="text-coral"
-                                        asChild
-                                    >
-                                        {#snippet children(props)}
-                                            <Link
-                                                href={showMatch({
-                                                    match: match.id,
-                                                }).url}
-                                                class={props.class}
-                                                data-testid="rubber-score"
-                                            >
-                                                Score
-                                            </Link>
-                                        {/snippet}
+                                        <Pencil class="size-3.5" /> Edit
                                     </Button>
                                     {#if match.status === 'pending'}
                                         <Button
@@ -199,6 +214,11 @@
                                             disabled={busyId === match.id}
                                             onclick={() => sendToCourt(match)}
                                         >
+                                            <IconTennisBall
+                                                size={14}
+                                                stroke={2}
+                                                class="size-3.5"
+                                            />
                                             On court
                                         </Button>
                                     {:else if match.status === 'running'}
@@ -235,3 +255,14 @@
         {/if}
     </DialogContent>
 </Dialog>
+
+<ConfirmModal
+    bind:open={showDelete}
+    title="Delete rubber"
+    message={deleteTarget
+        ? `${deleteTarget.side_a_name} vs ${deleteTarget.side_b_name}. This removes the rubber from the tie and cannot be undone.`
+        : ''}
+    confirmLabel="Delete Rubber"
+    destructive
+    onConfirm={confirmDelete}
+/>

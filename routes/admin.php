@@ -133,6 +133,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.slots.rubbers.store');
 
+    Route::delete('tournaments/{tournament}/divisions/{division}/bracket/slots/{slot}/rubbers/{match}', [BracketController::class, 'removeRubber'])
+        ->scopeBindings()
+        ->name('tournaments.divisions.bracket.slots.rubbers.destroy');
+
     Route::patch('tournaments/{tournament}/divisions/{division}/bracket/slots/{slot}', [BracketController::class, 'updateSlot'])
         ->scopeBindings()
         ->name('tournaments.divisions.bracket.slots.update');

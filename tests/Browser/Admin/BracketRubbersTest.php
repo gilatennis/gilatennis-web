@@ -117,13 +117,11 @@ it('summarises an empty tie and adds the first rubber from the dialog', function
         JS);
 });
 
-it('lists every rubber with edit and score buttons and edits from a row', function () {
+it('lists every rubber with edit and delete controls and edits from a row', function () {
     [$admin, $tournament, $division] = rubberBracketSetup();
 
     startTeamRubber($division, $admin);
     startTeamRubber($division, $admin, 'Eve / Fay', 'Gia / Hana');
-
-    $matchIds = TennisMatch::orderBy('id')->pluck('id')->all();
 
     $page = openRubberBracket($admin, $tournament, $division);
 
@@ -135,25 +133,15 @@ it('lists every rubber with edit and score buttons and edits from a row', functi
         ->assertSeeIn('@rubber-list', 'Eve / Fay')
         ->assertSeeIn('@rubber-list', 'Gia / Hana');
 
-    $page->assertScript(sprintf(
-        <<<'JS'
+    $page->assertScript(<<<'JS'
         function() {
             const rows = document.querySelectorAll('[data-testid="rubber-row"]');
             const edits = document.querySelectorAll('[data-testid="rubber-edit"]');
-            const scores = [...document.querySelectorAll('[data-testid="rubber-score"]')];
+            const deletes = document.querySelectorAll('[data-testid="rubber-delete"]');
 
-            if (rows.length !== 2 || edits.length !== 2 || scores.length !== 2) {
-                return false;
-            }
-
-            const expected = [%s].map((id) => `/admin/tennis-matches/${id}`).sort();
-            const actual = scores.map((link) => new URL(link.href).pathname).sort();
-
-            return JSON.stringify(actual) === JSON.stringify(expected);
+            return rows.length === 2 && edits.length === 2 && deletes.length === 2;
         }
-        JS,
-        implode(', ', $matchIds),
-    ));
+        JS);
 
     $page->click('@rubber-edit')
         ->wait(1)

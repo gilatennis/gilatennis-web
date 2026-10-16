@@ -11,8 +11,9 @@ import { bracketsUrl, resolveDivisionId } from './helpers/brackets';
 /*
  * Adding a rubber through the tie modal proves the format switches round-trip:
  * the toggles the admin flips are persisted by the real endpoint and read back
- * when the rubber is reopened for editing. Uses the dedicated `e2e-rubber`
- * fixture (one ready tie, no rubbers yet).
+ * when the rubber is reopened for editing. The pending rubber is then deleted
+ * through the confirm dialog. Uses the dedicated `e2e-rubber` fixture (one
+ * ready tie, no rubbers yet).
  */
 
 async function toggle(page: Page, testId: string, on: boolean): Promise<void> {
@@ -91,4 +92,21 @@ test('sets a rubber format through the toggles and reads it back', async ({
         'aria-checked',
         'false',
     );
+
+    // Back to the list, then delete the pending rubber through the confirm
+    // dialog and read the empty state back.
+    await page.getByTestId('rubber-cancel').click();
+    await page.getByTestId('rubber-delete').click();
+
+    await Promise.all([
+        page.waitForResponse(
+            (response) =>
+                response.url().includes('/rubbers') &&
+                response.request().method() === 'DELETE' &&
+                response.status() < 400,
+        ),
+        page.getByTestId('confirm-modal-accept').click(),
+    ]);
+
+    await expect(page.getByTestId('rubber-row')).toHaveCount(0);
 });

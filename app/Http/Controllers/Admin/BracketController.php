@@ -21,6 +21,7 @@ use App\Models\BracketGroup;
 use App\Models\BracketGroupEntrant;
 use App\Models\BracketSlot;
 use App\Models\Division;
+use App\Models\TennisMatch;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Services\BracketService;
@@ -398,6 +399,30 @@ class BracketController extends Controller
             fn () => $this->brackets->startSlot($slot, $this->slotOverrides($request)),
             'slot',
             'Team rubber added.',
+            $tournament,
+            $division,
+        );
+    }
+
+    /**
+     * Remove a rubber from a team tie. Only pending rubbers may be deleted, so
+     * the request is rejected once a rubber has been sent to court. The match
+     * is bound to the slot by the route's scoped binding.
+     */
+    public function removeRubber(
+        Tournament $tournament,
+        Division $division,
+        BracketSlot $slot,
+        TennisMatch $match,
+    ): RedirectResponse {
+        if ($division->participation_category !== 'team') {
+            return back()->withErrors(['slot' => 'Rubbers are only used for team ties.']);
+        }
+
+        return $this->attempt(
+            fn () => $this->brackets->removeRubber($match),
+            'slot',
+            'Rubber removed.',
             $tournament,
             $division,
         );

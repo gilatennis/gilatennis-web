@@ -161,6 +161,11 @@ class BracketService
         return $this->knockout->startSlot($slot, $overrides);
     }
 
+    public function removeRubber(TennisMatch $match): void
+    {
+        $this->knockout->removeRubber($match);
+    }
+
     public function setWinner(BracketSlot $slot, ?TournamentRegistration $winner, ?string $reason = null): void
     {
         $this->knockout->setWinner($slot, $winner, $reason);

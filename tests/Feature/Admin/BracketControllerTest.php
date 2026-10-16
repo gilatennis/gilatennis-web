@@ -3,11 +3,14 @@
 use App\Enums\BracketStatus;
 use App\Enums\BracketType;
 use App\Enums\MatchStatus;
+use App\Enums\TennisMatchEventType;
 use App\Models\Bracket;
 use App\Models\BracketSlot;
 use App\Models\Division;
 use App\Models\Role;
 use App\Models\TennisMatch;
+use App\Models\TennisMatchEvent;
+use App\Models\TennisMatchState;
 use App\Models\Tournament;
 use App\Models\TournamentRegistration;
 use App\Models\User;
@@ -777,6 +780,164 @@ describe('Admin Team Rubber Formats', function () {
             ->assertSessionHasErrors('slot');
 
         expect(TennisMatch::count())->toBe(0);
+    });
+});
+
+describe('Admin Rubber Deletion', function () {
+    function bracketRubberTie(int $drawSize = 2): array
+    {
+        $division = bracketTestDivision($drawSize, 'team');
+        bracketTestEntrants($division, $drawSize);
+
+        test()->actingAs(test()->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $bracket = Bracket::where('division_id', $division->id)->firstOrFail();
+
+        return [$division, $bracket];
+    }
+
+    function addPendingRubber(Division $division, BracketSlot $slot): TennisMatch
+    {
+        test()->actingAs(test()->admin)->post(route('admin.tournaments.divisions.bracket.slots.rubbers.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+            'slot' => $slot->id,
+        ]), ['side_a_name' => 'Ana', 'side_b_name' => 'Cara']);
+
+        return TennisMatch::latest('id')->firstOrFail();
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    function rubberDestroyArgs(Division $division, BracketSlot $slot, TennisMatch $match): array
+    {
+        return [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+            'slot' => $slot->id,
+            'match' => $match->id,
+        ];
+    }
+
+    it('deletes a pending rubber and returns to the bracket', function () {
+        [$division, $bracket] = bracketRubberTie();
+        $slot = $bracket->slots()->where('round', 1)->firstOrFail();
+        $match = addPendingRubber($division, $slot);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.rubbers.destroy', rubberDestroyArgs($division, $slot, $match)))
+            ->assertRedirect(route('admin.tournaments.divisions.show', [
+                'tournament' => $division->tournament_id,
+                'division' => $division->id,
+                'tab' => 'brackets',
+            ]));
+
+        expect(TennisMatch::find($match->id))->toBeNull();
+    });
+
+    it('cascade-deletes the rubber state and events', function () {
+        [$division, $bracket] = bracketRubberTie();
+        $slot = $bracket->slots()->where('round', 1)->firstOrFail();
+        $match = addPendingRubber($division, $slot);
+
+        $match->events()->create([
+            'seq' => 1,
+            'type' => TennisMatchEventType::Point,
+            'side' => 1,
+        ]);
+
+        expect(TennisMatchState::where('tennis_match_id', $match->id)->count())->toBe(1)
+            ->and(TennisMatchEvent::count())->toBe(1);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.rubbers.destroy', rubberDestroyArgs($division, $slot, $match)));
+
+        expect(TennisMatch::find($match->id))->toBeNull()
+            ->and(TennisMatchState::where('tennis_match_id', $match->id)->count())->toBe(0)
+            ->and(TennisMatchEvent::where('tennis_match_id', $match->id)->count())->toBe(0);
+    });
+
+    it('refuses to delete a rubber that belongs to another slot', function () {
+        [$division, $bracket] = bracketRubberTie(4);
+
+        $slots = $bracket->slots()->where('round', 1)->orderBy('position')->get();
+        $match = addPendingRubber($division, $slots[0]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.rubbers.destroy', rubberDestroyArgs($division, $slots[1], $match)))
+            ->assertNotFound();
+
+        expect(TennisMatch::find($match->id))->not->toBeNull();
+    });
+
+    it('refuses to delete a rubber through a mismatched division', function () {
+        [$divisionA, $bracketA] = bracketRubberTie();
+        $slotA = $bracketA->slots()->where('round', 1)->firstOrFail();
+        $match = addPendingRubber($divisionA, $slotA);
+
+        $divisionB = bracketTestDivision(2, 'team');
+        bracketTestEntrants($divisionB, 2);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $divisionB->tournament_id,
+            'division' => $divisionB->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.rubbers.destroy', [
+                'tournament' => $divisionB->tournament_id,
+                'division' => $divisionB->id,
+                'slot' => $slotA->id,
+                'match' => $match->id,
+            ]))
+            ->assertNotFound();
+
+        expect(TennisMatch::find($match->id))->not->toBeNull();
+    });
+
+    it('refuses to delete a rubber once it has started', function () {
+        [$division, $bracket] = bracketRubberTie();
+        $slot = $bracket->slots()->where('round', 1)->firstOrFail();
+        $match = addPendingRubber($division, $slot);
+
+        $match->update(['status' => MatchStatus::Running]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.rubbers.destroy', rubberDestroyArgs($division, $slot, $match)))
+            ->assertSessionHasErrors('slot');
+
+        expect(TennisMatch::find($match->id))->not->toBeNull();
+    });
+
+    it('refuses to delete a match in a singles division', function () {
+        $division = bracketTestDivision(2);
+        bracketTestEntrants($division, 2);
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+        ]), ['seeding_mode' => 'auto']);
+
+        $slot = Bracket::where('division_id', $division->id)->firstOrFail()
+            ->slots()->where('round', 1)->firstOrFail();
+
+        $this->actingAs($this->admin)->post(route('admin.tournaments.divisions.bracket.slots.match.store', [
+            'tournament' => $division->tournament_id,
+            'division' => $division->id,
+            'slot' => $slot->id,
+        ]));
+
+        $match = TennisMatch::firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tournaments.divisions.bracket.slots.rubbers.destroy', rubberDestroyArgs($division, $slot, $match)))
+            ->assertSessionHasErrors('slot');
+
+        expect(TennisMatch::find($match->id))->not->toBeNull();
     });
 });
 

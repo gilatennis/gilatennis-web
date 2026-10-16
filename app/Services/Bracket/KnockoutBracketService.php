@@ -484,6 +484,21 @@ class KnockoutBracketService
     }
 
     /**
+     * Remove a rubber (an individual match) from a team tie. Only a pending
+     * rubber may be deleted: a started rubber carries score state, and a
+     * completed one contributes sets and games to the group standings, so
+     * deleting either would silently rewrite results.
+     */
+    public function removeRubber(TennisMatch $match): void
+    {
+        if ($match->status !== MatchStatus::Pending) {
+            throw new InvalidArgumentException('Only a pending rubber can be deleted.');
+        }
+
+        DB::transaction(fn () => $match->delete());
+    }
+
+    /**
      * Explicitly award a slot to an entrant. This is the only path that
      * advances a slot; match results never propagate automatically. Passing
      * null clears the result and every downstream entrant/winner.

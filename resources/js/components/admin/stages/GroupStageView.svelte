@@ -267,6 +267,21 @@
         });
     }
 
+    function deleteRubber(rubber: BracketMatchSummary) {
+        if (!rubbersSlot) {
+            return;
+        }
+
+        router.delete(
+            slotsRoute.rubbers.destroy.url({
+                ...args,
+                slot: rubbersSlot.id,
+                match: rubber.id,
+            }),
+            { preserveScroll: true },
+        );
+    }
+
     function openAdvanceConfirm(slot: BracketSlot, entrant: BracketEntrant) {
         setWinnerSlot = slot;
         setWinnerEntrant = entrant;
@@ -485,6 +500,7 @@
     slot={rubbersSlot}
     onAdd={addRubber}
     onSave={saveRubber}
+    onDelete={deleteRubber}
 />
 
 <ConfirmModal

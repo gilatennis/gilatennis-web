@@ -352,6 +352,7 @@
     {#if rubber}
         <Link
             href={showMatch({ match: rubber.id }).url}
+            data-testid="rubber-score-link"
             class="h-9 px-4 inline-flex items-center justify-center gap-2 border border-black/12 text-[11px] font-bold uppercase tracking-[0.16em] text-coral hover:border-coral/40 transition-colors sm:mr-auto"
         >
             Score

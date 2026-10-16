@@ -330,8 +330,11 @@ function teamJourneyPlayTieViaUi(
         "document.querySelectorAll('[data-testid=\"rubber-row\"]').length === 1"
     );
 
-    // Open the rubber's scoreboard and play a Fast-4 set for the chosen side.
-    $page->click('@rubber-score')->assertPresent('@server-pick-a');
+    // Open the rubber's scoreboard from its edit form and play a Fast-4 set.
+    $page->click('@rubber-edit')
+        ->assertPresent('@rubber-score-link')
+        ->click('@rubber-score-link')
+        ->assertPresent('@server-pick-a');
 
     $match = TennisMatch::where('bracket_slot_id', $slotId)->latest('id')->firstOrFail();
 
