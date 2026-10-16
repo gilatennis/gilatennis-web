@@ -207,6 +207,15 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 
 ## Production Deploy Verification
 
+Migrations are **not** run automatically on deploy (the image only starts FrankenPHP, the queue and the scheduler; Dokploy just pulls and restarts). After a deploy that adds migrations, run them from the repo root:
+
+```sh
+make prod-status    # php artisan migrate:status --pending on the prod container
+make migrate-prod   # backs up prod, then `migrate --force`, then re-checks
+```
+
+Both targets SSH to Hetzner and target the running app container by image ancestor, so they survive the container name changing on each deploy. `make prod-artisan CMD="…"` runs any other artisan command in production. `make migrate-prod ARGS="--no-backup"` skips the backup; `ARGS="--pretend"` prints the SQL without applying.
+
 After rebuilding and pushing a new image (`make build && make push` on Mac, `make pull && make up` on the server), confirm the storage symlink is correct in the running container:
 
 ```sh

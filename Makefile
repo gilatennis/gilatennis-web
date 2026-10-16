@@ -7,7 +7,7 @@ PROD_DB_IMAGE ?= mysql:8
 PROD_APP_IMAGE ?= kevinjanada/gilatennis_web:latest
 BACKUP_DIR ?= storage/app/db-backups
 
-.PHONY: build push pull up down dev migrate seed storage-link logs db-pull storage-pull mirror
+.PHONY: build push pull up down dev migrate seed storage-link logs db-pull storage-pull mirror migrate-prod prod-status prod-artisan
 
 # Build for linux (run on Mac)
 build:
@@ -56,3 +56,13 @@ logs:
 
 queue-logs:
 	docker compose exec app php artisan queue:listen --tries=1
+
+# Production (over SSH; migrations are not automated on deploy)
+migrate-prod:
+	@SSH=$(SSH) PROD_APP_IMAGE=$(PROD_APP_IMAGE) PROD_DB_IMAGE=$(PROD_DB_IMAGE) BACKUP_DIR=$(BACKUP_DIR) scripts/migrate-prod.sh $(ARGS)
+
+prod-status:
+	@SSH=$(SSH) PROD_APP_IMAGE=$(PROD_APP_IMAGE) scripts/prod-artisan.sh migrate:status --pending
+
+prod-artisan:
+	@SSH=$(SSH) PROD_APP_IMAGE=$(PROD_APP_IMAGE) scripts/prod-artisan.sh $(CMD)
